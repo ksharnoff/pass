@@ -19,7 +19,9 @@ this is just a list to be edited down later to what to write
 - all of the information, except for the name of the entry, its tags, and if its in circulation are encrypted. 
   - the 'displayName' of the username, password, and security question fields are also encrypted.
   - there is no varaible for the display name for (entry) name, tags, notes, or if its in circulation, so that is not encrypted
-- .
+- don't use on a cloud hosted computer!! or a shared computer!! 
+  - some of the sensitive data is briefly stored in the memory 
+- 
 
 #### file writing
 - it writes to 
