@@ -13,8 +13,6 @@ an array of strings?
 
 move text, grid, flex to structs!!! -- cleaner!
 
-have count of not in circulation entries to make lists printing more smooth, no gaps
-
 rename commandsText
 rename grider
 
@@ -25,6 +23,11 @@ put newEntry into structs
 fix EnableMouse to be off when can copy text, write about mouse usage in /help
 
 need to rewrite /open to be a list, click on one to get copy but also should be that should just highlight it? maybe don't do copy -- decide tomorrow
+
+for /find: 
+// make extra check, if str is over a certain character count then don't print all the characters in a line, would look funny. also can garanetted not any entries per that amount so can skip all the cycling through
+
+for commandsText in /open write that in order to edit you must go to /edit
 */
 
 package main
@@ -35,6 +38,7 @@ import (
 	"strconv" // used to convert _ to string and string to _
 	"fmt" //used only to convert struct to string for testing functions
 	"strings"
+	"github.com/atotto/clipboard"
 )
 
 type entry struct {
@@ -96,7 +100,7 @@ func main(){
 		entry{name: "libary B",tags: "library, demo, overdrive",usernames: []field{{displayName: "card",value: "12354126357812",secret: false,},},password: field{displayName: "pin",value: "12356",secret: false,},notes: "from google doc from dada ",circulate: false,},
 	}
 
-	for i := 0; i < 4; i++{ // put at 52 makes it show the max amount (when 5 already in entries)
+	for i := 0; i < 52; i++{ // put at 52 makes it show the max amount (when 5 already in entries)
 		entries = append(entries, entry{name: "test",tags: "demo, test!, smiles", circulate: true})
 	}
 
@@ -110,7 +114,7 @@ func main(){
 
 	// this is the text box that contains the commands, on the left and its grid (border)
 	commands := textGrid{text: tview.NewTextView().SetScrollable(true), grid: tview.NewGrid().SetBorders(true)}
-	homeCommands := " commands\n --------\n /home \n /help \n /new \n /find str\n /edit # \n /open # \n /list \nx/pick \n /test"
+	homeCommands := " commands\n --------\n /home \n /help \n /new \n /find str\n /edit # \n /open # \n /copen # \n /list \nx/pick \n /test"
 
 	// this is the box that the page is set to when at /home
 	// probably delete the title as some point, it's just like that for now tho
@@ -149,10 +153,14 @@ func main(){
 	// this is the text box with the /help info and its grid (border)
 	help := textGrid{text: tview.NewTextView().SetScrollable(true).SetText(" /help \n -----\n\n Do /new in order to put in a new entry. \n Do a;sdkfjkl  \n\n /find is case insensitve.  \n\n Do /open to view an entry. \n You will have to put in the password before you can see the information. \n Passwords and security questions will be blotted out, but they can be copied. (Or highlighted to see them) \n To delete an entry do /edit \n\n do /edit to edit fields or delete an entry. \n in /edit, all edits are permanently saved field by field as you click save \n\n the values of all fields, except the name of the entry and the tags, are equally encrypted. \n\n circulation? \n if you don't want an entry anymore, have no more use for it, but don't want to delete it, you should remove it from circulation. it will show up in /find results, but not from /list or /pick "), grid: tview.NewGrid().SetBorders(true)}
 
-	// will include a button for editing it ???? !!!!!!!make it a form to also have a button?????
+
 	// text and grid for opening an entry already made, its function to format the information
 	openEntry := textGrid{text: tview.NewTextView().SetScrollable(true), grid: tview.NewGrid().SetBorders(true)}
 	blankOpenEntry := func(i int) string {return "error, openEntry didn't run"}
+
+
+	copenEntry := listGrid{list: tview.NewList().SetMainTextColor(tcell.GetColor("ColorSnow")).SetSecondaryTextColor(tcell.GetColor("ColorSnow")).SetOffset(1, 1), grid: tview.NewGrid().SetBorders(true)}
+	blankCopenEntry := func(i int){}
 	
 
 	// when something happens that could give an error it will switch to here
@@ -253,6 +261,7 @@ func main(){
 
 	// written out what commandLine input does with stuff
 	commandLineActions = func(key tcell.Key){
+		app.EnableMouse(true)
 		lookRightCommandLinePlaceholder() // have this here as the default, can be changed with one of the cases
 		inputed = commandLine.input.GetText() 
 		inputedArr := strings.Split(inputed, " ") 
@@ -260,7 +269,7 @@ func main(){
 
 		// the following if/else statements check that the number inputed for /edit or /open
 		// that there is a number, it is an int, and it corresponds to an entry 
-		if (inputedArr[0] == "/open")||(inputedArr[0] == "/edit"){
+		if (inputedArr[0] == "/open")||(inputedArr[0] == "/edit")||(inputedArr[0] == "/copen"){
 
 			indexSelectEntry = -1 //  sets it here to remove any previous doings
 
@@ -309,11 +318,20 @@ func main(){
 			pages.SwitchToPage("/help")
 		case "/open":
 			if indexSelectEntry > -1 {
+				app.EnableMouse(false)
 				openEntry.text.SetText(blankOpenEntry(indexSelectEntry)) // taking input, just to be safe smile -- can change that in future
 				pages.SwitchToPage("/open")
 			}
+		case "/copen":
+			if indexSelectEntry > -1{
+				app.SetFocus(copenEntry.list)
+				app.EnableMouse(false)
+				blankCopenEntry(indexSelectEntry)
+				pages.SwitchToPage("/copen")
+			}
 		case "/edit":
 			if indexSelectEntry > -1 {
+				app.EnableMouse(false)
 				commands.text.SetText(editCommands)
 				cantTypeCommandLinePlaceholder()
 				switchToEditList()
@@ -598,6 +616,57 @@ func main(){
 		return print
 	}
 
+	blankCopenEntry = func(i int){
+		num := 0
+		copenEntry.list.Clear()
+		e := entries[i]
+
+		//print += "[" + strconv.Itoa(i) + "] " + e.name + "\n " 
+		copenEntry.list.AddItem("leave /edit", "(takes you back to /home)", runeAlphabet[num], func(){
+				switchToHome()
+			})
+		num++
+		copenEntry.list.AddItem("name:", e.name, runeAlphabet[num], func(){
+			clipboard.WriteAll(e.name)
+		})
+		if e.tags != ""{
+			num++
+			copenEntry.list.AddItem("tags:", e.tags, runeAlphabet[num], func(){
+				clipboard.WriteAll(e.tags)
+			})
+		}
+		num++
+		copenEntry.list.AddItem("in circulation:", strconv.FormatBool(e.circulate), runeAlphabet[num], func(){
+			clipboard.WriteAll(strconv.FormatBool(e.circulate))
+		})
+		for _, u := range e.usernames{
+			u := u
+			num++
+			copenEntry.list.AddItem(u.displayName + ":", u.value, runeAlphabet[num], func(){
+				clipboard.WriteAll(u.value)
+			})
+		}
+		if e.password.displayName != ""{
+			num++
+			copenEntry.list.AddItem(e.password.displayName + ":", "[black]" + e.password.value,  runeAlphabet[num], func(){
+				clipboard.WriteAll(e.password.value)
+			})
+		}
+		for _, sq := range e.securityQ{
+			sq := sq 
+			num++
+			copenEntry.list.AddItem(sq.displayName + ":", "[black]" + sq.value, runeAlphabet[num], func(){
+				clipboard.WriteAll(sq.value)
+			})
+		}
+		if e.notes != ""{
+			num++
+			copenEntry.list.AddItem("notes: ", e.notes, runeAlphabet[num], func(){
+				clipboard.WriteAll(e.notes)
+			})
+		}
+	}
+
 	// ----
 	// functions for editing an entry
 	// ----
@@ -637,7 +706,7 @@ func main(){
 		}
 		if e.password.displayName != "" {
 			numEntry++
-			edit.list.AddItem(e.password.displayName + ":", "SECRET!! " + e.password.value, runeAlphabet[numEntry], func(){
+			edit.list.AddItem(e.password.displayName + ":", "[black]" + e.password.value, runeAlphabet[numEntry], func(){
 				blankEditFieldForm(&e.password, nil, -1, e, true, true)
 				pages.ShowPage("/editField") 
 				app.SetFocus(editField.form)
@@ -648,7 +717,7 @@ func main(){
 			sq := &e.securityQ[i]
 			numEntry++
 
-			edit.list.AddItem(sq.displayName + ":", "SECRET!! " + sq.value, runeAlphabet[numEntry], func(){
+			edit.list.AddItem(sq.displayName + ":", "[black]" + sq.value, runeAlphabet[numEntry], func(){
 				blankEditFieldForm(sq, &e.securityQ, i, e, false, true)
 				pages.ShowPage("/editField") 
 				app.SetFocus(editField.form)
@@ -927,6 +996,7 @@ func main(){
 	grider(editField.form, editField.grid)
 	grider(editDelete.flex, editDelete.grid)
 	grider(pick.list, pick.grid)
+	grider(copenEntry.list, copenEntry.grid)
 
 
 	// all the different pages are added here
@@ -943,7 +1013,8 @@ func main(){
 		AddPage("/edit", edit.grid, true, false). 
 		AddPage("/editField", editFieldFlex, true, false). 
 		AddPage("/editDelete", editDeleteFlex, true, false). 
-		AddPage("/pick", pick.grid, true, false)
+		AddPage("/pick", pick.grid, true, false). 
+		AddPage("/copen", copenEntry.grid, true, false)
 
 	// sets up the flex row of the left side, top is the pages bottom is the commandLine.input
 	// ratio of 8:1 is the maximum that it can be (9:1 and 100:1 are the same as 8:1)
@@ -960,7 +1031,7 @@ func main(){
 
 	// if EnableMouse is false, then can copy/paste
 	// have enable mouse turn on when in /edit, /pick, /new, /newfield, /newnote, /neweditlist !!
-	if err := app.SetRoot(flex, true).SetFocus(commandLine.input).EnableMouse(false).Run(); err != nil {
+	if err := app.SetRoot(flex, true).SetFocus(commandLine.input).EnableMouse(true).Run(); err != nil {
 		panic(err)
 	}
 }
@@ -972,9 +1043,7 @@ func grider(prim tview.Primitive, grid *tview.Grid){
 }
 
 
-// this finds all the entries that has a string in its name or tags
-
-// make extra check, if str is over a certain character count then don't print all the characters in a line, would look funny. also can garanetted not any entries per that amount so can skip all the cycling through
+// this finds all the entries that has a certain str in its name or tags
 func findEntries(entries []entry, str string) []string{
 	indexes := []int{}
 	str = strings.ToLower(str)
@@ -990,39 +1059,58 @@ func findEntries(entries []entry, str string) []string{
 	}
 }
 
-// this is the function that formats each name as: " [0] twitter"
-// to be printed out in /list
+// this is the function that formats each entry as: " [0] twitter", to be printed out in /find or in /list
 // remane fnction?? lol
-// strconv.Itoa(i) turns int to string
 // the str taken in will be: " /find str \n-----" or " /list \n -----"
 // bool taken in differentiates from /list or /find, to show or not show the ones that are not in circulation. If not in circulation, but is found in /find, it puts (rem) as in removed
 func nameToString(entries []entry, indexes []int, str string, showOld bool) []string{
 	list := []string{str, "", ""}
 
-	third := len(indexes)/3
+	toPrint := []entry{}
+
+	// this works to, if removed entires should not be shown (in /list), remove those entries by only adding to toPrint the ones that are in circulation (along with their indexes so that the indexes printed is correct)
+	if showOld{
+		for i := range indexes{
+			toPrint = append(toPrint, entries[i])
+		}
+	}else{
+		indexes = nil
+		for i,e := range entries{
+			if e.circulate{
+				toPrint = append(toPrint, e)
+				indexes = append(indexes, i)
+
+			}
+		}
+	}
+
+	third := len(toPrint)/3
 	if third < 19 {
 		third = 19
 	}
-	indexesIndex := 0
 	listIndex := 0
+	indexesIndex := 0
+	toPrintIndex := 0
 
-	// currently divisies it up evenly between three columns, if want to make it to not have to scroll for first two columns, replace the following line with if (entriesIndex == 18)||(entriesIndex == 38)
+	// currently divisies it up evenly between three columns, if want to make it to not have to scroll for first two columns, replace the following line with if (entriesIndex == 19)||(entriesIndex == 38)
 
-	for indexesIndex < len(indexes){
-		if (indexesIndex == third)||(indexesIndex == third*2){
+	for toPrintIndex < len(toPrint){
+
+		if (toPrintIndex == third)||(toPrintIndex == third*2){ //only move on if toPrint has numbers up to third
 			listIndex++
 			list[listIndex] = "\n"
 		}
-		if ((!showOld)&&(entries[indexes[indexesIndex]].circulate)||(showOld)){
-			list[listIndex] += "\n"
-			list[listIndex] += " [" + strconv.Itoa(indexes[indexesIndex]) + "] "
-			if (showOld)&&(!entries[indexes[indexesIndex]].circulate){
-				list[listIndex] += "(rem) "
-			}
-			list[listIndex] += entries[indexes[indexesIndex]].name
 
+		list[listIndex] += "\n"
+		list[listIndex] += " [" + strconv.Itoa(indexes[indexesIndex]) + "] "
+		if (showOld)&&(!toPrint[toPrintIndex].circulate){
+			list[listIndex] += "(rem) "
 		}
+		//list[listIndex] += entries[indexes[indexesIndex]].name
+		list[listIndex] += toPrint[toPrintIndex].name
+
 		indexesIndex++
+		toPrintIndex++
 	}
 	return list
 }
