@@ -1,6 +1,5 @@
 /*
-change from 26x78 to 31x91? 
-^^^^^^^^^^
+change from 26x78 to 31x91? or 28x84? 
 
 order commands list + helpinfo info alphabetically
 
@@ -16,18 +15,18 @@ move text, grid, flex to structs!!! -- cleaner!
 rename commandsText
 rename grider
 
-figure out why it switches to /test in blankEditDeleteEntry()
-
 put newEntry into structs
 
 fix EnableMouse to be off when can copy text, write about mouse usage in /help
-
-need to rewrite /open to be a list, click on one to get copy but also should be that should just highlight it? maybe don't do copy -- decide tomorrow
 
 for /find: 
 // make extra check, if str is over a certain character count then don't print all the characters in a line, would look funny. also can garanetted not any entries per that amount so can skip all the cycling through
 
 for commandsText in /open write that in order to edit you must go to /edit
+
+fix sizes of editing a specific field, the flex should be adjusted, on /edit
+
+fix SetDoneFunc for pick.list
 */
 
 package main
@@ -60,7 +59,6 @@ type textGrid struct {
 	text *tview.TextView
 	grid *tview.Grid
 }
-
 type formGrid struct{
 	form *tview.Form
 	grid *tview.Grid
@@ -100,8 +98,11 @@ func main(){
 		entry{name: "libary B",tags: "library, demo, overdrive",usernames: []field{{displayName: "card",value: "12354126357812",secret: false,},},password: field{displayName: "pin",value: "12356",secret: false,},notes: "from google doc from dada ",circulate: false,},
 	}
 
-	for i := 0; i < 52; i++{ // put at 52 makes it show the max amount (when 5 already in entries)
+	for i := 0; i < 20; i++{ // put at 52 makes it show the max amount (when 5 already in entries)
 		entries = append(entries, entry{name: "test",tags: "demo, test!, smiles", circulate: true})
+		entries = append(entries, entry{name: "hello",tags: "test, demo, hahaha", circulate: true})
+		entries = append(entries, entry{name: "test",tags: "demo, test!, smiles", circulate: true})
+		entries = append(entries, entry{name: "heyo",tags: "testest, demmo, hihi", circulate: true})
 	}
 
 	// pages is the pages set up for the left top box
@@ -114,7 +115,7 @@ func main(){
 
 	// this is the text box that contains the commands, on the left and its grid (border)
 	commands := textGrid{text: tview.NewTextView().SetScrollable(true), grid: tview.NewGrid().SetBorders(true)}
-	homeCommands := " commands\n --------\n /home \n /help \n /new \n /find str\n /edit # \n /open # \n /copen # \n /list \nx/pick \n /test"
+	homeCommands := " commands\n --------\n /home \n /help \n /new \n /find str\n /edit # \n /open # \n /copen # \n /list \n /pick \n /test"
 
 	// this is the box that the page is set to when at /home
 	// probably delete the title as some point, it's just like that for now tho
@@ -155,12 +156,12 @@ func main(){
 
 
 	// text and grid for opening an entry already made, its function to format the information
-	openEntry := textGrid{text: tview.NewTextView().SetScrollable(true), grid: tview.NewGrid().SetBorders(true)}
-	blankOpenEntry := func(i int) string {return "error, openEntry didn't run"}
+	open := textGrid{text: tview.NewTextView().SetScrollable(true), grid: tview.NewGrid().SetBorders(true)}
+	blankOpen := func(i int) string {return "error, blankOpen(i int) didn't run"}
 
 
-	copenEntry := listGrid{list: tview.NewList().SetMainTextColor(tcell.GetColor("ColorSnow")).SetSecondaryTextColor(tcell.GetColor("ColorSnow")).SetOffset(1, 1), grid: tview.NewGrid().SetBorders(true)}
-	blankCopenEntry := func(i int){}
+	copen := listGrid{list: tview.NewList().SetMainTextColor(tcell.GetColor("ColorSnow")).SetOffset(1, 1), grid: tview.NewGrid().SetBorders(true)}
+	blankCopen := func(i int){}
 	
 
 	// when something happens that could give an error it will switch to here
@@ -213,7 +214,7 @@ func main(){
 
 	// text to be put on the left side when in /new
 	// REPLACE select WITH button?????? MAYBE??? -- ask lucy :)
-	newCommands := " /new \n ---- \n move: \n -tab \n -back tab \n -click \n\n select: \n -return \n -click\n\n must name \n entry to \n save it \n\n escape? \n quit"
+	newCommands := " /new \n ---- \n move: \n -tab \n -back tab \n\n select: \n -return \n\n must name \n entry to \n save it \n\n escape? \n quit"
 	newFieldCommands := " /new \n ---- \n move: \n -tab \n -back tab \n -click \n\n select: \n -return \n -click\n\n must name \n field to \n save it \n\n escape? \n quit" //only change from this one to the newCommands is field vs. entry
 
 
@@ -225,6 +226,10 @@ func main(){
 	edit := listGrid{list: tview.NewList().SetSelectedFocusOnly(true), grid: tview.NewGrid().SetBorders(true)}
 	blankEditList := func(i int){}
 	runeAlphabet := []rune{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'}
+	//allRunes := []rune{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '`', '~', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '-', '_', '=', '+', '\\', '|', ']', '}', '[', '{', ';', ':', '\'', '"', '/', '?', '.', '>', ',', '<', 'å', '∫', 'ç', '∂', '´', 'ƒ', '©', '˙', 'ˆ', '∆', '˚', '¬', 'µ', '˜', 'ø', 'π', 'œ', '®', 'ß', '†', '¨', '√', '∑', '≈', '¥', 'Ω'}
+
+	// if it's at the limit, the length of runeAlphabet, then it gets set back to 0, if it is not, then it plus pluses
+	runeAlphabetIterate := func(i int) int{return -1} // maybe have this return not -1 so it doesn't crash?? -- figure out what this shoudl return if it fails
 
 	// this is the form and its grid and flex for editing a specific field
 	// it has two functions, for editing one of the strings in the entry struct
@@ -252,7 +257,7 @@ func main(){
 
 	editCommands := " /edit \n ----- \n move: \n -tab \n -back tab \n -arrows keys \n\n select: \n -return \n -click" // similar to newCommands and newFieldCommands
 
-	pick := listGrid{list: tview.NewList().SetSelectedFocusOnly(true), grid: tview.NewGrid().SetBorders(true)}
+	pick := listGrid{list: tview.NewList().SetSelectedFocusOnly(true).SetDoneFunc(switchToHome), grid: tview.NewGrid().SetBorders(true)}
 	blankPickList := func(){}
 
 	// ------------------------------------------------ //
@@ -309,6 +314,7 @@ func main(){
 			test.text.SetText(testAllFields(entries))
 			pages.SwitchToPage("/test")
 		case "/new":
+			app.EnableMouse(false)
 			commands.text.SetText(newCommands)
 			blankNewEntry()
 			app.SetFocus(newEntryForm)
@@ -319,14 +325,14 @@ func main(){
 		case "/open":
 			if indexSelectEntry > -1 {
 				app.EnableMouse(false)
-				openEntry.text.SetText(blankOpenEntry(indexSelectEntry)) // taking input, just to be safe smile -- can change that in future
+				open.text.SetText(blankOpen(indexSelectEntry)) // taking input, just to be safe smile -- can change that in future
 				pages.SwitchToPage("/open")
 			}
 		case "/copen":
 			if indexSelectEntry > -1{
-				app.SetFocus(copenEntry.list)
+				app.SetFocus(copen.list)
 				app.EnableMouse(false)
-				blankCopenEntry(indexSelectEntry)
+				blankCopen(indexSelectEntry)
 				pages.SwitchToPage("/copen")
 			}
 		case "/edit":
@@ -362,12 +368,20 @@ func main(){
 	// adds the function to commandLine.input so it is run when return is pressed  // move this??
 	commandLine.input.SetDoneFunc(commandLineActions)
 
-	//make func called switch to home that sets everything to rights again
+	// switch to home sets everything to rights again
 	switchToHome = func(){
 		pages.SwitchToPage("/home")
 		app.SetFocus(commandLine.input)
 		commands.text.SetText(homeCommands)
 		lookRightCommandLinePlaceholder()
+	}
+
+	runeAlphabetIterate = func(i int) int{
+		if i == len(runeAlphabet){
+			return 0
+		}else{
+			return i + 1
+		}
 	}
 
 	// ----
@@ -526,28 +540,27 @@ func main(){
 
 	blankFieldsAdded = func(){ 
 		newFieldsAddedList.Clear()
-
-		numFields := 0
+		num := 0 // iterates through the rune alphabet slice to have set up all the rune shortcuts
 
 		newFieldsAddedList.
-			AddItem("move back to top", "", 'a', func(){
+			AddItem("move back to top", "", runeAlphabet[num], func(){
 				app.SetFocus(newEntryForm)
 			})
 
 		for i := range tempEntry.usernames {
 			i := i
 			u := &tempEntry.usernames[i]
-			numFields++
+			num = runeAlphabetIterate(num)
 
-			newFieldsAddedList.AddItem(u.displayName + ":", u.value, runeAlphabet[numFields], func(){
+			newFieldsAddedList.AddItem(u.displayName + ":", u.value, runeAlphabet[num], func(){
 				blankEditFieldForm(u, &tempEntry.usernames, i, &tempEntry, false, false)
 				pages.ShowPage("/editField") 
 				app.SetFocus(editField.form)
 			})
 		}
 		if tempEntry.password.displayName != "" {
-			numFields++
-			newFieldsAddedList.AddItem(tempEntry.password.displayName + ":", "SECRET!! " + tempEntry.password.value, runeAlphabet[numFields], func(){
+			num = runeAlphabetIterate(num)
+			newFieldsAddedList.AddItem(tempEntry.password.displayName + ":", "SECRET!! " + tempEntry.password.value, runeAlphabet[num], func(){
 				blankEditFieldForm(&tempEntry.password, nil, -1, &tempEntry, true, false)
 				pages.ShowPage("/editField") 
 				app.SetFocus(editField.form)
@@ -556,9 +569,9 @@ func main(){
 		for i := range tempEntry.securityQ {
 			i := i
 			sq := &tempEntry.securityQ[i]
-			numFields++
+			num = runeAlphabetIterate(num)
 
-			newFieldsAddedList.AddItem(sq.displayName + ":", "SECRET!! " + sq.value, runeAlphabet[numFields], func(){
+			newFieldsAddedList.AddItem(sq.displayName + ":", "SECRET!! " + sq.value, runeAlphabet[num], func(){
 				blankEditFieldForm(sq, &tempEntry.securityQ, i, &tempEntry, false, false)
 				pages.ShowPage("/editField") 
 				app.SetFocus(editField.form)
@@ -591,7 +604,7 @@ func main(){
 	// ----
 
 	// precondition: i > -1
-	blankOpenEntry = func(i int) string{
+	blankOpen = func(i int) string{
 		e := entries[i]
 		print := " "
 
@@ -616,52 +629,52 @@ func main(){
 		return print
 	}
 
-	blankCopenEntry = func(i int){
+	blankCopen = func(i int){
 		num := 0
-		copenEntry.list.Clear()
+		copen.list.Clear()
 		e := entries[i]
 
 		//print += "[" + strconv.Itoa(i) + "] " + e.name + "\n " 
-		copenEntry.list.AddItem("leave /edit", "(takes you back to /home)", runeAlphabet[num], func(){
+		copen.list.AddItem("leave /edit", "(takes you back to /home)", runeAlphabet[num], func(){
 				switchToHome()
 			})
-		num++
-		copenEntry.list.AddItem("name:", e.name, runeAlphabet[num], func(){
+		num = runeAlphabetIterate(num)
+		copen.list.AddItem("name:", e.name, runeAlphabet[num], func(){
 			clipboard.WriteAll(e.name)
 		})
 		if e.tags != ""{
-			num++
-			copenEntry.list.AddItem("tags:", e.tags, runeAlphabet[num], func(){
+			num = runeAlphabetIterate(num)
+			copen.list.AddItem("tags:", e.tags, runeAlphabet[num], func(){
 				clipboard.WriteAll(e.tags)
 			})
 		}
-		num++
-		copenEntry.list.AddItem("in circulation:", strconv.FormatBool(e.circulate), runeAlphabet[num], func(){
+		num = runeAlphabetIterate(num)
+		copen.list.AddItem("in circulation:", strconv.FormatBool(e.circulate), runeAlphabet[num], func(){
 			clipboard.WriteAll(strconv.FormatBool(e.circulate))
 		})
 		for _, u := range e.usernames{
 			u := u
-			num++
-			copenEntry.list.AddItem(u.displayName + ":", u.value, runeAlphabet[num], func(){
+			num = runeAlphabetIterate(num)
+			copen.list.AddItem(u.displayName + ":", u.value, runeAlphabet[num], func(){
 				clipboard.WriteAll(u.value)
 			})
 		}
 		if e.password.displayName != ""{
-			num++
-			copenEntry.list.AddItem(e.password.displayName + ":", "[black]" + e.password.value,  runeAlphabet[num], func(){
+			num = runeAlphabetIterate(num)
+			copen.list.AddItem(e.password.displayName + ":", "[black]" + e.password.value,  runeAlphabet[num], func(){
 				clipboard.WriteAll(e.password.value)
 			})
 		}
 		for _, sq := range e.securityQ{
 			sq := sq 
-			num++
-			copenEntry.list.AddItem(sq.displayName + ":", "[black]" + sq.value, runeAlphabet[num], func(){
+			num = runeAlphabetIterate(num)
+			copen.list.AddItem(sq.displayName + ":", "[black]" + sq.value, runeAlphabet[num], func(){
 				clipboard.WriteAll(sq.value)
 			})
 		}
 		if e.notes != ""{
-			num++
-			copenEntry.list.AddItem("notes: ", e.notes, runeAlphabet[num], func(){
+			num = runeAlphabetIterate(num)
+			copen.list.AddItem("notes: ", e.notes, runeAlphabet[num], func(){
 				clipboard.WriteAll(e.notes)
 			})
 		}
@@ -675,19 +688,19 @@ func main(){
 		edit.list.Clear()
 		e := &entries[i]
 
-		numEntry := 0
-		edit.list.AddItem("leave /edit", "(takes you back to /home)", runeAlphabet[numEntry], func(){
+		num:= 0
+		edit.list.AddItem("leave /edit", "(takes you back to /home)", runeAlphabet[num], func(){
 			switchToHome()
 		})
-		numEntry++
-		edit.list.AddItem("name: ", e.name, runeAlphabet[numEntry], func(){
+		num = runeAlphabetIterate(num)
+		edit.list.AddItem("name: ", e.name, runeAlphabet[num], func(){
 			blankEditStringForm("name", e.name, e)
 			pages.ShowPage("/editField") 
 			app.SetFocus(editField.form)
 		})
 		if e.tags != "" {
-			numEntry++
-			edit.list.AddItem("tags:", e.tags, runeAlphabet[numEntry], func(){
+			num = runeAlphabetIterate(num)
+			edit.list.AddItem("tags:", e.tags, runeAlphabet[num], func(){
 				blankEditStringForm("tags", e.tags, e)
 				pages.ShowPage("/editField") 
 				app.SetFocus(editField.form)
@@ -696,17 +709,16 @@ func main(){
 		for i := range e.usernames {
 			i := i
 			u := &e.usernames[i]
-			numEntry++
-
-			edit.list.AddItem(u.displayName + ":", u.value, runeAlphabet[numEntry], func(){
+			num = runeAlphabetIterate(num)
+			edit.list.AddItem(u.displayName + ":", u.value, runeAlphabet[num], func(){
 				blankEditFieldForm(u, &e.usernames, i, e, false, true)
 				pages.ShowPage("/editField") 
 				app.SetFocus(editField.form)
 			})
 		}
 		if e.password.displayName != "" {
-			numEntry++
-			edit.list.AddItem(e.password.displayName + ":", "[black]" + e.password.value, runeAlphabet[numEntry], func(){
+			num = runeAlphabetIterate(num)
+			edit.list.AddItem(e.password.displayName + ":", "[black]" + e.password.value, runeAlphabet[num], func(){
 				blankEditFieldForm(&e.password, nil, -1, e, true, true)
 				pages.ShowPage("/editField") 
 				app.SetFocus(editField.form)
@@ -715,37 +727,37 @@ func main(){
 		for i := range e.securityQ {
 			i := i
 			sq := &e.securityQ[i]
-			numEntry++
+			num = runeAlphabetIterate(num)
 
-			edit.list.AddItem(sq.displayName + ":", "[black]" + sq.value, runeAlphabet[numEntry], func(){
+			edit.list.AddItem(sq.displayName + ":", "[black]" + sq.value, runeAlphabet[num], func(){
 				blankEditFieldForm(sq, &e.securityQ, i, e, false, true)
 				pages.ShowPage("/editField") 
 				app.SetFocus(editField.form)
 			})
 		}
 		if e.notes != "" {
-			numEntry++
-			edit.list.AddItem("notes:", e.notes, runeAlphabet[numEntry], func(){
+			num = runeAlphabetIterate(num)
+			edit.list.AddItem("notes:", e.notes, runeAlphabet[num], func(){
 				blankEditStringForm("notes", e.notes, e)
 				pages.ShowPage("/editField") 
 				app.SetFocus(editField.form)
 			})
 		}
-		numEntry++
+		num = runeAlphabetIterate(num)
 		if e.circulate{ // if it is in circulation, option to opt out
-			edit.list.AddItem("remove from circulation", "(not permanant), check /help for info", runeAlphabet[numEntry], func(){
+			edit.list.AddItem("remove from circulation", "(not permanant), check /help for info", runeAlphabet[num], func(){
 				e.circulate = false
 				switchToEditList()
 			})
 
 		}else{ // if it has been removed, option to opt back in 
-			edit.list.AddItem("add back to circulation", "(not permanant), check /help for info", runeAlphabet[numEntry], func(){
+			edit.list.AddItem("add back to circulation", "(not permanant), check /help for info", runeAlphabet[num], func(){
 				e.circulate = true
 				switchToEditList()
 			})
 		}
-		numEntry++
-		edit.list.AddItem("delete entry", "(permanant!!)", runeAlphabet[numEntry], func(){
+		num = runeAlphabetIterate(num)
+		edit.list.AddItem("delete entry", "(permanant!!)", runeAlphabet[num], func(){
 			blankEditDeleteEntry()
 			pages.ShowPage("/editDelete")
 			app.SetFocus(editDelete.form)
@@ -876,54 +888,40 @@ func main(){
 			AddButton("delete", func(){ // this deletes it, slower version, keeps everything in order
 				copy(entries[indexSelectEntry:], entries[indexSelectEntry+1:])
 				entries[len(entries)-1] = entry{} // ask dada why this is here?
-				entries = entries[:len(entries)-1]
-				test.text.SetText(testAllFields(entries))
-				
+				entries = entries[:len(entries)-1]				
 				switchToHome()
 			})
 	}
 
 	// function for making the list in /pick
 	blankPickList = func(){
+		
+		// have press escape mean that you leave
+		// also maybe think about setting runeAlphabet to juse abcd... no symbols,, also for the other cases of using rune alphabet make some safety casees in there!
+
+		num := 0
  		pick.list.Clear()
 
- 		pick.list.AddItem("leave /pick", "(takes you back to /home", 'a', func(){
+ 		pick.list.AddItem("leave /pick", "(takes you back to /home", runeAlphabet[num], func(){
  			switchToHome()
  		})
 
- 		intStr := "-1"
- 		strRune := []rune{}
- 		second := false
-
  		for i, e := range entries{
+ 			num++
+ 			if num == len(runeAlphabet){
+ 				num = 0
+ 			}
  			i := i
 
- 			intStr = strconv.Itoa(i)
- 			strRune = []rune(intStr)
-
- 			if strRune[0] == '1'{
- 				second = true
- 			} else if (strRune[0] == '1')&&(second){
- 				error.second.SetText("AHHHHHHHHHHH\n" + strconv.Itoa(i))
- 				pages.SwitchToPage("err")
- 				break
- 			}else{
-	 			if strRune[0] == '-'{
-	 				error.second.SetText("Number is not set for switching to /open from /pick! problem! AHHH")
-	 				pages.SwitchToPage("err")
-	 				lookRightCommandLinePlaceholder()
-	 			}else{
-	 				if (e.circulate){
-			    		pick.list.AddItem("name: " + e.name, "tags: " + e.tags, strRune[0], func(){
-			    			// following code copied from commandLineActions function
-			    			openEntry.text.SetText(blankOpenEntry(i)) // taking input, just to be safe smile -- can change that in future
-							pages.SwitchToPage("/open")
-							app.SetFocus(commandLine.input)
-							lookRightCommandLinePlaceholder()
-		    			})
-		    		}
-	    		}
-    		}
+			if (e.circulate){ // have it include the index number as [0] maybe??? would be cool!
+	    		pick.list.AddItem("name: " + e.name, "tags: " + e.tags, runeAlphabet[num], func(){
+	    			// following code copied from commandLineActions function
+	    			open.text.SetText(blankOpen(i)) // taking input, just to be safe smile -- can change that in future
+					pages.SwitchToPage("/open")
+					app.SetFocus(commandLine.input)
+					lookRightCommandLinePlaceholder()
+    			})
+	    	}
 		}
 	}
 
@@ -986,17 +984,17 @@ func main(){
 	grider(commands.text, commands.grid)
 	grider(list.flex, list.grid)
 	grider(test.text, test.grid)
-	grider(newEntryFlex, newEntryFlexGrider)
+	grider(newEntryFlex, newEntryFlexGrider) // update this one!
 	grider(newField.form, newField.grid)
 	grider(newNote.form, newNote.grid)
 	grider(help.text, help.grid)
 	grider(error.flex, error.grid)
-	grider(openEntry.text, openEntry.grid)
+	grider(open.text, open.grid)
 	grider(edit.list, edit.grid)
 	grider(editField.form, editField.grid)
 	grider(editDelete.flex, editDelete.grid)
 	grider(pick.list, pick.grid)
-	grider(copenEntry.list, copenEntry.grid)
+	grider(copen.list, copen.grid)
 
 
 	// all the different pages are added here
@@ -1009,12 +1007,12 @@ func main(){
 		AddPage("/newNote", newNoteFlex, true, false). 
 		AddPage("/help", help.grid, true, false). 
 		AddPage("err", error.grid, true, false). 
-		AddPage("/open", openEntry.grid, true, false). 
+		AddPage("/open", open.grid, true, false). 
 		AddPage("/edit", edit.grid, true, false). 
 		AddPage("/editField", editFieldFlex, true, false). 
 		AddPage("/editDelete", editDeleteFlex, true, false). 
 		AddPage("/pick", pick.grid, true, false). 
-		AddPage("/copen", copenEntry.grid, true, false)
+		AddPage("/copen", copen.grid, true, false)
 
 	// sets up the flex row of the left side, top is the pages bottom is the commandLine.input
 	// ratio of 8:1 is the maximum that it can be (9:1 and 100:1 are the same as 8:1)
@@ -1035,6 +1033,7 @@ func main(){
 		panic(err)
 	}
 }
+
 
 // this is the function used to put any type of primitive
 // into a grid, as in using the grid to make a border
