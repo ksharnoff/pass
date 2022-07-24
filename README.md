@@ -24,4 +24,9 @@ this is just a list to be edited down later to what to write
 - 
 
 #### file writing
-- it writes to 
+- it writes to a yaml file
+
+#### how it looks
+- i coded it for a 84x28 size window with text font of monaco, size 18. it will work at all sizes and with all texts (to my knowledge), however you may not be able to see all the buttons without scrolling or pressing tab. everything should still work, you should still be able to access everything, it just may not look all organized. 
+
+
