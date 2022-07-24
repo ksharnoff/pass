@@ -1,0 +1,108 @@
+- name: twitterDEMO
+  tags: socials, demo
+  usernames:
+    - displayname: username
+      value: yellowyaks
+    - displayname: email
+      value: a;ksdjfkad@gmail.com
+  password:
+    displayname: password
+    value: "0349"
+  securityq: []
+  notes:
+    - last changed password summer 2021
+    - hii
+    - thello
+    - heyy
+    - ""
+    - ""
+  circulate: true
+- name: college boardDEMO
+  tags: college, demo
+  usernames:
+    - displayname: email
+      value: a;ksdjfkad@gmail.com
+  password:
+    displayname: password
+    value: "23984"
+  securityq:
+    - displayname: what was your first car?
+      value: ;aiodkj
+  notes:
+    - need to keep email short to write on test day
+    - ""
+    - ""
+    - ""
+    - ""
+    - ""
+  circulate: true
+- name: wooo myACT
+  tags: college, demo
+  usernames:
+    - displayname: email
+      value: a;ksharnof2333@gmail.com
+  password:
+    displayname: password
+    value: "02983490832"
+  securityq:
+    - displayname: what was your first CLARINET?
+      value: ;buffet coprmodn
+  notes:
+    - netest test ets,
+    - real phone given
+    - ""
+    - ""
+    - ""
+    - ""
+  circulate: true
+- name: libary A
+  tags: library, demo, overdrive
+  usernames:
+    - displayname: card
+      value: "12345678910"
+  password:
+    displayname: pin
+    value: "09128"
+  securityq: []
+  notes:
+    - from google doc!
+    - ""
+    - ""
+    - ""
+    - ""
+    - ""
+  circulate: true
+- name: libary B
+  tags: library, demo, overdrive
+  usernames:
+    - displayname: card
+      value: "12354126357812"
+  password:
+    displayname: pin
+    value: "12356"
+  securityq: []
+  notes:
+    - from google doc from dada
+    - ""
+    - ""
+    - ""
+    - ""
+    - ""
+  circulate: true
+- name: permanent test
+  tags: test, demo, permanent!
+  usernames:
+    - displayname: email
+      value: qwertyuio@poiu
+  password:
+    displayname: password
+    value: "2839489324789"
+  securityq: []
+  notes:
+    - this is testing
+    - 'birthday: jan 5, 2004'
+    - phone number; 834823
+    - 'ssn: 9028490832904829384908239084'
+    - ""
+    - ""
+  circulate: true
