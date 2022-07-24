@@ -6,21 +6,30 @@ order commands list + helpinfo info alphabetically
 for /new should have a limit of how many new fields you can make
 // maybe have infinite number of notes that can be made????
 
-make a better way to edit the notes? maybe change so notes field is actually
-an array of strings?
-^^^ make so if you press the new notes button again in the same time of making a new entry that it works well // deletes it all or doesnt'?
+have it write to the file whenever an entry is changed
+- edit
+- new
+
+!!!! /FIND IS VERY BROKEN !!! -- prints totally the wrong thing!
+
+/copy
+to make: make something to make a copy of an entry (so that you can change some of the info)
+(basically /new but setting tempEntry to an entry)
+
+make it when you scroll in /list or /find it scrolls over all of them, also that when you scroll and then regenerate it it resets the scroll of all boxes!
 
 move text, grid, flex to structs!!! -- cleaner!
 
 rename commandsText
 rename grider
-
+reanme newEntry
 put newEntry into structs
 
 fix EnableMouse to be off when can copy text, write about mouse usage in /help
 
 for /find: 
 // make extra check, if str is over a certain character count then don't print all the characters in a line, would look funny. also can garanetted not any entries per that amount so can skip all the cycling through
+	// or even search for the full str just not print it all
 
 for commandsText in /open write that in order to edit you must go to /edit
 
@@ -46,7 +55,7 @@ type entry struct {
 	usernames []field
 	password field
 	securityQ []field
-	notes string
+	notes [6]string // maybe make this 8 in the future? 
 	circulate bool
 }
 type field struct {
@@ -91,14 +100,14 @@ func main(){
 
 	// this is the list of the demo entries, real entries will be in a file
 	entries := []entry{
-		entry{name: "twitterDEMO", tags: "socials, demo", usernames: []field{{displayName: "username", value: "yellowyaks", secret: false,},{displayName: "email", value: "a;ksdjfkad@gmail.com", secret: false,},},password: field{displayName: "password",value: "0349",secret: true,},notes: "last changed password summer 2021\n\thii \n\thello \n\theyy", circulate: true,},
-		entry{name: "college boardDEMO",tags: "college, demo",usernames: []field{{displayName: "email",value: "a;ksdjfkad@gmail.com",secret: false,},},password: field{displayName: "password", value: "23984", secret: true,},securityQ: []field{{displayName: "what was your first car?", value: ";aiodkj",secret: true,},},notes: "need to keep email short to write on test day",circulate: true,},
-		entry{name: "wooo myACT",tags: "college, demo",usernames: []field{{displayName: "email",value: "a;ksharnof2333@gmail.com",secret: false,},},password: field{displayName: "password",value: "02983490832",secret: false,},securityQ: []field{{displayName: "what was your first CLARINET?", value: ";buffet coprmodn",secret: true,},},notes: "netest test ets, \n\treal phone given ",circulate: true,},
-		entry{name: "libary A",tags: "library, demo, overdrive",usernames: []field{{displayName: "card",value: "9873458974398795843",secret: false,},},password: field{displayName: "pin",value: "09128",secret: false,},notes: "from google doc! ",circulate: false,},
-		entry{name: "libary B",tags: "library, demo, overdrive",usernames: []field{{displayName: "card",value: "12354126357812",secret: false,},},password: field{displayName: "pin",value: "12356",secret: false,},notes: "from google doc from dada ",circulate: false,},
+		entry{name: "twitterDEMO", tags: "socials, demo", usernames: []field{{displayName: "username", value: "yellowyaks", secret: false,},{displayName: "email", value: "a;ksdjfkad@gmail.com", secret: false,},},password: field{displayName: "password",value: "0349",secret: true,},notes: [6]string{"last changed password summer 2021", "hii", "thello", "heyy", "", "",}, circulate: true,},
+		entry{name: "college boardDEMO",tags: "college, demo",usernames: []field{{displayName: "email",value: "a;ksdjfkad@gmail.com",secret: false,},},password: field{displayName: "password", value: "23984", secret: true,},securityQ: []field{{displayName: "what was your first car?", value: ";aiodkj",secret: true,},},notes: [6]string{"need to keep email short to write on test day", "", "", "", "", "",},circulate: true,},
+		entry{name: "wooo myACT",tags: "college, demo",usernames: []field{{displayName: "email",value: "a;ksharnof2333@gmail.com",secret: false,},},password: field{displayName: "password",value: "02983490832",secret: false,},securityQ: []field{{displayName: "what was your first CLARINET?", value: ";buffet coprmodn",secret: true,},},notes: [6]string{"netest test ets,", "real phone given", "", "", "", "",},circulate: true,},
+		entry{name: "libary A",tags: "library, demo, overdrive",usernames: []field{{displayName: "card",value: "9873458974398795843",secret: false,},},password: field{displayName: "pin",value: "09128",secret: false,},notes: [6]string{"from google doc!",  "", "", "", "", "",},circulate: false,},
+		entry{name: "libary B",tags: "library, demo, overdrive",usernames: []field{{displayName: "card",value: "12354126357812",secret: false,},},password: field{displayName: "pin",value: "12356",secret: false,},notes: [6]string{"from google doc from dada ", "", "", "", "", "",},circulate: false,},
 	}
 
-	for i := 0; i < 20; i++{ // put at 52 makes it show the max amount (when 5 already in entries)
+	for i := 0; i < 1; i++{ // put at 52 makes it show the max amount (when 5 already in entries) (also when only adding one entry per pass)
 		entries = append(entries, entry{name: "test",tags: "demo, test!, smiles", circulate: true})
 		entries = append(entries, entry{name: "hello",tags: "test, demo, hahaha", circulate: true})
 		entries = append(entries, entry{name: "test",tags: "demo, test!, smiles", circulate: true})
@@ -196,7 +205,7 @@ func main(){
 	// this is the form for adding a new notes, its grider, flex, and function
 	newNote := formGrid{form: tview.NewForm(), grid: tview.NewGrid().SetBorders(true)}
 	newNoteFlex := tview.NewFlex() // flex to put it in the middle of the page, nil on the sides
-	blankNewNote := func(){}
+	blankNewNote := func(e *entry){}
 
 	// these are all temporary, they are what a new entry or field is set to in
 	// order to add it. to clear the following after/before use just set them 
@@ -236,8 +245,10 @@ func main(){
 	// and one for editing one of the fields (password, username, securityQ)
 	editField := formGrid{form: tview.NewForm(), grid: tview.NewGrid().SetBorders(true)}
 	editFieldFlex := tview.NewFlex() // flex to put it in the middle of page, other items are nil
+	editFieldStrFlex := tview.NewFlex() // flex to put the edit fields for tags and strings in middle of page as they have less buttons than the other thing
 	blankEditFieldForm := func(f *field, fieldArr *[]field, index int, e *entry, pass, edit bool) {}
 	blankEditStringForm := func (display, value string, e *entry){}
+	
 
 	// this is a function that solves redundancy in going back to /edit
 	// (remaking the list, switching the page, setting the focus)
@@ -256,6 +267,9 @@ func main(){
 	blankEditDeleteEntry := func(){}
 
 	editCommands := " /edit \n ----- \n move: \n -tab \n -back tab \n -arrows keys \n\n select: \n -return \n -click" // similar to newCommands and newFieldCommands
+
+
+
 
 	pick := listGrid{list: tview.NewList().SetSelectedFocusOnly(true).SetDoneFunc(switchToHome), grid: tview.NewGrid().SetBorders(true)}
 	blankPickList := func(){}
@@ -389,7 +403,6 @@ func main(){
 	// ----
 
 	blankNewEntry = func(){
-
 		newEntryForm.Clear(true)
 		newFieldsAddedList.Clear()
 		
@@ -420,8 +433,8 @@ func main(){
 			AddButton("quit", func(){
 				switchToHome()
 			}). 
-			AddButton("notes", func(){
-				blankNewNote() 
+			AddButton("write notes", func(){ // don't change the name of this, will ruin something later on 
+				blankNewNote(nil) 
 				// this (blankNewNote) can be deleted and written in the 
 				// commandLineActions() cases section if one wants to be able to
 				// hit quit of newNote but keep the info
@@ -498,43 +511,66 @@ func main(){
 			})
 	}
 
-	blankNewNote = func(){
+	// takes in pointer to entry so it can be used in /edit of a notes. if called in /new then it would take in nil and all would be fine
+	blankNewNote = func(e *entry){
 		newNote.form.Clear(true)
-		
-		toAddArr := [5]string{""}
+		toAdd := [6]string{}
+
+		if e == nil{
+			toAdd = tempEntry.notes //maybe change the size of this in the future? current size is 6 -- or rewrite as a slice
+		}else{
+			toAdd = e.notes
+		}
+
 		newNote.form.
-			AddInputField("notes:", "", 0, nil, func(inputed string){
-				toAddArr[0] = inputed
+			AddInputField("notes:", toAdd[0], 0, nil, func(inputed string){
+				toAdd[0] = inputed
 			})
 
 		// i := i because making a new function in a closure (for loop) it
-		// has i equal to the last iteration of it (would be 4)
-		for i := 1; i < 5; i++ {
+		// has i equal to the last iteration of it (would be 6)
+		for i := 1; i < 6; i++ {
 			i := i
-			newNote.form.AddInputField("", "", 0, nil, func(inputed string){
-				toAddArr[i] = inputed
+			newNote.form.AddInputField("", toAdd[i], 0, nil, func(inputed string){
+				toAdd[i] = inputed
 			})
 		}
 		
 		newNote.form.
-			AddButton("Save", func(){
-				toAdd := ""
-
-				// !! maybe have it so if at least one is not blank then all the lines get added, not caring if the others are blank? if someone is doing formatted  with lines in between? or don't and override them??
-				for _, n := range toAddArr {
-					if n != ""{
-						toAdd += n 
-						toAdd += " \n\t" // have it do \n and \t as per the formatting in /open
+			AddButton("save", func(){
+				if e == nil{ // if all this is being done in /new
+					tempEntry.notes = toAdd
+					notesButtonIndex := newEntryForm.GetButtonIndex("write notes")
+					if notesButtonIndex > -1{
+						notesButton := newEntryForm.GetButton(notesButtonIndex)
+						notesButton.SetTitle("edit notes") // not sure if this will work!
+						// have this delete running for now to see if it works!
+						//newEntryForm.RemoveButton(notesButtonIndex)
 					}
+					pages.SwitchToPage("/newEntry")
+					app.SetFocus(newEntryForm)
+				}else{ // if all this is being done in /edit
+					e.notes = toAdd
+					switchToEditList()
 				}
-				tempEntry.notes = toAdd
-				pages.SwitchToPage("/newEntry")
-				app.SetFocus(newEntryForm)
 			}). 
-			AddButton("Quit", func(){
-				tempEntry.notes = "" // must be changed to save when quit
-				pages.SwitchToPage("/newEntry")
-				app.SetFocus(newEntryForm)
+			AddButton("quit", func(){
+				if e == nil{ // if being done in /new
+					pages.SwitchToPage("/newEntry")
+					app.SetFocus(newEntryForm)
+				}else{ // if being done in /edit
+					switchToEditList()
+				}
+			}). 
+			AddButton("delete", func(){
+				if e == nil{
+					tempEntry.notes = [6]string{}
+					pages.SwitchToPage("/newEntry")
+					app.SetFocus(newEntryForm)
+				}else{
+					e.notes = [6]string{} // assigns the whole array at once :)
+					switchToEditList()
+				}
 			})
 	}
 
@@ -623,8 +659,19 @@ func main(){
 		for _, sq := range e.securityQ {
 			print += " " + sq.displayName + ": " + strconv.FormatBool(sq.secret) + "!! " +sq.value + "\n"
 		}
-		if e.notes != ""{
-			print += " notes: " + "\n\t" + e.notes
+		emptyNotes := true
+
+		for _, n := range e.notes{
+			if n != ""{
+				emptyNotes = false
+				break
+			}
+		}
+		if !emptyNotes{
+			print += " notes: " 
+			for _, n := range e.notes {
+				print += "\n\t " + n
+			}
 		}
 		return print
 	}
@@ -672,11 +719,14 @@ func main(){
 				clipboard.WriteAll(sq.value)
 			})
 		}
-		if e.notes != ""{
-			num = runeAlphabetIterate(num)
-			copen.list.AddItem("notes: ", e.notes, runeAlphabet[num], func(){
-				clipboard.WriteAll(e.notes)
-			})
+		for _, n := range e.notes{ 
+			n := n
+			if n != ""{
+				num = runeAlphabetIterate(num)
+				copen.list.AddItem("note:", n, runeAlphabet[num], func(){
+					clipboard.WriteAll(n)
+				})
+			}
 		}
 	}
 
@@ -695,14 +745,14 @@ func main(){
 		num = runeAlphabetIterate(num)
 		edit.list.AddItem("name: ", e.name, runeAlphabet[num], func(){
 			blankEditStringForm("name", e.name, e)
-			pages.ShowPage("/editField") 
+			pages.ShowPage("/editFieldStr") 
 			app.SetFocus(editField.form)
 		})
 		if e.tags != "" {
 			num = runeAlphabetIterate(num)
 			edit.list.AddItem("tags:", e.tags, runeAlphabet[num], func(){
 				blankEditStringForm("tags", e.tags, e)
-				pages.ShowPage("/editField") 
+				pages.ShowPage("/editFieldStr") 
 				app.SetFocus(editField.form)
 			})
 		}
@@ -735,12 +785,21 @@ func main(){
 				app.SetFocus(editField.form)
 			})
 		}
-		if e.notes != "" {
+		condensedNotes := ""
+		emptyNotes := true
+		for _, n := range e.notes{
+			n := n 
+			condensedNotes += n + ", "
+			if n != ""{
+				emptyNotes = false
+			}
+		}
+		if !emptyNotes {
 			num = runeAlphabetIterate(num)
-			edit.list.AddItem("notes:", e.notes, runeAlphabet[num], func(){
-				blankEditStringForm("notes", e.notes, e)
-				pages.ShowPage("/editField") 
-				app.SetFocus(editField.form)
+			edit.list.AddItem("notes:", condensedNotes, runeAlphabet[num], func(){
+				blankNewNote(e)
+				pages.ShowPage("/newNote") 
+				app.SetFocus(newNote.form)
 			})
 		}
 		num = runeAlphabetIterate(num)
@@ -827,9 +886,10 @@ func main(){
 			})
 	}
 
+	// can either be name or tags
 	blankEditStringForm = func (display, value string, e *entry){
-		if (display != "name")&&(display != "notes")&&(display != "tags"){
-			error.second.SetText("AHHHH the input of display should only be notes, tags, name!!")
+		if (display != "name")&&(display != "tags"){
+			error.second.SetText("AHHHH the input of display should only be tags or name!!")
 			pages.SwitchToPage("err")
 		}else{
 
@@ -843,28 +903,21 @@ func main(){
 					tempValue = changed
 				}). 
 				AddButton("save", func(){
-					switch display{
-					case "name":
+					if display == "name"{
 						e.name = tempValue
-					case "tags":
+					}else{
 						e.tags = tempValue
-					case "notes":
-						e.notes = tempValue
-					} 
+					}
 					switchToEditList()
 				}). 
 				AddButton("quit", func(){
 					switchToEditList()
 				})
 
-			// make a delete button for editing the name, as each entry must have a name
+			// does not make a delete button for editing the name, as each entry must have a name, therefore only option would be to delete tags
 			if display != "name"{ 
 				editField.form.AddButton("delete", func(){
-					if display == "notes"{
-						e.notes = ""
-					}else{
-						e.tags = ""
-					}
+					e.tags = ""
 					switchToEditList()
 				})
 			}
@@ -959,12 +1012,20 @@ func main(){
 		AddItem(newEntryForm, 0, 1, false). 
 		AddItem(newFieldsAddedList, 0, 2, false) // 1:2 is the maximum  
 
-	editFieldFlex.
+
+	editFieldFlex. // looks a little low in /edit but it makes it look better in /new. if want to make another one just for /edit the make the deminsions of the column opposite: 2, 3, 3.
 		AddItem(nil, 0, 1, false). 
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow). 
-			AddItem(nil, 0, 1, false). 
+			AddItem(nil, 0, 3, false). 
 			AddItem(editField.grid, 0, 3, false). 
-			AddItem(nil, 0, 1, false), 0, 4, false)
+			AddItem(nil, 0, 2, false), 0, 4, false)
+
+	editFieldStrFlex.
+		AddItem(nil, 0, 1, false). 
+		AddItem(tview.NewFlex().SetDirection(tview.FlexRow). 
+			AddItem(nil, 0, 3, false). 
+			AddItem(editField.grid, 0, 2, false). 
+			AddItem(nil, 0, 2, false), 0, 4, false)
 
 	editDelete.flex.
 		AddItem(editDelete.text, 0, 1, false). 
@@ -1010,14 +1071,16 @@ func main(){
 		AddPage("/open", open.grid, true, false). 
 		AddPage("/edit", edit.grid, true, false). 
 		AddPage("/editField", editFieldFlex, true, false). 
+		AddPage("/editFieldStr", editFieldStrFlex, true, false).
 		AddPage("/editDelete", editDeleteFlex, true, false). 
 		AddPage("/pick", pick.grid, true, false). 
 		AddPage("/copen", copen.grid, true, false)
 
 	// sets up the flex row of the left side, top is the pages bottom is the commandLine.input
 	// ratio of 8:1 is the maximum that it can be (9:1 and 100:1 are the same as 8:1)
+	// ratio of 9:1 is good on 29x84 grid
 	flexRow. 
-		AddItem(pages, 0, 8, false). 
+		AddItem(pages, 0, 9, false). 
 		AddItem(commandLine.grid, 0, 1, false)
 
 	// the greater flex consisting of the left and right sides
