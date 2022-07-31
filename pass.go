@@ -7,16 +7,16 @@ for commandsText in /open write that in order to edit you must go to /edit
 write about mouse usage and reason
 
 
-/list and /find
-make it when you scroll in /list or /find it scrolls over all of them 
-	-- i don't think there's an easy way to do this, maybe don't do this? or way to do this that would be hard which is put all of them into one text box
-for /find: 
+/find
 make extra check, if str is over a certain character count then don't print all the characters in a line, would look funny. also can garanetted not any entries per that amount so can skip all the cycling through
 	// or even search for the full str just not print it all
 PROBLEM WITH /FIND, DOES NOT PRINT FULL STRING INPUT IF ITS OVER A CERTAIN LENGth
 
 /open
 make the text black for passwords and security questions
+
+/edit
+.showpage isn't working for blankEditList
 
 rename commandsText
 
@@ -84,22 +84,29 @@ type inputGrid struct{
 	input *tview.InputField
 	grid *tview.Grid
 }
-
-// form, flex, grid, func()???
-type funcFormFlexGrid struct{
-	form *tview.Form 
+type twoTextFlexGrid struct{
+	title *tview.TextView 
+	text *tview.TextView
 	flex *tview.Flex
 	grid *tview.Grid
-	blank func(e entry)
 }
 
 func main(){
-
 	app := tview.NewApplication()
 
 	entries := []entry{}
-	readErr := readFromFile(&entries) // the error is dealt with in SwitchToHome, so if it fails at first the whole program won't run
 
+	readErr := readFromFile(&entries) // the error is dealt with in SwitchToHome, so if it fails at first the whole program won't run
+	
+	/*
+	for i := 0; i < 18; i++{ // put at 52 makes it show the max amount (when 5 already in entries)
+		entries = append(entries, entry{Name: "testtesttesttesttesttest",Tags: "demo, test!, smiles", Circulate: true})
+		entries = append(entries, entry{Name: "hello",Tags: "test, demo, hahaha", Circulate: true})
+	//	entries = append(entries, entry{Name: "test",Tags: "demo, test!, smiles", Circulate: true})
+		entries = append(entries, entry{Name: "heyo",Tags: "testest, demmo, hihi", Circulate: true})
+	}
+	*/
+	
 	// pages is the pages set up for the left top box
 	pages := tview.NewPages()
 
@@ -136,8 +143,11 @@ func main(){
 	}
 
 	// this is the text box that contains that list entry names and its grid (border)
-	list := threeTextFlexGrid{first: tview.NewTextView().SetScrollable(true).SetWrap(false), second: tview.NewTextView().SetScrollable(true).SetWrap(false), third: tview.NewTextView().SetScrollable(true).SetWrap(false), flex: tview.NewFlex(), grid: tview.NewGrid().SetBorders(true)}
 	
+	//list := threeTextFlexGrid{first: tview.NewTextView().SetScrollable(true).SetWrap(false), second: tview.NewTextView().SetScrollable(true).SetWrap(false), third: tview.NewTextView().SetScrollable(true).SetWrap(false), flex: tview.NewFlex(), grid: tview.NewGrid().SetBorders(true)}
+	
+	list := twoTextFlexGrid{title: tview.NewTextView().SetWrap(false), text: tview.NewTextView().SetScrollable(true).SetWrap(false), grid: tview.NewGrid().SetBorders(true), flex: tview.NewFlex()}
+
 	// this is a text box to print out the entire entries, to test!
 	test := textGrid{text: tview.NewTextView().SetScrollable(true), grid: tview.NewGrid().SetBorders(true)}
 
@@ -154,8 +164,7 @@ func main(){
 	// when something happens that could give an error it will switch to here
 	// and print it with what the erorr is 
 	// split to two text boxes, top stays the same while the second changes
-	error := threeTextFlexGrid{first: tview.NewTextView().SetText(" Uh oh! There was an error:"), second: tview.NewTextView().SetScrollable(true), flex: tview.NewFlex(), grid: tview.NewGrid().SetBorders(true)}
-
+	error := twoTextFlexGrid{title: tview.NewTextView().SetText(" Uh oh! There was an error:"), text: tview.NewTextView().SetScrollable(true), flex: tview.NewFlex(), grid: tview.NewGrid().SetBorders(true)}
 
 	switchToHome := func(){}
 
@@ -174,7 +183,7 @@ func main(){
 	// this is the form of adding a new field, its grid, 
 	newField := formGrid{form: tview.NewForm(), grid: tview.NewGrid().SetBorders(true)}
 	newFieldFlex := tview.NewFlex() // flex to situate it in the middle of page
-	blankNewField := func(){} //function to set up the form, clear it each time
+	blankNewField := func(e *entry){} //function to set up the form, clear it each time
 	newEditFieldFlex := tview.NewFlex() // flex to put it in the middle of page of when you edit one of the fields added already to /new
 
 	// this is the form for adding a new notes, its grid, flex, and function
@@ -242,7 +251,6 @@ func main(){
 
 	editCommands := " /edit \n ----- \n move: \n -tab \n -back tab \n -arrows keys \n\n select: \n -return \n -click" // similar to newCommands and newFieldCommands
 
-
 	pick := listGrid{list: tview.NewList().SetSelectedFocusOnly(true).SetDoneFunc(switchToHome), grid: tview.NewGrid().SetBorders(true)}
 	blankPickList := func(openCopen string){}
 
@@ -257,7 +265,6 @@ func main(){
 
 		inputed = commandLine.input.GetText() 
 		inputedArr := strings.Split(inputed, " ") 
-		returnedList := []string{"error!", "failed \n to get \n anything", "AHHHHHHHHHHHHH"}
 
 		// the following if/else statements check that the number inputed for /edit or /open
 		// that there is a number, it is an int, and it corresponds to an entry 
@@ -266,16 +273,16 @@ func main(){
 			indexSelectEntry = -1 //  sets it here to remove any previous doings
 
 			if len(inputedArr) < 2 { // so if there is no number written
-				error.second.SetText(" To " + inputedArr[0][1:5] + " an entry you must write " + inputedArr[0] + " and then a number. \n With a space after " + inputedArr[0] + " \n Ex: \n\t" + inputedArr[0] + " 3")
+				error.text.SetText(" To " + inputedArr[0][1:5] + " an entry you must write " + inputedArr[0] + " and then a number. \n With a space after " + inputedArr[0] + " \n Ex: \n\t" + inputedArr[0] + " 3")
 				pages.SwitchToPage("err")
 			}else{
 				openEditInt, intErr := strconv.Atoi(inputedArr[1])
 				if intErr != nil{ // if what passed in is not a number
-					error.second.SetText(" Make sure to only use " + inputedArr[0] + " by writing a number! \n For an example do /help")
+					error.text.SetText(" Make sure to only use " + inputedArr[0] + " by writing a number! \n For an example do /help")
 					pages.SwitchToPage("err")
 				}else{
 					if openEditInt >= len(entries){ // if the number passed in isn't an index
-						error.second.SetText(" The number you entered does not correspond to an entry. \n Do /list to see the entries (and their numbers) that exist.")
+						error.text.SetText(" The number you entered does not correspond to an entry. \n Do /list to see the entries (and their numbers) that exist.")
 						pages.SwitchToPage("err")
 					}else{
 						indexSelectEntry = openEditInt
@@ -292,11 +299,21 @@ func main(){
 			for i := 0; i < len(entries); i++{
 				listAllIndexes = append(listAllIndexes, i)
 			}
-			returnedList = listEntries(entries, listAllIndexes, " /list \n -----", false)
-			list.first.SetText(returnedList[0]).ScrollToBeginning()
-			list.second.SetText(returnedList[1]).ScrollToBeginning()
-			list.third.SetText(returnedList[2]).ScrollToBeginning()
+			title, text := listEntries(entries, listAllIndexes, " /list \n -----", false)
+			list.title.SetText(title)
+			list.text.SetText(text).ScrollToBeginning()
+
 			pages.SwitchToPage("/list")
+		case "/find":
+			if len(inputedArr) < 2 { 
+				error.text.SetText(" To find entries you must write /find and then characters. \n With a space after /find. \n Ex: \n\t /find college")
+				pages.SwitchToPage("err")
+			}else{
+				title, text := findEntries(entries, inputedArr[1])
+				list.title.SetText(title)
+				list.text.SetText(text).ScrollToBeginning()
+				pages.SwitchToPage("/list")
+			}
 		case "/test":
 			test.text.SetText(testAllFields(entries))
 			pages.SwitchToPage("/test")
@@ -330,18 +347,6 @@ func main(){
 				cantTypeCommandLinePlaceholder()
 				switchToEditList()
 			}
-		case "/find":
-			if len(inputedArr) < 2 { 
-				error.second.SetText(" To find entries you must write /find and then characters. \n With a space after /find. \n Ex: \n\t /find college")
-				pages.SwitchToPage("err")
-			}else{
-				returnedList = findEntries(entries, inputedArr[1])
-
-				list.first.SetText(returnedList[0]).ScrollToBeginning()
-				list.second.SetText(returnedList[1]).ScrollToBeginning()
-				list.third.SetText(returnedList[2]).ScrollToBeginning()
-				pages.SwitchToPage("/list")
-			}
 		case "/pick":
 			blankPickList(inputedArr[0])
 			app.SetFocus(pick.list)
@@ -362,7 +367,7 @@ func main(){
 			pages.SwitchToPage("/pick")
 			cantTypeCommandLinePlaceholder()
 		default:
-			error.second.SetText(" That input doesn't match a command! \n Look to the right right to see the possible commands. \n Make sure to spell it correctly!")
+			error.text.SetText(" That input doesn't match a command! \n Look to the right right to see the possible commands. \n Make sure to spell it correctly!")
 			pages.SwitchToPage("err")
 		}
 		commandLine.input.SetText("")
@@ -378,7 +383,7 @@ func main(){
 		lookRightCommandLinePlaceholder()
 		if readErr != ""{
 			pages.SwitchToPage("err")
-			error.second.SetText(readErr)
+			error.text.SetText(readErr)
 		}
 	}
 
@@ -394,7 +399,7 @@ func main(){
 		writeErr := writeToFile(entries)
 		if writeErr != ""{
 			pages.SwitchToPage("err")
-			error.second.SetText(writeErr)
+			error.text.SetText(writeErr)
 			return false
 		}
 		return true
@@ -423,7 +428,7 @@ func main(){
 			// this order of the buttons is on purpose and makes sense
 			AddButton("new field", func(){
 				commands.text.SetText(newFieldCommands)
-				blankNewField()
+				blankNewField(&tempEntry)
 				pages.ShowPage("/newField")
 				app.SetFocus(newField.form)
 			}).
@@ -451,7 +456,23 @@ func main(){
 			})
 	}
 
-	blankNewField = func(){
+	// takes in a pointer to tempEntry if in /new, takes in an entry if in /edit 
+	blankNewField = func(e *entry){
+		if e.Password.DisplayName != ""{
+			dropDownFields[1] = "overide written password"
+		}
+
+		tempTags := "" 
+
+		edit := false
+
+		// only adds on tags to edit it if there are no tags made already and if its in /edit
+		if e != &tempEntry{
+			if (e.Tags == "")&&(len(dropDownFields) < 4){
+				dropDownFields = append(dropDownFields, "tags") // don't change the text of "tags" its used elsewhere	
+			}
+			edit = true
+		}
 
 		tempField = Field{}
 
@@ -459,47 +480,62 @@ func main(){
 		newField.form.Clear(true)
 		newField.form. 
 			AddDropDown("new field:", dropDownFields, -1, func(chosenDrop string, index int){
+
+				for newField.form.GetFormItemCount() > 1 { // removes other things put there already
+					newField.form.RemoveFormItem(1)
+				} 
+
+				fieldType = chosenDrop
 				if index > -1 {
-					if newField.form.GetFormItemCount() < 2 { // only if there aren't the fields already there (doesn't count buttons)
-						fieldType = chosenDrop
+					if chosenDrop != "tags" { // only if there aren't the fields already there (doesn't count buttons)
 							
 						switch chosenDrop {
 						case dropDownFields[0]: // if username is chosen
 							tempField.DisplayName = "email" // in case it isn't edited, sets this as the default
-							newField.form.AddInputField("display name:", "email", 50, nil, func(display string){
+							newField.form.AddInputField("display name", "email", 50, nil, func(display string){
 								tempField.DisplayName = display
 							})
 						case dropDownFields[1]: // if password is chosen
 							tempField.DisplayName = "password" // in case it isn't edited, sets this as the default
-							newField.form.AddInputField("display name:", "password", 20, nil, func(display string){
+							newField.form.AddInputField("display name", "password", 20, nil, func(display string){
 								tempField.DisplayName = display
 							})
 						case dropDownFields[2]:
-							newField.form.AddInputField("question:", "", 50, nil, func(display string){
+							newField.form.AddInputField("question", "", 50, nil, func(display string){
 								tempField.DisplayName = display
 							})
 						}
-						newField.form.AddInputField("value:", "", 40, nil, func(value string){
+						newField.form.AddInputField("value", "", 40, nil, func(value string){
 							tempField.Value = value
+						})
+					}else {
+						newField.form.AddInputField("tags", tempEntry.Tags, 40, nil, func(tagsInput string){
+							tempTags = tagsInput
 						})
 					}
 				}
-			}). 
+			}).
 			AddButton("save field", func(){
 				if tempField.DisplayName != ""{ 
 					switch fieldType {
 					case dropDownFields[0]:
-						tempEntry.Usernames = append(tempEntry.Usernames, tempField)
+						e.Usernames = append(e.Usernames, tempField)
 					case dropDownFields[1]:
-						tempEntry.Password = tempField
-						dropDownFields[1] = "overide written password"
+						e.Password = tempField
+						//dropDownFields[1] = "overide written password"
 					case dropDownFields[2]:
-						tempEntry.SecurityQ = append(tempEntry.SecurityQ, tempField)
+						e.SecurityQ = append(e.SecurityQ, tempField)
+					case "tags":
+						e.Tags = tempTags
 					}
-					blankFieldsAdded()
-					commands.text.SetText(newCommands)
-					pages.SwitchToPage("/newEntry")
-					app.SetFocus(newEntry.form)
+					if !edit{
+						blankFieldsAdded()
+						commands.text.SetText(newCommands)
+						pages.SwitchToPage("/newEntry")
+						app.SetFocus(newEntry.form)
+					}else{
+						switchToEditList()
+					}
 				}
 			}).
 			AddButton("quit", func(){
@@ -628,7 +664,7 @@ func main(){
 				pages.SwitchToPage("/newEntry")
 				app.SetFocus(newEntry.form)
 			}else{
-				error.second.SetText("AHHHHHHH for some reason the edit field button wasn't added despite a field later trying to be deleted!!!!")
+				error.text.SetText("AHHHHHHH for some reason the edit field button wasn't added despite a field later trying to be deleted!!!!")
 				pages.SwitchToPage("err")
 			}
 		}
@@ -801,6 +837,16 @@ func main(){
 				app.SetFocus(newNote.form)
 			})
 		}
+
+		num = runeAlphabetIterate(num)
+		edit.list.AddItem("add new field", "", runeAlphabet[num], func(){
+			// code copied from blankNewEntry
+			commands.text.SetText(newFieldCommands)
+			blankNewField(e)
+			pages.ShowPage("/newField")
+			app.SetFocus(newField.form)
+		})
+
 		num = runeAlphabetIterate(num)
 		if e.Circulate{ // if it is in circulation, option to opt out
 			edit.list.AddItem("remove from circulation", "(not permanant), check /help for info", runeAlphabet[num], func(){
@@ -877,7 +923,7 @@ func main(){
 							switchToNewFieldsList(true)
 						}
 					}else{
-						error.second.SetText("AHHHHH the array given to blankEditFieldForm is nil and it shouldnt be!!!!")
+						error.text.SetText("AHHHHH the array given to blankEditFieldForm is nil and it shouldnt be!!!!")
 						pages.SwitchToPage("err")
 					}
 				}
@@ -887,7 +933,7 @@ func main(){
 	// can either be name or tags
 	blankEditStringForm = func (display, value string, e *entry){
 		if (display != "name")&&(display != "tags"){
-			error.second.SetText("AHHHH the input of display should only be tags or name!!")
+			error.text.SetText("AHHHH the input of display should only be tags or name!!")
 			pages.SwitchToPage("err")
 		}else{
 
@@ -948,7 +994,9 @@ func main(){
 			})
 	}
 
-
+	// ----
+	// /pick and /picc
+	// ----
 
 	// function for making the list in /pick and /picc
 	// if openCopen is true, then when you select an entry it takes you do /open of that entry, vs. if it is false it would take you to /copen
@@ -988,16 +1036,9 @@ func main(){
 		}
 	}
 
-
 	// ------------------------------------------------ //
 	// setting up the grids, pages, flexes :)
 	// ------------------------------------------------ //
-
-	
-	list.flex. 
-		AddItem(list.first, 0, 1, false). 
-		AddItem(list.second, 0, 1, false). 
-		AddItem(list.third, 0, 1, false)
 
 	newFieldFlex.
 		AddItem(nil, 0, 1, false). 
@@ -1007,8 +1048,8 @@ func main(){
 			AddItem(nil, 0, 1, false), 0, 4, false)
 
 	error.flex.SetDirection(tview.FlexRow). 
-		AddItem(error.first, 0, 1, false).
-		AddItem(error.second, 0, 8, false)
+		AddItem(error.title, 0, 1, false).
+		AddItem(error.text, 0, 8, false)
 
 	newNoteFlex. 
 		AddItem(nil, 0, 1, false). 
@@ -1055,6 +1096,9 @@ func main(){
 			AddItem(nil, 0, 2, false), 0, 1, false).  //3
 		AddItem(nil, 0, 1, false)
 
+	list.flex.SetDirection(tview.FlexRow). 
+		AddItem(list.title, 0, 1, false). 
+		AddItem(list.text, 0, 8, false)
 
 	// uses a function to add each thing to its perspective grid
 	grider(commandLine.input, commandLine.grid)
@@ -1072,7 +1116,6 @@ func main(){
 	grider(editDelete.flex, editDelete.grid)
 	grider(pick.list, pick.grid)
 	grider(copen.list, copen.grid)
-
 
 	// all the different pages are added here
 	pages.
@@ -1095,15 +1138,16 @@ func main(){
 
 	// sets up the flex row of the left side, top is the pages bottom is the commandLine.input
 	// ratio of 8:1 is the maximum that it can be (9:1 and 100:1 are the same as 8:1)
-	// ratio of 9:1 is good on 29x84 grid
+	// ratio of 9:1 is good on 28x84 grid
 	flexRow. 
-		AddItem(pages, 0, 9, false). 
+		AddItem(pages, 0, 8, false). 
 		AddItem(commandLine.grid, 0, 1, false)
 
 	// the greater flex consisting of the left and right sides
+	// 5:1 is original, 6:1 gets two more columns for realList, 14:3 for no extra columns in realList :D:D:D 
 	flex. 
-		AddItem(flexRow, 0, 5, false). 
-		AddItem(commands.grid, 0, 1, false)
+		AddItem(flexRow, 0, 14, false). 
+		AddItem(commands.grid, 0, 3, false) 
 
 	switchToHome()
 
@@ -1121,7 +1165,7 @@ func grider(prim tview.Primitive, grid *tview.Grid){
 }
 
 // this finds all the entries that has a certain str in its name or tags
-func findEntries(entries []entry, str string) []string{
+func findEntries(entries []entry, str string) (string,string){
 	indexes := []int{}
 	str = strings.ToLower(str)
 	for i, e := range entries {
@@ -1132,64 +1176,64 @@ func findEntries(entries []entry, str string) []string{
 	if len(indexes) > 0{
 		return listEntries(entries, indexes, " /find " + str + " \n " + strings.Repeat("-", len([]rune(str))+6), true)
 	}else{ 
-		return []string{" /find " + str + " \n " + strings.Repeat("-", len([]rune(str))+6) + "\n no entries found", "", ""}
+		return " /find " + str + " \n " + strings.Repeat("-", len([]rune(str))+6), "no entries found"
 	}
 }
 
-// this is the function that formats each entry as: " [0] twitter", to be printed out in /find or in /list
-// remane fnction?? lol
+// this is the function that formats each entry all together " [0] twitter", to be printed out in /find or in /list
 // the str taken in will be: " /find str \n-----" or " /list \n -----"
-// bool taken in differentiates from /list or /find, to show or not show the ones that are not in circulation. If not in circulation, but is found in /find, it puts (rem) as in removed
-func listEntries(entries []entry, indexes []int, str string, showOld bool) []string{
-	list := []string{str, "", ""}
+// bool taken in differentiates from /list or /find, to show or not show the ones that are not in circulation. If not in circulation, but is found in /find, it puts (rem) on the title if it is not in circulation
+func listEntries (entries []entry, indexes []int, str string, showOld bool) (string,string){
 
-	toPrint := []entry{}
+	printStr := ""
+	printEntries := []entry{}
 
-	// this works to, if removed entires should not be shown (in /list), remove those entries by only adding to toPrint the ones that are in circulation (along with their indexes so that the indexes printed is correct)
 	if showOld{
 		for _,i := range indexes{
-			toPrint = append(toPrint, entries[i]) // equivilent to entries[i] as entries[indexes[i]]
+			printEntries = append(printEntries, entries[i]) // equivilent to entries[i] is entries[indexes[i]]
 		}
 	}else{
 		indexes = nil
 		for i,e := range entries{
 			if e.Circulate{
-				toPrint = append(toPrint, e)
+				printEntries = append(printEntries, e)
 				indexes = append(indexes, i)
-
 			}
 		}
 	}
-
-	third := len(toPrint)/3
+	third := len(indexes)/3
 	if third < 21 {
 		third = 21
 	}
-	listIndex := 0
-	indexesIndex := 0
-	toPrintIndex := 0
 
-	// currently divisies it up evenly between three columns, if want to make it to not have to scroll for first two columns, replace the following line with if (entriesIndex == 19)||(entriesIndex == 38)
-
-	for toPrintIndex < len(toPrint){
-
-		if (toPrintIndex == third)||(toPrintIndex == third*2){ //only move on if toPrint has numbers up to third
-			listIndex++
-			list[listIndex] = "\n"
+	for i := 0; i < third; i++{
+		if i >= len(indexes){
+			break
 		}
-
-		list[listIndex] += "\n"
-		list[listIndex] += " [" + strconv.Itoa(indexes[indexesIndex]) + "] "
-		if (showOld)&&(!toPrint[toPrintIndex].Circulate){
-			list[listIndex] += "(rem) "
+		printStr += " " + indexName(indexes[i], entries)
+		if len(indexes) > i+third{
+			printStr += indexName(indexes[i+third], entries)
 		}
-		//list[listIndex] += entries[indexes[indexesIndex]].name
-		list[listIndex] += toPrint[toPrintIndex].Name
-
-		indexesIndex++
-		toPrintIndex++
+		if len(indexes) > i+third+third{
+			printStr += indexName(indexes[i+third], entries)
+		}
+		if i != third-1 { //so it doesn't do it on the last one
+			printStr += "\n"
+		}
 	}
-	return list
+	return str, printStr // first string is title, second is the body of the text
+}
+// this puts a single index from entries to " [0] twitterDEMO       ", with those exact spaces as they are what makes it into a good column shape
+func indexName (index int, entries []entry) string{
+	str := "[" + strconv.Itoa(index) + "] " + entries[index].Name
+	len := len([]rune(str))
+	if len > 21{
+		str = str[0:21] // second number in not inclusive
+		str += " "
+	}else{
+	str += strings.Repeat(" ", 22-len)
+	}
+	return str
 }
 
 // call this to be printed out to see all the things in the struct - to test!
