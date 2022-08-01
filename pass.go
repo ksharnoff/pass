@@ -6,17 +6,14 @@ order commands list + helpinfo info alphabetically
 for commandsText in /open write that in order to edit you must go to /edit
 write about mouse usage and reason
 
-
 /find
-make extra check, if str is over a certain character count then don't print all the characters in a line, would look funny. also can garanetted not any entries per that amount so can skip all the cycling through
+make extra check, 4if str is over a certain character count then don't print all the characters in a line, would look funny. also can garanetted not any entries per that amount so can skip all the cycling through
 	// or even search for the full str just not print it all
 PROBLEM WITH /FIND, DOES NOT PRINT FULL STRING INPUT IF ITS OVER A CERTAIN LENGth
 
-/open
-make the text black for passwords and security questions
-
 /edit
 .showpage isn't working for blankEditList
+.showPage isn't now working for editing notes
 
 rename commandsText
 
@@ -61,13 +58,6 @@ type textGrid struct {
 }
 type formGrid struct{
 	form *tview.Form
-	grid *tview.Grid
-}
-type threeTextFlexGrid struct{
-	first *tview.TextView
-	second *tview.TextView
-	third *tview.TextView
-	flex *tview.Flex
 	grid *tview.Grid
 }
 type listGrid struct{
@@ -142,10 +132,7 @@ func main(){
 		commandLine.input.SetPlaceholder("psst you can't type here right now")
 	}
 
-	// this is the text box that contains that list entry names and its grid (border)
-	
-	//list := threeTextFlexGrid{first: tview.NewTextView().SetScrollable(true).SetWrap(false), second: tview.NewTextView().SetScrollable(true).SetWrap(false), third: tview.NewTextView().SetScrollable(true).SetWrap(false), flex: tview.NewFlex(), grid: tview.NewGrid().SetBorders(true)}
-	
+	// this is the text box that contains that list entry names and its grid (border)	
 	list := twoTextFlexGrid{title: tview.NewTextView().SetWrap(false), text: tview.NewTextView().SetScrollable(true).SetWrap(false), grid: tview.NewGrid().SetBorders(true), flex: tview.NewFlex()}
 
 	// this is a text box to print out the entire entries, to test!
@@ -155,7 +142,7 @@ func main(){
 	help := textGrid{text: tview.NewTextView().SetScrollable(true).SetText(" /help \n -----\n\n Do /new in order to put in a new entry. \n Do a;sdkfjkl  \n\n /find is case insensitve.  \n\n Do /open to view an entry. \n You will have to put in the password before you can see the information. \n Passwords and security questions will be blotted out, but they can be copied. (Or highlighted to see them) \n To delete an entry do /edit \n\n do /edit to edit fields or delete an entry. \n in /edit, all edits are permanently saved field by field as you click save \n\n the values of all fields, except the name of the entry and the tags, are equally encrypted. \n\n circulation? \n if you don't want an entry anymore, have no more use for it, but don't want to delete it, you should remove it from circulation. it will show up in /find results, but not from /list or /pick \n\n difference between /pick and /picc "), grid: tview.NewGrid().SetBorders(true)}
 
 	// text and grid for opening an entry already made, its function to format the information
-	open := textGrid{text: tview.NewTextView().SetScrollable(true), grid: tview.NewGrid().SetBorders(true)}
+	open := textGrid{text: tview.NewTextView().SetScrollable(true).SetDynamicColors(true), grid: tview.NewGrid().SetBorders(true)}
 	blankOpen := func(i int) string {return "error, blankOpen(i int) didn't run"}
 
 	copen := listGrid{list: tview.NewList().SetMainTextColor(tcell.GetColor("ColorSnow")).SetOffset(1, 1), grid: tview.NewGrid().SetBorders(true)}
@@ -458,24 +445,32 @@ func main(){
 
 	// takes in a pointer to tempEntry if in /new, takes in an entry if in /edit 
 	blankNewField = func(e *entry){
-		if e.Password.DisplayName != ""{
+		if (e.Password.DisplayName != "")&&(dropDownFields[1] == "password"){
 			dropDownFields[1] = "overide written password"
 		}
-
-		tempTags := "" 
-
 		edit := false
 
 		// only adds on tags to edit it if there are no tags made already and if its in /edit
 		if e != &tempEntry{
-			if (e.Tags == "")&&(len(dropDownFields) < 4){
+			if (e.Tags == "")&&((dropDownFields[3] != "tags")||(dropDownFields[2] != "tags")){
 				dropDownFields = append(dropDownFields, "tags") // don't change the text of "tags" its used elsewhere	
 			}
+			if (e.Tags != "")&&(len(dropDownFields) == 4){ // if there are tags in the entry, but also tags as an option in the dropdown it should be removed
+				dropDownFields = dropDownFields[:3]
+				// above should be equivilent to: slice = slice[:len(slice)-1]
+			}
+			if (e.Password.DisplayName != "")&&((dropDownFields[1] == "password")||(dropDownFields[1] == "overide written password")){
+
+				copy(dropDownFields[1:], dropDownFields[1+1:])
+				dropDownFields = dropDownFields[:len(dropDownFields)-1]  
+			}
+
 			edit = true
 		}
 
 		tempField = Field{}
 
+		tempTags := "" 
 		fieldType = ""
 		newField.form.Clear(true)
 		newField.form. 
@@ -489,18 +484,17 @@ func main(){
 				if index > -1 {
 					if chosenDrop != "tags" { // only if there aren't the fields already there (doesn't count buttons)
 							
-						switch chosenDrop {
-						case dropDownFields[0]: // if username is chosen
+						if chosenDrop == "username"{
 							tempField.DisplayName = "email" // in case it isn't edited, sets this as the default
 							newField.form.AddInputField("display name", "email", 50, nil, func(display string){
 								tempField.DisplayName = display
 							})
-						case dropDownFields[1]: // if password is chosen
+						}else if (chosenDrop == "password")||(chosenDrop == "overide written password"){
 							tempField.DisplayName = "password" // in case it isn't edited, sets this as the default
 							newField.form.AddInputField("display name", "password", 20, nil, func(display string){
 								tempField.DisplayName = display
 							})
-						case dropDownFields[2]:
+						}else if (chosenDrop == "security question"){
 							newField.form.AddInputField("question", "", 50, nil, func(display string){
 								tempField.DisplayName = display
 							})
@@ -509,21 +503,22 @@ func main(){
 							tempField.Value = value
 						})
 					}else {
-						newField.form.AddInputField("tags", tempEntry.Tags, 40, nil, func(tagsInput string){
-							tempTags = tagsInput
+						newField.form.AddInputField("tags", tempEntry.Tags, 40, nil, func(tags string){
+							tempTags = tags
 						})
 					}
 				}
 			}).
 			AddButton("save field", func(){
-				if tempField.DisplayName != ""{ 
-					switch fieldType {
-					case dropDownFields[0]:
+				if (tempField.DisplayName != "")||(tempTags != ""){ 
+					switch fieldType{
+					case "username":
 						e.Usernames = append(e.Usernames, tempField)
-					case dropDownFields[1]:
+					case "password":
 						e.Password = tempField
-						//dropDownFields[1] = "overide written password"
-					case dropDownFields[2]:
+					case "overide written password":
+						e.Password = tempField
+					case "security question":
 						e.SecurityQ = append(e.SecurityQ, tempField)
 					case "tags":
 						e.Tags = tempTags
@@ -539,9 +534,13 @@ func main(){
 				}
 			}).
 			AddButton("quit", func(){
-				commands.text.SetText(newCommands)
-				pages.SwitchToPage("/newEntry")
-				app.SetFocus(newEntry.form)
+				if !edit{
+					commands.text.SetText(newCommands)
+					pages.SwitchToPage("/newEntry")
+					app.SetFocus(newEntry.form)
+				}else{
+					switchToEditList()
+				}
 			})
 	}
 
@@ -686,13 +685,13 @@ func main(){
 		}
 		print += " in circulation: " + strconv.FormatBool(e.Circulate) + "\n"
 		for _, u := range e.Usernames {
-			print += " " + u.DisplayName + ": " + u.Value + "\n"
+			print += " " + u.DisplayName + ": " + u.Value + "[snow]\n"
 		}
 		if e.Password.DisplayName != "" {
-			print += " " + e.Password.DisplayName + ": [black]" + e.Password.Value + "\n"
+			print += " " + e.Password.DisplayName + ": [black]" + e.Password.Value + "[snow]\n"
 		}
 		for _, sq := range e.SecurityQ {
-			print += " " + sq.DisplayName + ": [black]" +sq.Value + "\n"
+			print += " " + sq.DisplayName + ": [black]" +sq.Value + "[snow]\n"
 		}
 		emptyNotes := true
 
@@ -838,12 +837,21 @@ func main(){
 			})
 		}
 
+		newFieldStr := "usernames"
+
+		if e.Password.DisplayName == ""{
+			newFieldStr +=", password"
+		}
+		if e.Tags == ""{
+			newFieldStr += ", tags"
+		}
+
 		num = runeAlphabetIterate(num)
-		edit.list.AddItem("add new field", "", runeAlphabet[num], func(){
+		edit.list.AddItem("add new field", newFieldStr + ", security questions", runeAlphabet[num], func(){
 			// code copied from blankNewEntry
 			commands.text.SetText(newFieldCommands)
 			blankNewField(e)
-			pages.ShowPage("/newField")
+			pages.SwitchToPage("/newField")
 			app.SetFocus(newField.form)
 		})
 
@@ -1140,7 +1148,7 @@ func main(){
 	// ratio of 8:1 is the maximum that it can be (9:1 and 100:1 are the same as 8:1)
 	// ratio of 9:1 is good on 28x84 grid
 	flexRow. 
-		AddItem(pages, 0, 8, false). 
+		AddItem(pages, 0, 9, false). 
 		AddItem(commandLine.grid, 0, 1, false)
 
 	// the greater flex consisting of the left and right sides
