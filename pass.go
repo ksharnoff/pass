@@ -13,7 +13,7 @@ PROBLEM WITH /FIND, DOES NOT PRINT FULL STRING INPUT IF ITS OVER A CERTAIN LENGt
 
 /edit
 .showpage isn't working for blankEditList
-.showPage isn't now working for editing notes
+.showPage isn't now working for editing notes -- like literally not showing anything,, but mouse still moving??!??!
 
 rename commandsText
 
@@ -23,6 +23,7 @@ fix SetDoneFunc for pick.list and the other lists!
 
 have it do something in case that file doesn't exsist, or instead have it start with that file downloaded?? 
 
+add another time to keep track of, of the last time opened? 
 */
 
 package main
@@ -36,6 +37,7 @@ import (
 	"github.com/atotto/clipboard" // copies the data to clipboard in /copen
 	"os" // for writing/reading from file 
 	"gopkg.in/yaml.v3" // for writing/reading from a file
+	"time"
 )
 
 type entry struct {
@@ -46,6 +48,8 @@ type entry struct {
 	SecurityQ []Field
 	Notes [6]string // maybe make this an 8 in the future?
 	Circulate bool
+	Created time.Time
+	Modified time.Time
 }
 type Field struct {
 	DisplayName string
@@ -208,7 +212,7 @@ func main(){
 	runeAlphabet := []rune{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'}
 
 	// if it's at the limit, the length of runeAlphabet, then it gets set back to 0, if it is not, then it plus pluses
-	runeAlphabetIterate := func(i int) int{return -1} // maybe have this return not -1 so it doesn't crash?? -- figure out what this shoudl return if it fails
+	runeAlphabetIterate := func(i *int){}
 
 	// this is the form and its grid and flex for editing a specific field
 	// it has two functions, for editing one of the strings in the entry struct
@@ -224,7 +228,7 @@ func main(){
 	// (remaking the list, switching the page, setting the focus)
 	// the function uses indexSelectEntry, which is that in that should be the 
 	// index of the current entry
-	switchToEditList := func(){}
+	switchToEditList := func(modified bool){}
 	// this is a variable to represent what entry is being edited,
 	// it is outside of any function so it can be used to call the function above,
 	// to switch back to the /edit page
@@ -332,7 +336,7 @@ func main(){
 				app.EnableMouse(false)
 				commands.text.SetText(editCommands)
 				cantTypeCommandLinePlaceholder()
-				switchToEditList()
+				switchToEditList(false)
 			}
 		case "/pick":
 			blankPickList(inputedArr[0])
@@ -374,11 +378,11 @@ func main(){
 		}
 	}
 
-	runeAlphabetIterate = func(i int) int{
-		if i == len(runeAlphabet){
-			return 0
+	runeAlphabetIterate = func(i *int){
+		if *i == len(runeAlphabet){ // why does this work? shouldn't this be until its one less????????????? i have this written from so long ago i think i'm working on this too late at night
+			*i = 0
 		}else{
-			return i + 1
+			*i++
 		}
 	}
 
@@ -424,6 +428,7 @@ func main(){
 			AddButton("save entry", func(){
 				if tempEntry.Name != ""{
 					tempEntry.Circulate = true
+					tempEntry.Created = time.Now()
 					entries = append(entries, tempEntry)
 					if switchToWriteFileErr(){ // if successfully wrote to file, then it switches to home, if not then it switches to error page
 						switchToHome()
@@ -529,7 +534,7 @@ func main(){
 						pages.SwitchToPage("/newEntry")
 						app.SetFocus(newEntry.form)
 					}else{
-						switchToEditList()
+						switchToEditList(true)
 					}
 				}
 			}).
@@ -539,7 +544,7 @@ func main(){
 					pages.SwitchToPage("/newEntry")
 					app.SetFocus(newEntry.form)
 				}else{
-					switchToEditList()
+					switchToEditList(false)
 				}
 			})
 	}
@@ -577,7 +582,7 @@ func main(){
 					app.SetFocus(newEntry.form)
 				}else{ // if all this is being done in /edit
 					e.Notes = toAdd
-					switchToEditList()
+					switchToEditList(true)
 				}
 			}). 
 			AddButton("quit", func(){
@@ -585,7 +590,7 @@ func main(){
 					pages.SwitchToPage("/newEntry")
 					app.SetFocus(newEntry.form)
 				}else{ // if being done in /edit
-					switchToEditList()
+					switchToEditList(false)
 				}
 			}). 
 			AddButton("delete", func(){
@@ -595,7 +600,7 @@ func main(){
 					app.SetFocus(newEntry.form)
 				}else{
 					e.Notes = [6]string{} // assigns the whole array at once :)
-					switchToEditList()
+					switchToEditList(true)
 				}
 			})
 	}
@@ -619,7 +624,7 @@ func main(){
 		for i := range tempEntry.Usernames {
 			i := i
 			u := &tempEntry.Usernames[i]
-			num = runeAlphabetIterate(num)
+			runeAlphabetIterate(&num)
 
 			newFieldsAddedList.AddItem(u.DisplayName + ":", u.Value, runeAlphabet[num], func(){
 				blankEditFieldForm(u, &tempEntry.Usernames, i, &tempEntry, false, false)
@@ -628,7 +633,7 @@ func main(){
 			})
 		}
 		if tempEntry.Password.DisplayName != "" {
-			num = runeAlphabetIterate(num)
+			runeAlphabetIterate(&num)
 			newFieldsAddedList.AddItem(tempEntry.Password.DisplayName + ":", "[black]" + tempEntry.Password.Value, runeAlphabet[num], func(){
 				blankEditFieldForm(&tempEntry.Password, nil, -1, &tempEntry, true, false)
 				pages.ShowPage("/new-editField") 
@@ -638,7 +643,7 @@ func main(){
 		for i := range tempEntry.SecurityQ {
 			i := i
 			sq := &tempEntry.SecurityQ[i]
-			num = runeAlphabetIterate(num)
+			runeAlphabetIterate(&num)
 
 			newFieldsAddedList.AddItem(sq.DisplayName + ":", "[black]" + sq.Value, runeAlphabet[num], func(){
 				blankEditFieldForm(sq, &tempEntry.SecurityQ, i, &tempEntry, false, false)
@@ -674,6 +679,7 @@ func main(){
 	// ----
 
 	// precondition: i > -1
+	// why is it returning a string????
 	blankOpen = func(i int) string{
 		e := entries[i]
 		print := " "
@@ -683,7 +689,6 @@ func main(){
 		if e.Tags != ""{
 			print += " tags: " + e.Tags + "\n"
 		}
-		print += " in circulation: " + strconv.FormatBool(e.Circulate) + "\n"
 		for _, u := range e.Usernames {
 			print += " " + u.DisplayName + ": " + u.Value + "[snow]\n"
 		}
@@ -702,10 +707,29 @@ func main(){
 			}
 		}
 		if !emptyNotes{
+			blankLines := 0
+
 			print += " notes: " 
 			for _, n := range e.Notes {
-				print += "\n\t " + n
+				if n == ""{
+					blankLines++
+				}else{
+					print += strings.Repeat("\n", blankLines)
+					print += "\n\t " + n
+					blankLines = 0
+				}
 			}
+		}
+		print += "\n\n"
+
+		// following is all the "metadata"
+		print += " in circulation: " + strconv.FormatBool(e.Circulate) + "\n"
+
+		if !e.Modified.IsZero(){ // if it's not jan 1, year 1
+			print += " date last modified: " + fmt.Sprint(e.Modified.Date()) + "\n" // CHANGE THIS TO HAVE A COMMA AND BE BETTER
+		}
+		if !e.Created.IsZero(){ // if it's not jan 1, year 1
+			print += " date created: " + fmt.Sprint(e.Created.Date()) // CHANGE THIS TO HAVE A COMMA AND BE BETTER
 		}
 		return print
 	}
@@ -719,36 +743,32 @@ func main(){
 		copen.list.AddItem("leave /copen", "(takes you back to /home)", runeAlphabet[num], func(){
 				switchToHome()
 			})
-		num = runeAlphabetIterate(num)
+		runeAlphabetIterate(&num)
 		copen.list.AddItem("name:", e.Name, runeAlphabet[num], func(){
 			clipboard.WriteAll(e.Name)
 		})
 		if e.Tags != ""{
-			num = runeAlphabetIterate(num)
+			runeAlphabetIterate(&num)
 			copen.list.AddItem("tags:", e.Tags, runeAlphabet[num], func(){
 				clipboard.WriteAll(e.Tags)
 			})
 		}
-		num = runeAlphabetIterate(num)
-		copen.list.AddItem("in circulation:", strconv.FormatBool(e.Circulate), runeAlphabet[num], func(){
-			clipboard.WriteAll(strconv.FormatBool(e.Circulate))
-		})
 		for _, u := range e.Usernames{
 			u := u
-			num = runeAlphabetIterate(num)
+			runeAlphabetIterate(&num)
 			copen.list.AddItem(u.DisplayName + ":", u.Value, runeAlphabet[num], func(){
 				clipboard.WriteAll(u.Value)
 			})
 		}
 		if e.Password.DisplayName != ""{
-			num = runeAlphabetIterate(num)
+			runeAlphabetIterate(&num)
 			copen.list.AddItem(e.Password.DisplayName + ":", "[black]" + e.Password.Value,  runeAlphabet[num], func(){
 				clipboard.WriteAll(e.Password.Value)
 			})
 		}
 		for _, sq := range e.SecurityQ{
 			sq := sq 
-			num = runeAlphabetIterate(num)
+			runeAlphabetIterate(&num)
 			copen.list.AddItem(sq.DisplayName + ":", "[black]" + sq.Value, runeAlphabet[num], func(){
 				clipboard.WriteAll(sq.Value)
 			})
@@ -756,12 +776,17 @@ func main(){
 		for _, n := range e.Notes{ 
 			n := n
 			if n != ""{
-				num = runeAlphabetIterate(num)
+				runeAlphabetIterate(&num)
 				copen.list.AddItem("note:", n, runeAlphabet[num], func(){
 					clipboard.WriteAll(n)
 				})
 			}
 		}
+		runeAlphabetIterate(&num)
+		copen.list.AddItem("in circulation:", strconv.FormatBool(e.Circulate), runeAlphabet[num], func(){
+			clipboard.WriteAll(strconv.FormatBool(e.Circulate))
+		})
+
 	}
 
 	// ----
@@ -776,14 +801,14 @@ func main(){
 		edit.list.AddItem("leave /edit", "(takes you back to /home)", runeAlphabet[num], func(){
 			switchToHome()
 		})
-		num = runeAlphabetIterate(num)
+		runeAlphabetIterate(&num)
 		edit.list.AddItem("name: ", e.Name, runeAlphabet[num], func(){
 			blankEditStringForm("name", e.Name, e)
 			pages.ShowPage("/editFieldStr") 
 			app.SetFocus(editField.form)
 		})
 		if e.Tags != "" {
-			num = runeAlphabetIterate(num)
+			runeAlphabetIterate(&num)
 			edit.list.AddItem("tags:", e.Tags, runeAlphabet[num], func(){
 				blankEditStringForm("tags", e.Tags, e)
 				pages.ShowPage("/editFieldStr") 
@@ -793,7 +818,7 @@ func main(){
 		for i := range e.Usernames {
 			i := i
 			u := &e.Usernames[i]
-			num = runeAlphabetIterate(num)
+			runeAlphabetIterate(&num)
 			edit.list.AddItem(u.DisplayName + ":", u.Value, runeAlphabet[num], func(){
 				blankEditFieldForm(u, &e.Usernames, i, e, false, true)
 				pages.ShowPage("/edit-editField") 
@@ -801,7 +826,7 @@ func main(){
 			})
 		}
 		if e.Password.DisplayName != "" {
-			num = runeAlphabetIterate(num)
+			runeAlphabetIterate(&num)
 			edit.list.AddItem(e.Password.DisplayName + ":", "[black]" + e.Password.Value, runeAlphabet[num], func(){
 				blankEditFieldForm(&e.Password, nil, -1, e, true, true)
 				pages.ShowPage("/edit-editField") 
@@ -811,7 +836,7 @@ func main(){
 		for i := range e.SecurityQ {
 			i := i
 			sq := &e.SecurityQ[i]
-			num = runeAlphabetIterate(num)
+			runeAlphabetIterate(&num)
 
 			edit.list.AddItem(sq.DisplayName + ":", "[black]" + sq.Value, runeAlphabet[num], func(){
 				blankEditFieldForm(sq, &e.SecurityQ, i, e, false, true)
@@ -829,7 +854,7 @@ func main(){
 			}
 		}
 		if !emptyNotes {
-			num = runeAlphabetIterate(num)
+			runeAlphabetIterate(&num)
 			edit.list.AddItem("notes:", condensedNotes, runeAlphabet[num], func(){
 				blankNewNote(e)
 				pages.ShowPage("/newNote") 
@@ -846,7 +871,7 @@ func main(){
 			newFieldStr += ", tags"
 		}
 
-		num = runeAlphabetIterate(num)
+		runeAlphabetIterate(&num)
 		edit.list.AddItem("add new field", newFieldStr + ", security questions", runeAlphabet[num], func(){
 			// code copied from blankNewEntry
 			commands.text.SetText(newFieldCommands)
@@ -855,20 +880,20 @@ func main(){
 			app.SetFocus(newField.form)
 		})
 
-		num = runeAlphabetIterate(num)
+		runeAlphabetIterate(&num)
 		if e.Circulate{ // if it is in circulation, option to opt out
 			edit.list.AddItem("remove from circulation", "(not permanant), check /help for info", runeAlphabet[num], func(){
 				e.Circulate = false
-				switchToEditList()
+				switchToEditList(true)
 			})
 
 		}else{ // if it has been removed, option to opt back in 
 			edit.list.AddItem("add back to circulation", "(not permanant), check /help for info", runeAlphabet[num], func(){
 				e.Circulate = true
-				switchToEditList()
+				switchToEditList(true)
 			})
 		}
-		num = runeAlphabetIterate(num)
+		runeAlphabetIterate(&num)
 		edit.list.AddItem("delete entry", "(permanant!!)", runeAlphabet[num], func(){
 			blankEditDeleteEntry()
 			pages.ShowPage("/editDelete")
@@ -897,14 +922,14 @@ func main(){
 			AddButton("save", func(){
 				*f = tempField
 				if edit {
-					switchToEditList()
+					switchToEditList(true)
 				}else{
 					switchToNewFieldsList(true)
 				}
 			}). 
 			AddButton("quit", func(){
 				if edit {
-					switchToEditList()
+					switchToEditList(false)
 				}else{
 					switchToNewFieldsList(true)
 				}
@@ -913,7 +938,7 @@ func main(){
 				if pass {
 					e.Password = Field{}
 					if edit {
-						switchToEditList()
+						switchToEditList(true)
 					}else{
 						dropDownFields[1] = "password"
 						switchToNewFieldsList(true)
@@ -926,7 +951,7 @@ func main(){
 						(*fieldArr)[index] = (*fieldArr)[len(*fieldArr)-1]
 						(*fieldArr) = (*fieldArr)[:len(*fieldArr)-1]
 						if edit {
-							switchToEditList()
+							switchToEditList(true)
 						}else{
 							switchToNewFieldsList(true)
 						}
@@ -960,25 +985,29 @@ func main(){
 					}else{
 						e.Tags = tempValue
 					}
-					switchToEditList()
+					switchToEditList(true)
 				}). 
 				AddButton("quit", func(){
-					switchToEditList()
+					switchToEditList(false)
 				})
 
 			// does not make a delete button for editing the name, as each entry must have a name, therefore only option would be to delete tags
 			if display != "name"{ 
 				editField.form.AddButton("delete", func(){
 					e.Tags = ""
-					switchToEditList()
+					switchToEditList(true)
 				})
 			}
 		}	
 	}
 
 	// maybe just have it have input as indexSelectEntry and move it outside func main? 
-	switchToEditList = func(){
+	switchToEditList = func(modified bool){
 		if switchToWriteFileErr(){
+			if modified{
+				entries[indexSelectEntry].Modified = time.Now()
+			}
+
 			blankEditList(indexSelectEntry)
 			pages.SwitchToPage("/edit")
 			app.SetFocus(edit.list)
@@ -990,7 +1019,7 @@ func main(){
 		editDelete.form.SetButtonsAlign(tview.AlignCenter)
 		editDelete.form.
 			AddButton("save", func(){
-				switchToEditList()
+				switchToEditList(false)
 			}).
 			AddButton("delete", func(){ // this deletes it, slower version, keeps everything in order
 				copy(entries[indexSelectEntry:], entries[indexSelectEntry+1:])
