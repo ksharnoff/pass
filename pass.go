@@ -1,5 +1,4 @@
 /*
-
 /help
 write out what to write for /help in a google doc
 order commands list + helpinfo info alphabetically
@@ -14,6 +13,8 @@ PROBLEM WITH /FIND, DOES NOT PRINT FULL STRING INPUT IF ITS OVER A CERTAIN LENGt
 /edit
 .showpage isn't working for blankEditList
 .showPage isn't now working for editing notes -- like literally not showing anything,, but mouse still moving??!??!
+doesn't let you open new fields ---- runtime panic err
+doesn't write date modified to file if you edit the string form
 
 rename commandsText
 
@@ -32,7 +33,7 @@ import (
 	"github.com/rivo/tview"
 	"github.com/gdamore/tcell/v2"
 	"strconv" // used to convert _ to string and string to _
-	"fmt" //used only to convert struct to string for testing functions
+	"fmt" 
 	"strings"
 	"github.com/atotto/clipboard" // copies the data to clipboard in /copen
 	"os" // for writing/reading from file 
@@ -786,6 +787,18 @@ func main(){
 		copen.list.AddItem("in circulation:", strconv.FormatBool(e.Circulate), runeAlphabet[num], func(){
 			clipboard.WriteAll(strconv.FormatBool(e.Circulate))
 		})
+		if !e.Created.IsZero(){
+			runeAlphabetIterate(&num)
+			copen.list.AddItem("date created:", fmt.Sprint(e.Created.Date()), runeAlphabet[num], func(){
+				clipboard.WriteAll(fmt.Sprint(e.Created.Date()))
+			})
+		}
+		if !e.Modified.IsZero(){
+			runeAlphabetIterate(&num)
+			copen.list.AddItem("date last modifed:", fmt.Sprint(e.Modified.Date()), runeAlphabet[num], func(){
+				clipboard.WriteAll(fmt.Sprint(e.Modified.Date()))
+			})
+		}
 
 	}
 
