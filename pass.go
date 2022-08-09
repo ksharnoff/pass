@@ -1297,6 +1297,7 @@ func testAllFields(entries []entry) string{
 	return allValues
 }
 
+/*
 // writes to the pass.yaml file, if it fails then it returns a string with errors
 func writeToFile(entries []entry) string{
 	output, marshErr := yaml.Marshal(entries)
@@ -1315,6 +1316,7 @@ func writeToFile(entries []entry) string{
 	}
 }
 
+
 // if it works then it should return "", if not then it will return the errors in a string format
 func readFromFile(entries *[]entry) string {
 	input, inputErr := os.ReadFile("pass.yaml")
@@ -1329,3 +1331,4 @@ func readFromFile(entries *[]entry) string {
 		}
 	}
 }
+*/
