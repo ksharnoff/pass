@@ -2,7 +2,7 @@
   tags: socials, demo
   usernames:
     - displayname: username
-      value: yellowyaks
+      value: lorem ipsum
     - displayname: email
       value: a;ksdjfkad@gmail.com
   password:
@@ -44,13 +44,13 @@
   tags: college, demo
   usernames:
     - displayname: email
-      value: a;ksharnof2333@gmail.com
+      value: asdk;jfadjl@gmail.com
   password:
     displayname: password
     value: "02983490832"
   securityq:
     - displayname: what was your first CLARINET?
-      value: ;buffet coprmodn
+      value: buffect comprdnred
   notes:
     - netest test ets,
     - real phone given
@@ -103,7 +103,7 @@
   tags: test, demo, permanent!
   usernames:
     - displayname: email
-      value: qwertyuio@poiu
+      value: ks;djfasdfjasd@poiu.com
   password:
     displayname: password
     value: "2839489324789"
@@ -112,7 +112,7 @@
     - this is testing
     - 'birthday: jan 5, 2004'
     - phone number; 834823
-    - 'ssn: 9028490832904829384908239084'
+    - 'ssn: 902as8490d8329bd0482938c4908239084'
     - ""
     - ""
   circulate: true
@@ -122,7 +122,7 @@
   tags: ""
   usernames:
     - displayname: email
-      value: "9023849"
+      value: "Wlksjdkflj@mgiad.cm"
   password:
     displayname: password
     value: "902384039284"
@@ -143,7 +143,7 @@
   tags: aljksdflkadsj
   usernames:
     - displayname: email
-      value: ksharnoff23@ooooo.com
+      value: 3ikldsjfk,ajsd3@ooooo.com
   password:
     displayname: password
     value: abcdefgh
@@ -162,7 +162,7 @@
   tags: ""
   usernames:
     - displayname: email
-      value: kshranofndsfaod
+      value: alskjdflkjeknc@gai.com
   password:
     displayname: password
     value: "9384924"
@@ -210,7 +210,7 @@
   tags: testing
   usernames:
     - displayname: email
-      value: ksharnoffe3o243o24
+      value: kljdsakfljod
   password:
     displayname: ""
     value: ""
@@ -220,25 +220,8 @@
     - ""
     - ""
     - ""
-    - ""
-    - ""
+    - haha
+    - testing
   circulate: true
   created: 2022-08-01T22:21:26.97838-07:00
-  modified: 0001-01-01T00:00:00Z
-- name: hello
-  tags: ""
-  usernames: []
-  password:
-    displayname: ""
-    value: ""
-  securityq: []
-  notes:
-    - ""
-    - ""
-    - ""
-    - ""
-    - testing
-    - hahaha
-  circulate: true
-  created: 2022-08-01T22:38:27.275322-07:00
   modified: 0001-01-01T00:00:00Z
