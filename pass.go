@@ -36,8 +36,7 @@ import (
 	"fmt" 
 	"strings"
 	"github.com/atotto/clipboard" // copies the data to clipboard in /copen
-	"os" // for writing/reading from file 
-	"gopkg.in/yaml.v3" // for writing/reading from a file
+	
 	"time"
 )
 
@@ -90,6 +89,10 @@ func main(){
 	app := tview.NewApplication()
 
 	entries := []entry{}
+
+
+	//password := "foobar"
+
 
 	readErr := readFromFile(&entries) // the error is dealt with in SwitchToHome, so if it fails at first the whole program won't run
 	
@@ -1296,39 +1299,3 @@ func testAllFields(entries []entry) string{
 	}
 	return allValues
 }
-
-/*
-// writes to the pass.yaml file, if it fails then it returns a string with errors
-func writeToFile(entries []entry) string{
-	output, marshErr := yaml.Marshal(entries)
-	if marshErr != nil{
-		return "error in yaml.marshal the entries \n" + marshErr.Error()
-	}else{
-		// conventions of writing to a temp file is write to .tmp
-		writeErr := os.WriteFile("pass.yaml.tmp", output, 0600) // 0600 is the permissions, that only this user can read/write/excet to this file
-		os.Rename("pass.yaml.tmp", "pass.yaml") // only will do this if the previous thing worked correctly, helps to save the data :)
-
-		if writeErr != nil{
-			return "error in os.writeFile \n" + writeErr.Error()
-		}else {
-			return ""
-		}
-	}
-}
-
-
-// if it works then it should return "", if not then it will return the errors in a string format
-func readFromFile(entries *[]entry) string {
-	input, inputErr := os.ReadFile("pass.yaml")
-	if inputErr != nil{
-		return "error in os.ReadFile \n" + inputErr.Error()
-	}else{
-		unmarshErr := yaml.Unmarshal(input, &entries)
-		if unmarshErr != nil{
-			return "error in yaml.Unmarshal \n" + unmarshErr.Error()
-		}else{
-			return ""		
-		}
-	}
-}
-*/
