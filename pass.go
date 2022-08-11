@@ -27,6 +27,8 @@ have it do something in case that file doesn't exsist, or instead have it start 
 add another time to keep track of, of the last time opened? 
 
 error second text should add the extra space,, or be scooted over, so it will look good with auto generated strings
+
+rename pass.yaml?
 */
 
 package main
@@ -94,10 +96,6 @@ func main(){
 	app := tview.NewApplication()
 
 	entries := []entry{}
-
-	password := "foobar"
-	var ciphBlock cipher.Block
-	
 	
 	// pages is the pages set up for the left top box
 	pages := tview.NewPages()
@@ -243,9 +241,61 @@ func main(){
 	pick := listGrid{list: tview.NewList().SetSelectedFocusOnly(true).SetDoneFunc(switchToHome), grid: tview.NewGrid().SetBorders(true)}
 	blankPickList := func(openCopen string){}
 
+
+	// following variables for setting up the password screen
+
+
+	var ciphBlock cipher.Block
+
+	passActions := func(key tcell.Key){}
+
+	passInputed := ""
+	password := inputGrid{input: tview.NewInputField().SetLabel("password: ").SetFieldWidth(50).SetMaskCharacter('*'), grid: tview.NewGrid().SetBorders(true)}
+
+	passFlex := tview.NewFlex()
+
+	passBoxPages := tview.NewPages()
+
+	passPages := tview.NewPages()
+
+	passBox := tview.NewBox().SetBorder(true)
+
+	passErr := twoTextFlexGrid{title: tview.NewTextView().SetWrap(false).SetText(" error in signing in"), text: tview.NewTextView().SetScrollable(true).SetWrap(false), grid: tview.NewGrid().SetBorders(true), flex: tview.NewFlex()}
+
 	// ------------------------------------------------ //
 	// all varaibles initialized :) function time!
 	// ------------------------------------------------ //
+
+
+	// right here we're going to set up the encryption key and stuff :)
+
+	passActions = func(key tcell.Key){
+		passInputed = password.input.GetText()
+
+		ciphBlock, keySuccess, keyErr := keyGeneration(passInputed)
+
+		if keyErr != ""{
+			passBoxPages.SwitchToPage("passErr")
+			passErr.text.SetText(keyErr)
+		}else if !keySuccess{
+			passBoxPages.SwitchToPage("passErr")
+			passErr.text.SetText(" wrong password!")
+		}else{
+
+			readErr := readFromFile(&entries, ciphBlock)
+
+			if readErr != ""{
+				pages.SwitchToPage("err")
+				error.text.SetText(readErr)
+			}else{
+				passPages.SwitchToPage("passManager")
+				switchToHome()
+			}
+		}
+		password.input.SetText("")
+	}
+	password.input.SetDoneFunc(passActions)
+
 
 	// written out what commandLine input does with stuff
 	commandLineActions = func(key tcell.Key){
@@ -1085,6 +1135,15 @@ func main(){
 	// setting up the grids, pages, flexes :)
 	// ------------------------------------------------ //
 
+	passErr.flex.SetDirection(tview.FlexRow). 
+		AddItem(passErr.title, 0, 1, false). 
+		AddItem(passErr.text, 0, 8, false)
+
+	passFlex. 
+		AddItem(tview.NewFlex().SetDirection(tview.FlexRow). 
+			AddItem(passBoxPages, 0, 9, false). 
+			AddItem(password.grid, 0, 1, false), 0, 1, false)
+
 	newFieldFlex.
 		AddItem(nil, 0, 1, false). 
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow). 
@@ -1161,6 +1220,8 @@ func main(){
 	grider(editDelete.flex, editDelete.grid)
 	grider(pick.list, pick.grid)
 	grider(copen.list, copen.grid)
+	grider(password.input, password.grid)
+	grider(passErr.flex, passErr.grid)
 
 	// all the different pages are added here
 	pages.
@@ -1193,35 +1254,21 @@ func main(){
 	flex. 
 		AddItem(flexRow, 0, 14, false). 
 		AddItem(commands.grid, 0, 3, false) 
-	switchToHome()
 
 
-	// right here we're going to set up the encryption key and stuff :)
 
-	ciphBlock, keySuccess, keyErr := keyGeneration(password)
-	fmt.Println(ciphBlock.BlockSize())
+	passBoxPages.
+		AddPage("passBox", passBox, true, true). 
+		AddPage("passErr", passErr.grid, true, false)
 
-	if keyErr != ""{
-		pages.SwitchToPage("err")
-		error.text.SetText(keyErr)
-	}else if !keySuccess{
-		pages.SwitchToPage("err")
-		error.text.SetText("wrong password!")
-	}else{
-
-		readErr := readFromFile(&entries, ciphBlock)
-
-		if readErr != ""{
-			pages.SwitchToPage("err")
-			error.text.SetText(readErr)
-		}
-	}
-
+	passPages. 
+		AddPage("passInput", passFlex, true, true). 
+		AddPage("passManager", flex, true, false)
 
 
 	// if EnableMouse is false, then can copy/paste
 	// have enable mouse turn on when in /edit, /pick !!
-	if err := app.SetRoot(flex, true).SetFocus(commandLine.input).EnableMouse(false).Run(); err != nil {
+	if err := app.SetRoot(passPages, true).SetFocus(password.input).EnableMouse(true).Run(); err != nil {
 		panic(err)
 	}
 }
