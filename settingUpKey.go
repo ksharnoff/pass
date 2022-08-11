@@ -22,7 +22,6 @@ func main(){
 
 	password := "foobar"
 
-
 	// no padding needs to be done
 	input := []byte("trans rights R human rights 1234")
 	
@@ -30,7 +29,7 @@ func main(){
 		fmt.Println("plaintext is not a multiple of the block size:  ", len(input)%aes.BlockSize)
 	}else{
 
-		fmt.Println("starting the program wooooo")
+		//fmt.Println("starting the program wooooo")
 
 		salt := []byte("qwertyuiopasdfghjklzxcvbnm")
 
@@ -44,13 +43,14 @@ func main(){
 			fmt.Println("error in making cipher block", err.Error())
 		}else{
 			// make IV the same each time, a blank [0 0 0 0 ...]
-			iv := make([]byte, ciphBlock.BlockSize())
+			encrypted := make([]byte, aes.BlockSize+len(input))
+
+			iv := encrypted[:aes.BlockSize]
+
 
 			encryptBlock := cipher.NewCBCEncrypter(ciphBlock, iv)
-
-			encrypted := make([]byte, len(input))
-
-			encryptBlock.CryptBlocks(encrypted, input)
+			
+			encryptBlock.CryptBlocks(encrypted[aes.BlockSize:], input)
 
 			skip()
 			
