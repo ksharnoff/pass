@@ -1,4 +1,3 @@
-
 /*
 	- update parameters in keygeneration
 
@@ -7,14 +6,15 @@
 		-- have the thing at the start and make the key then use the key as input into the writing/reading file
 
 
+	need to fix it so you can be at error page and then try again for putting in password or soemething 
 */
 
 package main 
 
 import (
 	// for writing/reading from/to file 
-	"os" // also for iv generation
-	"gopkg.in/yaml.v3" 
+	"gopkg.in/yaml.v3"
+	"os" // also for iv generation 
 
 	// for encrypting things
 	"golang.org/x/crypto/argon2"
@@ -29,17 +29,21 @@ import (
 	"encoding/base64"
 )
 
+// right now the correct password is foobar!
 const knownPlaintext = "trans rights R human rights 1234"
-const encryptedPlaintext = "x55FoieXrzAW/wvHP3uVZnzlWUVVM8gTmgRcq1nTN2s="
+const encryptedPlaintext = "AAAAAAAAAAAAAAAAAAAAAMeOBaInl79wFv9Lxz0rlWZ96VlFVTO5E6oEXKtJ1zdb"
 
 // writes to the pass.yaml file, if it fails then it returns a string with errors
-func writeToFile(entries []entry) string{
+func writeToFile(entries []entry, ciphBlock cipher.Block) string{
 	output, marshErr := yaml.Marshal(entries)
 	if marshErr != nil{
 		return "error in yaml.marshal the entries \n" + marshErr.Error()
 	}else{
+
+		encryptedOutput := encrypt(output, ciphBlock, false)
+
 		// conventions of writing to a temp file is write to .tmp
-		writeErr := os.WriteFile("pass.yaml.tmp", output, 0600) // 0600 is the permissions, that only this user can read/write/excet to this file
+		writeErr := os.WriteFile("pass.yaml.tmp", encryptedOutput, 0600) // 0600 is the permissions, that only this user can read/write/excet to this file
 		os.Rename("pass.yaml.tmp", "pass.yaml") // only will do this if the previous thing worked correctly, helps to save the data :)
 
 		if writeErr != nil{
@@ -51,12 +55,15 @@ func writeToFile(entries []entry) string{
 }
 
 // if it works then it should return "", if not then it will return the errors in a string format
-func readFromFile(entries *[]entry) string{
+func readFromFile(entries *[]entry, ciphBlock cipher.Block) string{
 	input, inputErr := os.ReadFile("pass.yaml")
 	if inputErr != nil{
 		return "error in os.ReadFile \n" + inputErr.Error()
 	}else{
-		unmarshErr := yaml.Unmarshal(input, &entries)
+		// first we decrypt it!
+		decryptedInput := decrypt(input, ciphBlock)
+
+		unmarshErr := yaml.Unmarshal(decryptedInput, &entries)
 		if unmarshErr != nil{
 			return "error in yaml.Unmarshal \n" + unmarshErr.Error()
 		}else{
@@ -64,9 +71,6 @@ func readFromFile(entries *[]entry) string{
 		}
 	}
 }
-
-
-// right now the correct password is foobar
 
 // makes a key, returns a chiper block
 // then checks with correctKey function if the key is correct -- if it's correct then true is returned
@@ -90,9 +94,7 @@ func keyGeneration(password string) (cipher.Block, bool, string){
 	return ciphBlock, correctKey(ciphBlock), ""
 }
 
-
 func correctKey(ciphBlock cipher.Block) bool{
-
 	comparison := encrypt([]byte(knownPlaintext), ciphBlock, true)
 
 	encoder := base64.NewEncoding("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890+/")
@@ -106,34 +108,36 @@ func correctKey(ciphBlock cipher.Block) bool{
 }
 
 
-
 func encrypt(plaintext []byte, ciphBlock cipher.Block, keyTest bool) []byte{
-	
-	iv := make([]byte, ciphBlock.BlockSize()) // if just testing the key, then the iv will be blank (same as when the ciphered plaintext was first generated)
-
-	if !keyTest{ // this is the random iv generation for not testing the key but encrypting the file
-		iv = randomIVGeneration(ciphBlock)
-	}
-
 	// adds padding in form of "/n"
 	if len(plaintext)%aes.BlockSize != 0{
 		for i := len(plaintext)%aes.BlockSize; i < aes.BlockSize; i++{
-			plaintext = append(plaintext, 0x0A) //adds on "\n" in byte form
+			plaintext = append(plaintext, 0x0A) // 0x0A = []byte("\n")
 		}
+	}
+
+	encrypt := make([]byte, aes.BlockSize+len(plaintext))
+
+	iv := encrypt[:aes.BlockSize]
+
+	 // if just testing the key, then the iv will be blank (same as when the ciphered plaintext was first generated)
+	if !keyTest{ // this is the random iv generation for not testing the key but encrypting the file
+		// IV GENERATION SHOULD BE CHANGED TO CRYPTO/RAND
+		rand.Seed(time.Now().UnixNano()^int64(os.Getpid()))
+		rand.Read(iv)
 	}
 
 	encryptBlock := cipher.NewCBCEncrypter(ciphBlock, iv)
 
-	encrypt := make([]byte, len(plaintext))
-
-	encryptBlock.CryptBlocks(encrypt, plaintext)
+	encryptBlock.CryptBlocks(encrypt[aes.BlockSize:], plaintext)
 
 	return encrypt
 }
 
-func decrypt(encrypted []byte, ciphBlock cipher.Block) []byte{
 
-	iv := randomIVGeneration(ciphBlock)
+func decrypt(encrypted []byte, ciphBlock cipher.Block) []byte{
+	iv := encrypted[:aes.BlockSize]
+	encrypted = encrypted[aes.BlockSize:]
 
 	decryptBlock := cipher.NewCBCDecrypter(ciphBlock, iv)
 
@@ -143,25 +147,3 @@ func decrypt(encrypted []byte, ciphBlock cipher.Block) []byte{
 
 	return decrypt
 }
-
-
-
-func randomIVGeneration(ciphBlock cipher.Block) []byte{
-
-	iv := make([]byte, ciphBlock.BlockSize()) 
-
-	// IV GENERATION SHOULD BE CHANGED TO CRYPTO/RAND
-	rand.Seed(time.Now().UnixNano()^int64(os.Getpid()))
-	rand.Read(iv)
-
-	return iv
-}
-
-
-
-
-
-
-
-
-
