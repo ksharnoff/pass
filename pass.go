@@ -25,6 +25,8 @@ fix SetDoneFunc for pick.list and the other lists!
 have it do something in case that file doesn't exsist, or instead have it start with that file downloaded?? 
 
 add another time to keep track of, of the last time opened? 
+
+error second text should add the extra space,, or be scooted over, so it will look good with auto generated strings
 */
 
 package main
@@ -38,6 +40,9 @@ import (
 	"github.com/atotto/clipboard" // copies the data to clipboard in /copen
 	
 	"time"
+
+	// encryption thing
+	"crypto/cipher"
 )
 
 type entry struct {
@@ -90,20 +95,9 @@ func main(){
 
 	entries := []entry{}
 
-
-	//password := "foobar"
-
-
-	readErr := readFromFile(&entries) // the error is dealt with in SwitchToHome, so if it fails at first the whole program won't run
+	password := "foobar"
+	var ciphBlock cipher.Block
 	
-	/*
-	for i := 0; i < 18; i++{ // put at 52 makes it show the max amount (when 5 already in entries)
-		entries = append(entries, entry{Name: "testtesttesttesttesttest",Tags: "demo, test!, smiles", Circulate: true})
-		entries = append(entries, entry{Name: "hello",Tags: "test, demo, hahaha", Circulate: true})
-	//	entries = append(entries, entry{Name: "test",Tags: "demo, test!, smiles", Circulate: true})
-		entries = append(entries, entry{Name: "heyo",Tags: "testest, demmo, hihi", Circulate: true})
-	}
-	*/
 	
 	// pages is the pages set up for the left top box
 	pages := tview.NewPages()
@@ -376,10 +370,6 @@ func main(){
 		app.SetFocus(commandLine.input)
 		commands.text.SetText(homeCommands)
 		lookRightCommandLinePlaceholder()
-		if readErr != ""{
-			pages.SwitchToPage("err")
-			error.text.SetText(readErr)
-		}
 	}
 
 	runeAlphabetIterate = func(i *int){
@@ -390,8 +380,10 @@ func main(){
 		}
 	}
 
+	// tries to write to file, if it fails then it returns false and switches to different page
 	switchToWriteFileErr = func() bool{
-		writeErr := writeToFile(entries)
+		
+		writeErr := writeToFile(entries, ciphBlock)
 		if writeErr != ""{
 			pages.SwitchToPage("err")
 			error.text.SetText(writeErr)
@@ -1201,8 +1193,31 @@ func main(){
 	flex. 
 		AddItem(flexRow, 0, 14, false). 
 		AddItem(commands.grid, 0, 3, false) 
-
 	switchToHome()
+
+
+	// right here we're going to set up the encryption key and stuff :)
+
+	ciphBlock, keySuccess, keyErr := keyGeneration(password)
+	fmt.Println(ciphBlock.BlockSize())
+
+	if keyErr != ""{
+		pages.SwitchToPage("err")
+		error.text.SetText(keyErr)
+	}else if !keySuccess{
+		pages.SwitchToPage("err")
+		error.text.SetText("wrong password!")
+	}else{
+
+		readErr := readFromFile(&entries, ciphBlock)
+
+		if readErr != ""{
+			pages.SwitchToPage("err")
+			error.text.SetText(readErr)
+		}
+	}
+
+
 
 	// if EnableMouse is false, then can copy/paste
 	// have enable mouse turn on when in /edit, /pick !!
