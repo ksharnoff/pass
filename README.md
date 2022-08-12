@@ -1,5 +1,7 @@
 # pass
 
+WORK OF PROGRESS, NOT FINISHED
+
 this is just a list to be edited down later to what to write
 
 
