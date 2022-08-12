@@ -9,14 +9,16 @@ package main
 import(
 	"fmt"
 
-	"golang.org/x/crypto/argon2"
 	"crypto/aes"
-	"crypto/cipher"
 
 	"encoding/base64"
+
+	"pass/encrypt"
 )
 
 //const encryptedPhrase = "x55FoieXrzAW/wvHP3uVZnzlWUVVM8gTmgRcq1nTN2s="
+// AAAAAAAAAAAAAAAAAAAAAMeOBaInl79wFv9Lxz0rlWZ96VlFVTO5E6oEXKtJ1zdb
+
 
 func main(){
 
@@ -29,30 +31,17 @@ func main(){
 		fmt.Println("plaintext is not a multiple of the block size:  ", len(input)%aes.BlockSize)
 	}else{
 
-		//fmt.Println("starting the program wooooo")
+		ciphBlock, boo, str := encrypt.KeyGeneration(password)
 
-		salt := []byte("qwertyuiopasdfghjklzxcvbnm")
+		if boo{
+			boo = !boo
+		}
 
-		// THE PARAMETERS OF THIS KEY MUST MATCH THE PARAMATERS IN ENCRYPTION.GO
-		key := argon2.IDKey([]byte(password), salt, 3, 64*1024, 4, 32) // makes a key out of the password manager password
-
-
-		ciphBlock, err := aes.NewCipher(key) // makes a cipher block out of the key that can be used to encyrpt/decrypt stuff
-
-		if err != nil{
-			fmt.Println("error in making cipher block", err.Error())
+		if str != ""{
+			fmt.Println("error in making cipher block", str)
 		}else{
-			// make IV the same each time, a blank [0 0 0 0 ...]
-			encrypted := make([]byte, aes.BlockSize+len(input))
 
-			iv := encrypted[:aes.BlockSize]
-
-
-			encryptBlock := cipher.NewCBCEncrypter(ciphBlock, iv)
-			
-			encryptBlock.CryptBlocks(encrypted[aes.BlockSize:], input)
-
-			skip()
+			encrypted := encrypt.Encrypt(input, ciphBlock, true)
 			
 			fmt.Println("encrypted! as byte in decimal form", encrypted)
 
@@ -66,6 +55,63 @@ func main(){
 		}		
 	}	
 }
+
+/*
+
+	// makes a key, returns a chiper block
+	// then checks with correctKey function if the key is correct -- if it's correct then true is returned
+	func keyGeneration(password string) (cipher.Block, string){
+
+		if len([]byte(password)) < 1{
+			return nil, "password for key generation is too short, string empty"
+		}
+
+		// salt generation is going to be the same thing every time
+		salt := []byte("qwertyuiopasdfghjklzxcvbnm")
+
+		// THE PARAMETERS MUST BE ADJUSTED -- make sure they are the same as settingUpKeys.go
+		key := argon2.IDKey([]byte(password), salt, 3, 64*1024, 4, 32)
+
+		ciphBlock, err := aes.NewCipher(key)
+
+		if err != nil{
+			return nil, err.Error()
+		}
+		return ciphBlock, ""
+	}
+
+	func encrypt(plaintext []byte, ciphBlock cipher.Block) []byte{
+		// adds padding in form of "/n"
+		if len(plaintext)%aes.BlockSize != 0{
+			for i := len(plaintext)%aes.BlockSize; i < aes.BlockSize; i++{
+				plaintext = append(plaintext, 0x0A) // 0x0A = []byte("\n")
+			}
+		}
+
+		encrypt := make([]byte, aes.BlockSize+len(plaintext))
+
+		iv := encrypt[:aes.BlockSize]
+
+		encryptBlock := cipher.NewCBCEncrypter(ciphBlock, iv)
+
+		encryptBlock.CryptBlocks(encrypt[aes.BlockSize:], plaintext)
+
+		return encrypt
+	}
+
+	func decrypt(encrypted []byte, ciphBlock cipher.Block) []byte{
+		iv := encrypted[:aes.BlockSize]
+		encrypted = encrypted[aes.BlockSize:]
+
+		decryptBlock := cipher.NewCBCDecrypter(ciphBlock, iv)
+
+		decrypt := make([]byte, len(encrypted))
+
+		decryptBlock.CryptBlocks(decrypt, encrypted) // not sure if this works, if not then write it as "encrypted, encrypted" which will for sure work -- it's being written like this for consistency
+
+		return decrypt
+	}
+*/
 
 
 func skip(){
