@@ -1,34 +1,36 @@
 /*
-/help
-write out what to write for /help in a google doc
-order commands list + helpinfo info alphabetically
-for commandsText in /open write that in order to edit you must go to /edit
-write about mouse usage and reason
+	/help
+	write out what to write for /help in a google doc
+	order commands list + helpinfo info alphabetically
+	for commandsText in /open write that in order to edit you must go to /edit
+	write about mouse usage and reason
 
-/find
-make extra check, 4if str is over a certain character count then don't print all the characters in a line, would look funny. also can garanetted not any entries per that amount so can skip all the cycling through
-	// or even search for the full str just not print it all
-PROBLEM WITH /FIND, DOES NOT PRINT FULL STRING INPUT IF ITS OVER A CERTAIN LENGth
+	/find
+	make extra check, if str is over a certain character count then don't print all the characters in a line, would look funny. also can garanetted not any entries per that amount so can skip all the cycling through
+		// or even search for the full str just not print it all
+	PROBLEM WITH /FIND, DOES NOT PRINT FULL STRING INPUT IF ITS OVER A CERTAIN LENGth
 
-/edit
-.showpage isn't working for blankEditList
-.showPage isn't now working for editing notes -- like literally not showing anything,, but mouse still moving??!??!
-doesn't let you open new fields ---- runtime panic err
-doesn't write date modified to file if you edit the string form
+	/edit
+	.showpage isn't working for blankEditList
+	.showPage isn't now working for editing notes -- like literally not showing anything,, but mouse still moving??!??!
+	doesn't let you open new fields ---- runtime panic err
+	doesn't write date modified to file if you edit the string form
 
-rename commandsText
+	rename commandsText
 
-fix EnableMouse for the correct places
+	fix EnableMouse for the correct places
 
-fix SetDoneFunc for pick.list and the other lists!
+	fix SetDoneFunc for pick.list and the other lists!
 
-have it do something in case that file doesn't exsist, or instead have it start with that file downloaded?? 
+	have it do something in case that file doesn't exsist, or instead have it start with that file downloaded?? 
 
-add another time to keep track of, of the last time opened? 
+	add another time to keep track of, of the last time opened? 
 
-error second text should add the extra space,, or be scooted over, so it will look good with auto generated strings
+	error second text should add the extra space,, or be scooted over, so it will look good with auto generated strings
 
-rename pass.yaml?
+	rename pass.yaml?
+
+	edit all the usages of pointers to slices when it is unnecessary 
 */
 
 package main
@@ -45,6 +47,11 @@ import (
 
 	// encryption thing
 	"crypto/cipher"
+	"pass/encrypt"
+
+	// for writing to file
+	"os"
+	"gopkg.in/yaml.v3"
 )
 
 type entry struct {
@@ -250,7 +257,7 @@ func main(){
 	passActions := func(key tcell.Key){}
 
 	passInputed := ""
-	password := inputGrid{input: tview.NewInputField().SetLabel("password: ").SetFieldWidth(50).SetMaskCharacter('*'), grid: tview.NewGrid().SetBorders(true)}
+	password := inputGrid{input: tview.NewInputField().SetLabel("password: ").SetFieldWidth(60).SetMaskCharacter('*'), grid: tview.NewGrid().SetBorders(true)}
 
 	passFlex := tview.NewFlex()
 
@@ -272,7 +279,10 @@ func main(){
 	passActions = func(key tcell.Key){
 		passInputed = password.input.GetText()
 
-		ciphBlock, keySuccess, keyErr := keyGeneration(passInputed)
+		var keySuccess bool 
+		var keyErr string
+
+		ciphBlock, keySuccess, keyErr = encrypt.KeyGeneration(passInputed)
 
 		if keyErr != ""{
 			passBoxPages.SwitchToPage("passErr")
@@ -1255,8 +1265,6 @@ func main(){
 		AddItem(flexRow, 0, 14, false). 
 		AddItem(commands.grid, 0, 3, false) 
 
-
-
 	passBoxPages.
 		AddPage("passBox", passBox, true, true). 
 		AddPage("passErr", passErr.grid, true, false)
@@ -1360,4 +1368,46 @@ func testAllFields(entries []entry) string{
 		allValues += "\n\n " + fmt.Sprint(e)
 	}
 	return allValues
+}
+
+
+
+
+// writes to the pass.yaml file, if it fails then it returns a string with errors
+func writeToFile(entries []entry, ciphBlock cipher.Block) string{
+	output, marshErr := yaml.Marshal(entries)
+	if marshErr != nil{
+		return "error in yaml.marshal the entries \n" + marshErr.Error()
+	}else{
+
+		encryptedOutput := encrypt.Encrypt(output, ciphBlock, false)
+
+		// conventions of writing to a temp file is write to .tmp
+		writeErr := os.WriteFile("pass.yaml.tmp", encryptedOutput, 0600) // 0600 is the permissions, that only this user can read/write/excet to this file
+		os.Rename("pass.yaml.tmp", "pass.yaml") // only will do this if the previous thing worked correctly, helps to save the data :)
+
+		if writeErr != nil{
+			return "error in os.writeFile \n" + writeErr.Error()
+		}else{
+			return ""
+		}
+	}
+}
+
+// if it works then it should return "", if not then it will return the errors in a string format
+func readFromFile(entries *[]entry, ciphBlock cipher.Block) string{
+	input, inputErr := os.ReadFile("pass.yaml")
+	if inputErr != nil{
+		return " error in os.ReadFile \n" + inputErr.Error()
+	}else{
+		// first we decrypt it!
+		decryptedInput := encrypt.Decrypt(input, ciphBlock)
+
+		unmarshErr := yaml.Unmarshal(decryptedInput, &entries)
+		if unmarshErr != nil{
+			return " error in yaml.Unmarshal \n" + unmarshErr.Error()
+		}else{
+			return ""		
+		}
+	}
 }
