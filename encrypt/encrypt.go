@@ -31,47 +31,7 @@ import (
 
 // right now the correct password is foobar!
 const knownPlaintext = "trans rights R human rights 1234"
-const encryptedPlaintext = "AAAAAAAAAAAAAAAAAAAAAMeOBaInl79wFv9Lxz0rlWZ96VlFVTO5E6oEXKtJ1zdb"
-/*
-// writes to the pass.yaml file, if it fails then it returns a string with errors
-func WriteToFile(entries []entry, ciphBlock cipher.Block) string{
-	output, marshErr := yaml.Marshal(entries)
-	if marshErr != nil{
-		return "error in yaml.marshal the entries \n" + marshErr.Error()
-	}else{
-
-		encryptedOutput := Encrypt(output, ciphBlock, false)
-
-		// conventions of writing to a temp file is write to .tmp
-		writeErr := os.WriteFile("pass.yaml.tmp", encryptedOutput, 0600) // 0600 is the permissions, that only this user can read/write/excet to this file
-		os.Rename("pass.yaml.tmp", "pass.yaml") // only will do this if the previous thing worked correctly, helps to save the data :)
-
-		if writeErr != nil{
-			return "error in os.writeFile \n" + writeErr.Error()
-		}else{
-			return ""
-		}
-	}
-}
-
-// if it works then it should return "", if not then it will return the errors in a string format
-func ReadFromFile(entries *[]entry, ciphBlock cipher.Block) string{
-	input, inputErr := os.ReadFile("pass.yaml")
-	if inputErr != nil{
-		return " error in os.ReadFile \n" + inputErr.Error()
-	}else{
-		// first we decrypt it!
-		decryptedInput := Decrypt(input, ciphBlock)
-
-		unmarshErr := yaml.Unmarshal(decryptedInput, &entries)
-		if unmarshErr != nil{
-			return " error in yaml.Unmarshal \n" + unmarshErr.Error()
-		}else{
-			return ""		
-		}
-	}
-}
-*/
+const encryptedPlaintext = "AAAAAAAAAAAAAAAAAAAAANGYxl8FWvWBoG+/KRgGRwSSwiXNG4VXA9jIQU5gmVIh"
 
 // makes a key, returns a chiper block
 // then checks with correctKey function if the key is correct -- if it's correct then true is returned
@@ -84,6 +44,9 @@ func KeyGeneration(password string) (cipher.Block, bool, string){
 	// salt generation is going to be the same thing every time
 	salt := []byte("qwertyuiopasdfghjklzxcvbnm")
 
+	// starting amounts for me: key := argon2.IDKey([]byte(password), salt, 3, 64*1024, 4, 32)
+	// idea: key := argon2.IDKey([]byte(password), salt, 4, 2048*1024, 4, 32)
+
 	// max's argon parameters are 5, 1,000,000, 1 (for first three numbers)
 	// time cost is number of passes over memory
 	// memory used is in kilobytes
@@ -95,7 +58,7 @@ func KeyGeneration(password string) (cipher.Block, bool, string){
 	// some cpu run several threads on one core but apple silicon doesn't do that 
 	// my memory usage is currently 64 megabytes
 	// THE PARAMETERS MUST BE ADJUSTED -- make sure they are the same as settingUpKeys.go
-	key := argon2.IDKey([]byte(password), salt, 3, 64*1024, 4, 32)
+	key := argon2.IDKey([]byte(password), salt, 4, 2048*512, 4, 32)
 
 	ciphBlock, err := aes.NewCipher(key)
 
