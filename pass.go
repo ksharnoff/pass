@@ -13,8 +13,11 @@
 	/edit
 	.showpage isn't working for blankEditList
 	.showPage isn't now working for editing notes -- like literally not showing anything,, but mouse still moving??!??!
-	doesn't let you open new fields ---- runtime panic err
-	doesn't write date modified to file if you edit the string form
+	show page doesn't work, but switch to page does work?/
+
+	^^^ stuff not working for the ones that are used in /new
+
+
 
 	rename commandsText
 
@@ -257,7 +260,7 @@ func main(){
 	passActions := func(key tcell.Key){}
 
 	passInputed := ""
-	password := inputGrid{input: tview.NewInputField().SetLabel("password: ").SetFieldWidth(60).SetMaskCharacter('*'), grid: tview.NewGrid().SetBorders(true)}
+	password := inputGrid{input: tview.NewInputField().SetLabel("password: ").SetFieldWidth(71).SetMaskCharacter('*'), grid: tview.NewGrid().SetBorders(true)}
 
 	passFlex := tview.NewFlex()
 
@@ -278,6 +281,7 @@ func main(){
 
 	passActions = func(key tcell.Key){
 		passInputed = password.input.GetText()
+		passBoxPages.SwitchToPage("passBox")
 
 		var keySuccess bool 
 		var keyErr string
@@ -450,7 +454,6 @@ func main(){
 			return false
 		}
 		return true
-
 	}
 
 	// ----
@@ -513,8 +516,12 @@ func main(){
 
 		// only adds on tags to edit it if there are no tags made already and if its in /edit
 		if e != &tempEntry{
-			if (e.Tags == "")&&((dropDownFields[3] != "tags")||(dropDownFields[2] != "tags")){
+			if (e.Tags == "")&&(dropDownFields[2] != "tags"){
 				dropDownFields = append(dropDownFields, "tags") // don't change the text of "tags" its used elsewhere	
+			} else if len(dropDownFields) > 2{
+				if (e.Tags == "")&&(dropDownFields[3] != "tags"){
+					dropDownFields = append(dropDownFields, "tags")
+				}
 			}
 			if (e.Tags != "")&&(len(dropDownFields) == 4){ // if there are tags in the entry, but also tags as an option in the dropdown it should be removed
 				dropDownFields = dropDownFields[:3]
@@ -735,7 +742,7 @@ func main(){
 	// ----
 
 	// precondition: i > -1
-	// why is it returning a string????
+	// since it's returning a strin gmaybe have it be outside func main?
 	blankOpen = func(i int) string{
 		e := entries[i]
 		print := " "
@@ -854,7 +861,6 @@ func main(){
 				clipboard.WriteAll(fmt.Sprint(e.Modified.Date()))
 			})
 		}
-
 	}
 
 	// ----
@@ -925,7 +931,9 @@ func main(){
 			runeAlphabetIterate(&num)
 			edit.list.AddItem("notes:", condensedNotes, runeAlphabet[num], func(){
 				blankNewNote(e)
+				pages.HidePage("/edit")
 				pages.ShowPage("/newNote") 
+				pages.ShowPage("/edit")
 				app.SetFocus(newNote.form)
 			})
 		}
@@ -1369,8 +1377,6 @@ func testAllFields(entries []entry) string{
 	}
 	return allValues
 }
-
-
 
 
 // writes to the pass.yaml file, if it fails then it returns a string with errors
