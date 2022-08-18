@@ -4,19 +4,7 @@
 	order commands list + helpinfo info alphabetically
 	for commandsText in /open write that in order to edit you must go to /edit
 	write about mouse usage and reason
-
-	/find
-	make extra check, if str is over a certain character count then don't print all the characters in a line, would look funny. also can garanetted not any entries per that amount so can skip all the cycling through
-		// or even search for the full str just not print it all
-	PROBLEM WITH /FIND, DOES NOT PRINT FULL STRING INPUT IF ITS OVER A CERTAIN LENGth
-
-	/edit
-	.showpage isn't working for blankEditList
-	.showPage isn't now working for editing notes -- like literally not showing anything,, but mouse still moving??!??!
-	show page doesn't work, but switch to page does work?/
-
-	^^^ stuff not working for the ones that are used in /new
-
+	write it with string defined over several lines
 
 
 	rename commandsText
@@ -151,6 +139,17 @@ func main(){
 	// this is the text box with the /help info and its grid (border)
 	help := textGrid{text: tview.NewTextView().SetScrollable(true).SetText(" /help \n -----\n\n Do /new in order to put in a new entry. \n Do a;sdkfjkl  \n\n /find is case insensitve.  \n\n Do /open to view an entry. \n You will have to put in the password before you can see the information. \n Passwords and security questions will be blotted out, but they can be copied. (Or highlighted to see them) \n To delete an entry do /edit \n\n do /edit to edit fields or delete an entry. \n in /edit, all edits are permanently saved field by field as you click save \n\n the values of all fields, except the name of the entry and the tags, are equally encrypted. \n\n circulation? \n if you don't want an entry anymore, have no more use for it, but don't want to delete it, you should remove it from circulation. it will show up in /find results, but not from /list or /pick \n\n difference between /pick and /picc "), grid: tview.NewGrid().SetBorders(true)}
 
+/*
+	helpStrdksalfjk := `
+hello 
+HELLO 
+	tab??
+hdslkjfalk
+	`
+*/
+
+	help.text.SetText(helpStrdksalfjk)
+
 	// text and grid for opening an entry already made, its function to format the information
 	open := textGrid{text: tview.NewTextView().SetScrollable(true).SetDynamicColors(true), grid: tview.NewGrid().SetBorders(true)}
 	blankOpen := func(i int) string {return "error, blankOpen(i int) didn't run"}
@@ -228,7 +227,6 @@ func main(){
 	editFieldStrFlex := tview.NewFlex() // flex to put the edit fields for tags and strings in middle of page as they have less buttons than the other thing
 	blankEditFieldForm := func(f *Field, fieldArr *[]Field, index int, e *entry, pass, edit bool) {}
 	blankEditStringForm := func (display, value string, e *entry){}
-	
 
 	// this is a function that solves redundancy in going back to /edit
 	// (remaking the list, switching the page, setting the focus)
@@ -362,6 +360,7 @@ func main(){
 				error.text.SetText(" To find entries you must write /find and then characters. \n With a space after /find. \n Ex: \n\t /find college")
 				pages.SwitchToPage("err")
 			}else{
+				commands.text.SetText(inputedArr[1])
 				title, text := findEntries(entries, inputedArr[1])
 				list.title.SetText(title)
 				list.text.SetText(text).ScrollToBeginning()
@@ -497,7 +496,7 @@ func main(){
 			AddButton("quit", func(){
 				switchToHome()
 			}). 
-			AddButton("write notes", func(){ // don't change the name of this, will ruin something later on 
+			AddButton("notes", func(){ 
 				blankNewNote(nil) 
 				// this (blankNewNote) can be deleted and written in the 
 				// commandLineActions() cases section if one wants to be able to
@@ -871,7 +870,7 @@ func main(){
 		edit.list.Clear()
 		e := &entries[i]
 
-		num:= 0
+		num := 0
 		edit.list.AddItem("leave /edit", "(takes you back to /home)", runeAlphabet[num], func(){
 			switchToHome()
 		})
@@ -931,9 +930,7 @@ func main(){
 			runeAlphabetIterate(&num)
 			edit.list.AddItem("notes:", condensedNotes, runeAlphabet[num], func(){
 				blankNewNote(e)
-				pages.HidePage("/edit")
 				pages.ShowPage("/newNote") 
-				pages.ShowPage("/edit")
 				app.SetFocus(newNote.form)
 			})
 		}
@@ -952,7 +949,7 @@ func main(){
 			// code copied from blankNewEntry
 			commands.text.SetText(newFieldCommands)
 			blankNewField(e)
-			pages.SwitchToPage("/newField")
+			pages.ShowPage("/newField")
 			app.SetFocus(newField.form)
 		})
 
@@ -1246,18 +1243,18 @@ func main(){
 		AddPage("/home", sadEmptyBox, true, true). 
 		AddPage("/list", list.grid, true, false). 
 		AddPage("/test", test.grid, true, false). 
-		AddPage("/newEntry", newEntry.grid, true, false).
-		AddPage("/newField", newFieldFlex, true, false). 
-		AddPage("/newNote", newNoteFlex, true, false). 
+		AddPage("/edit", edit.grid, true, false). 
 		AddPage("/help", help.grid, true, false). 
 		AddPage("err", error.grid, true, false). 
 		AddPage("/open", open.grid, true, false). 
-		AddPage("/edit", edit.grid, true, false). 
+		AddPage("/pick", pick.grid, true, false). 
+		AddPage("/copen", copen.grid, true, false). 
+		AddPage("/newEntry", newEntry.grid, true, false).
+		AddPage("/newField", newFieldFlex, true, false). 
+		AddPage("/newNote", newNoteFlex, true, false). 
 		AddPage("/new-editField", newEditFieldFlex, true, false). 
 		AddPage("/editFieldStr", editFieldStrFlex, true, false).
 		AddPage("/editDelete", editDeleteFlex, true, false). 
-		AddPage("/pick", pick.grid, true, false). 
-		AddPage("/copen", copen.grid, true, false). 
 		AddPage("/edit-editField", editEditFieldFlex, true, false)
 
 	// sets up the flex row of the left side, top is the pages bottom is the commandLine.input
@@ -1304,10 +1301,20 @@ func findEntries(entries []entry, str string) (string,string){
 			indexes = append(indexes, i)
 		}
 	}
+
+	// trims out the thing that prints so it won't go all the way to the other side
+	// still used the full string as the search before this point though
+	// MAYBE MAKE IT A LITTLE SHORTER AND ADD A "..." AT THE END? 
+	trimmedStr := str
+	if len([]byte(trimmedStr)) > 59{
+		trimmedStr = trimmedStr[:59]
+
+	}
+
 	if len(indexes) > 0{
-		return listEntries(entries, indexes, " /find " + str + " \n " + strings.Repeat("-", len([]rune(str))+6), true)
+		return listEntries(entries, indexes, " /find " + trimmedStr + " \n " + strings.Repeat("-", len([]rune(trimmedStr))+6), true)
 	}else{ 
-		return " /find " + str + " \n " + strings.Repeat("-", len([]rune(str))+6), "no entries found"
+		return " /find " + trimmedStr + " \n " + strings.Repeat("-", len([]rune(trimmedStr))+6), "no entries found"
 	}
 }
 
