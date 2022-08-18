@@ -24,10 +24,21 @@ this is just a list to be edited down later to what to write
   - some of the sensitive data is briefly stored in the memory 
 - 
 
-#### file writing
-- it writes to a yaml file
 
-#### how it looks
-- i coded it for a 84x28 size window with text font of monaco, size 18. it will work at all sizes and with all texts (to my knowledge), however you may not be able to see all the buttons without scrolling or pressing tab. everything should still work, you should still be able to access everything, it just may not look all organized. 
+## functions
+here are the different functions and commands that can be used
+
+### /new
+/new is how you can make a new entry 
+
+#### /help
+/help has condensed information from this readme, made easier so you don't have to leave
+
+##### /list
+/list lists all of the entries made so you can see the options to open them
+
+###### /pick
+/pick is like /list but it uses tview.List and lets you chose one,
+
 
 
