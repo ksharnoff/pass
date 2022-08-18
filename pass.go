@@ -21,7 +21,38 @@
 
 	rename pass.yaml?
 
-	edit all the usages of pointers to slices when it is unnecessary 
+	edit all the usages of pointers to slices when it is unnecessary
+
+
+	!! don't have it marshalll/unmarhsall??? just encrypt the bytes lmaoooo?!?!
+
+	remove /test from the list of functions on the left -- but keep it in??? 
+
+	reorder commmands:
+	/home
+	/help
+	--
+	/new
+	--
+	/edit
+	/copy
+	--
+	/find
+	--
+	/list
+	/pick & picc
+	--
+	/open & copen
+
+	maybe turn mouse off for /help?
+
+
+	fix the colors so it is visable in flux, and it looks better loll
+
+	send pull request for info
+		tview.Pages is order dependant
+		tview normal color is snow
+
 */
 
 package main
@@ -147,8 +178,6 @@ HELLO
 hdslkjfalk
 	`
 */
-
-	help.text.SetText(helpStrdksalfjk)
 
 	// text and grid for opening an entry already made, its function to format the information
 	open := textGrid{text: tview.NewTextView().SetScrollable(true).SetDynamicColors(true), grid: tview.NewGrid().SetBorders(true)}
@@ -360,7 +389,6 @@ hdslkjfalk
 				error.text.SetText(" To find entries you must write /find and then characters. \n With a space after /find. \n Ex: \n\t /find college")
 				pages.SwitchToPage("err")
 			}else{
-				commands.text.SetText(inputedArr[1])
 				title, text := findEntries(entries, inputedArr[1])
 				list.title.SetText(title)
 				list.text.SetText(text).ScrollToBeginning()
@@ -1363,13 +1391,20 @@ func listEntries (entries []entry, indexes []int, str string, showOld bool) (str
 }
 // this puts a single index from entries to " [0] twitterDEMO       ", with those exact spaces as they are what makes it into a good column shape
 func indexName (index int, entries []entry) string{
-	str := "[" + strconv.Itoa(index) + "] " + entries[index].Name
+	str := "[" + strconv.Itoa(index) + "] " 
+	
+	if !entries[index].Circulate{
+		str += "(rem) "
+	}
+
+	str += entries[index].Name
+
 	len := len([]rune(str))
 	if len > 21{
 		str = str[0:21] // second number in not inclusive
 		str += " "
 	}else{
-	str += strings.Repeat(" ", 22-len)
+		str += strings.Repeat(" ", 22-len)
 	}
 	return str
 }
