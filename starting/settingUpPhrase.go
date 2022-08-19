@@ -1,5 +1,7 @@
 /*
 	you take the input that's printed out and you set that as the const encryptedPhrase in encrypt.go to match your password
+
+	this is done and works
 */
 
 package main
@@ -13,6 +15,8 @@ import(
 
 	"pass/encrypt"
 
+	"strings"
+
 	"time" // just for running tests haha
 )
 
@@ -21,10 +25,14 @@ import(
 
 
 func main(){
+	var password string
+	fmt.Println("write your password: ")
+	fmt.Scan(&password)
+	fmt.Print("\033[F\r", strings.Repeat(" ", len(password)))
+	fmt.Println("")
 
 	start := time.Now()
 
-	password := "foobar"
 
 	// no padding needs to be done
 	input := []byte("trans rights R human rights 1234")
@@ -37,7 +45,7 @@ func main(){
 
 		// need to have something done w boo lol, is not necessary
 		if boo{
-			fmt.Println("the new key being generated is the same as the previous key set!")
+			fmt.Println("the new key being generated is the same as the previous key!")
 		}
 
 		if str != ""{
@@ -55,7 +63,7 @@ func main(){
 
 
 			end := time.Now()
-			fmt.Printf("\n\n this took %v to run.\n", end.Sub(start))
+			fmt.Printf("\n\nthis took %v to run.\n", end.Sub(start))
 
 		}		
 	}	
