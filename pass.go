@@ -56,7 +56,9 @@
 
 	make it so that password is also a slice 
 
-	make order of buttons correct for /copy
+	needs to write to file when Opened is updated
+
+	have a way to display what number is open in /copen and /edit
 
 */
 
@@ -81,7 +83,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// if this is changed then you should edit this copied in creatEncr.go
+// if this is changed then you should edit this copied in creatEncr.go and changeKey.go
 type entry struct {
 	Name string
 	Tags string
@@ -1419,6 +1421,7 @@ func testAllFields(entries []entry) string{
 }
 
 
+// if this is changed also change the files in the starting out folder
 // writes to the pass.yaml file, if it fails then it returns a string with errors
 func writeToFile(entries []entry, ciphBlock cipher.Block) string{
 	output, marshErr := yaml.Marshal(entries)
@@ -1440,6 +1443,7 @@ func writeToFile(entries []entry, ciphBlock cipher.Block) string{
 	}
 }
 
+// if this is changed also change the files in the starting out folder
 // if it works then it should return "", if not then it will return the errors in a string format
 func readFromFile(entries *[]entry, ciphBlock cipher.Block) string{
 	input, inputErr := os.ReadFile("pass.yaml")
