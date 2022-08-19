@@ -3,9 +3,7 @@
 
 	!!!
 	!!!change the name of the file later for os.WriteFile and os.Rename
-
-	currently is not working, unmarshalling is not working in another file
-	^^ issue may be with reading rather than writing
+	!!! ^^ because pass.go reads from pass.yaml
 */
 
 package main 
@@ -13,14 +11,11 @@ package main
 
 import(
 	"fmt"
-
 	"os"
-
 	"pass/encrypt"
-
 	"time"
-
 	"gopkg.in/yaml.v3"
+	"strings"
 )
 
 type entry struct {
@@ -41,23 +36,27 @@ type Field struct {
 }
 
 func main(){
-	entries := []entry{entry{Name: "demo", Tags: "this is needed"}, entry{Name: "perhaps needed?", Circulate: true},}
+	entries := []entry{entry{Name: "demo", Circulate: true},}
 
-	password := "foobar" // set this as the password that you want to encrypt with
+	var password string
+	fmt.Println("write your password: ")
+	fmt.Scan(&password)
+	fmt.Print("\033[F\r", strings.Repeat(" ", len(password)))
+	fmt.Println("")
 
 	output, outputErr := yaml.Marshal(entries)
 
 	if outputErr == nil{
 		ciphBlock, boo, str := encrypt.KeyGeneration(password)
 
-		fmt.Println("\n\n does the key match the key const in encrypt.go?", boo)
+		fmt.Println("\ndoes the key match the key const in encrypt.go?", boo)
 
 		if str == ""{
 			encryptedOutput := encrypt.Encrypt(output, ciphBlock, false)
 
 			// if the file doesn't exsist, os.WriteFile creates it
-			writeErr := os.WriteFile("passteee.yaml.tmp", encryptedOutput, 0600)
-			os.Rename("passteee.yaml.tmp", "passteee.yaml")
+			writeErr := os.WriteFile("newpass.yaml.tmp", encryptedOutput, 0600)
+			os.Rename("newpass.yaml.tmp", "newpass.yaml")
 
 			if writeErr != nil{
 				fmt.Println("error in os.writeFile \n", writeErr.Error())
