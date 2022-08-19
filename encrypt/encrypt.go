@@ -1,14 +1,7 @@
 /*
-	- update parameters in keygeneration
+	FIX the adding slice to Encrypt instead of one at a time? 
 
-
-	the way it's going to work::
-		-- have the thing at the start and make the key then use the key as input into the writing/reading file
-
-	style is historically that you don't pass around the cipher you pass the generated key
-	change encrypt and decrypt to take the aes key
-	literally just styalistic and that's it  
-	because if you look at the function in the vacuum then it is less confusing to take in the key
+	make the iv gen encrypted ran
 */
 
 package encrypt
@@ -31,7 +24,8 @@ import (
 
 // right now the correct password is foobar!
 const knownPlaintext = "trans rights R human rights 1234"
-const encryptedPlaintext = "AAAAAAAAAAAAAAAAAAAAANGYxl8FWvWBoG+/KRgGRwSSwiXNG4VXA9jIQU5gmVIh"
+//const encryptedPlaintext = "AAAAAAAAAAAAAAAAAAAAANGYxl8FWvWBoG+/KRgGRwSSwiXNG4VXA9jIQU5gmVIh"
+const encryptedPlaintext = "AAAAAAAAAAAAAAAAAAAAAPJmzNkoSo2ojkWHqU9w5GJvQgz8Q6smbAeuB8qNdexf"
 
 // makes a key, returns a chiper block
 // then checks with correctKey function if the key is correct -- if it's correct then true is returned
@@ -44,21 +38,8 @@ func KeyGeneration(password string) (cipher.Block, bool, string){
 	// salt generation is going to be the same thing every time
 	salt := []byte("qwertyuiopasdfghjklzxcvbnm")
 
-	// starting amounts for me: key := argon2.IDKey([]byte(password), salt, 3, 64*1024, 4, 32)
-	// idea: key := argon2.IDKey([]byte(password), salt, 4, 2048*1024, 4, 32)
-
-	// max's argon parameters are 5, 1,000,000, 1 (for first three numbers)
-	// time cost is number of passes over memory
-	// memory used is in kilobytes
-	// memory recc: 2*1024*1024
-
-	// try and see how much time it takes to do stuff and how long you can stand it being slow and then do it 
-
-	// parallelism factor allows it to be run in paralell which is good for me because i am one computer -- bad for someone trying to crack it -- probably leave as 4 -max
-	// some cpu run several threads on one core but apple silicon doesn't do that 
-	// my memory usage is currently 64 megabytes
-	// THE PARAMETERS MUST BE ADJUSTED -- make sure they are the same as settingUpKeys.go
-	key := argon2.IDKey([]byte(password), salt, 4, 2048*512, 4, 32)
+	// current parameters: 4, 2048*1024, 4, 32
+	key := argon2.IDKey([]byte(password), salt, 4, 2048*1024, 4, 32)
 
 	ciphBlock, err := aes.NewCipher(key)
 
@@ -83,7 +64,6 @@ func CorrectKey(ciphBlock cipher.Block) bool{
 
 func Encrypt(plaintext []byte, ciphBlock cipher.Block, keyTest bool) []byte{
 	// adds padding in form of "\n"
-
 	// can replace 0x0A with a slice (but you must write ... at the end)
 	if len(plaintext)%aes.BlockSize != 0{
 		for i := len(plaintext)%aes.BlockSize; i < aes.BlockSize; i++{
