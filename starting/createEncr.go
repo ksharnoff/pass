@@ -16,6 +16,7 @@ import(
 	"time"
 	"gopkg.in/yaml.v3"
 	"strings"
+	"encoding/base64"
 )
 
 type entry struct {
@@ -24,7 +25,7 @@ type entry struct {
 	Usernames []Field
 	Passwords []Field
 	SecurityQ []Field
-	Notes [6]string // maybe make this an 8 in the future?
+	Notes [6]string
 	Circulate bool
 	Created time.Time
 	Modified time.Time
@@ -62,6 +63,16 @@ func main(){
 				fmt.Println("error in os.writeFile \n", writeErr.Error())
 			}else{
 				fmt.Println("success, written!")
+
+				fmt.Println("\nnow, you must copy the following, \nand write it in encrypt.go as encryptedPlaintext")
+
+				encryptedPhrase := encrypt.Encrypt([]byte(encrypt.KnownPlaintext), ciphBlock, true)
+				
+				encoder := base64.NewEncoding("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890+/")
+
+				encryptedKnown := encoder.EncodeToString(encryptedPhrase)
+
+				fmt.Println(encryptedKnown)
 			}
 		}else{
 			fmt.Println("error in key generation: ", str)
