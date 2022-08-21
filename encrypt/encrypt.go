@@ -1,6 +1,4 @@
 /*
-	FIX the adding slice to Encrypt instead of one at a time? 
-
 	make the iv gen encrypted ran
 */
 
@@ -22,23 +20,23 @@ import (
 	"encoding/base64"
 )
 
-// right now the correct password is foobar!
-const knownPlaintext = "trans rights R human rights 1234"
-//const encryptedPlaintext = "AAAAAAAAAAAAAAAAAAAAANGYxl8FWvWBoG+/KRgGRwSSwiXNG4VXA9jIQU5gmVIh"
-const encryptedPlaintext = "AAAAAAAAAAAAAAAAAAAAAPJmzNkoSo2ojkWHqU9w5GJvQgz8Q6smbAeuB8qNdexf"
+const KnownPlaintext = "trans rights R human rights 1234"
+//const encryptedPlaintext = "AAAAAAAAAAAAAAAAAAAAAPJmzNkoSo2ojkWHqU9w5GJvQgz8Q6smbAeuB8qNdexf"
+const encryptedPlaintext = "AAAAAAAAAAAAAAAAAAAAAPpAr+smJE48hV/gLXQ3+Nu9CjZHnVMpc4d9RPyhN4AZ"
 
-// makes a key, returns a chiper block
-// then checks with correctKey function if the key is correct -- if it's correct then true is returned
+
+// Makes a key, then a cipher block. It also returns a boolea
+// for if the key is the correct key, by checking with CorrectKey function. 
 func KeyGeneration(password string) (cipher.Block, bool, string){
 
 	if len([]byte(password)) < 1{
 		return nil, false, "password for key generation is too short, string empty"
 	}
 
-	// salt generation is going to be the same thing every time
+	// Salt generation is going to be the same thing every time. 
 	salt := []byte("qwertyuiopasdfghjklzxcvbnm")
 
-	// current parameters: 4, 2048*1024, 4, 32
+	// Current parameters: 4, 2048*1024, 4, 32 -- takes about 2 seconds
 	key := argon2.IDKey([]byte(password), salt, 4, 2048*1024, 4, 32)
 
 	ciphBlock, err := aes.NewCipher(key)
@@ -49,8 +47,9 @@ func KeyGeneration(password string) (cipher.Block, bool, string){
 	return ciphBlock, CorrectKey(ciphBlock), ""
 }
 
+// If the key is correct then it returns true. 
 func CorrectKey(ciphBlock cipher.Block) bool{
-	comparison := Encrypt([]byte(knownPlaintext), ciphBlock, true)
+	comparison := Encrypt([]byte(KnownPlaintext), ciphBlock, true)
 
 	encoder := base64.NewEncoding("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890+/")
 	encryptedComp := encoder.EncodeToString(comparison)
@@ -64,24 +63,22 @@ func CorrectKey(ciphBlock cipher.Block) bool{
 
 func Encrypt(plaintext []byte, ciphBlock cipher.Block, keyTest bool) []byte{
 	// adds padding in form of "\n"
-	// can replace 0x0A with a slice (but you must write ... at the end)
 	if len(plaintext)%aes.BlockSize != 0{
 		for i := len(plaintext)%aes.BlockSize; i < aes.BlockSize; i++{
 			plaintext = append(plaintext, 0x0A) // 0x0A = []byte("\n")
 		}
 	}
-
 	encrypt := make([]byte, aes.BlockSize+len(plaintext))
 
 	iv := encrypt[:aes.BlockSize]
 
-	 // if just testing the key, then the iv will be blank (same as when the ciphered plaintext was first generated)
-	if !keyTest{ // this is the random iv generation for not testing the key but encrypting the file
+	// If just testing the key, then the iv will be blank, in order
+	// to compare it to the known plaintext. 
+	if !keyTest{ 
 		// IV GENERATION SHOULD BE CHANGED TO CRYPTO/RAND
 		rand.Seed(time.Now().UnixNano()^int64(os.Getpid()))
 		rand.Read(iv)
 	}
-
 	encryptBlock := cipher.NewCBCEncrypter(ciphBlock, iv)
 
 	encryptBlock.CryptBlocks(encrypt[aes.BlockSize:], plaintext)
@@ -97,7 +94,7 @@ func Decrypt(encrypted []byte, ciphBlock cipher.Block) []byte{
 
 	decrypt := make([]byte, len(encrypted))
 
-	decryptBlock.CryptBlocks(decrypt, encrypted) // not sure if this works, if not then write it as "encrypted, encrypted" which will for sure work -- it's being written like this for consistency
-
+	decryptBlock.CryptBlocks(decrypt, encrypted)
+	
 	return decrypt
 }
