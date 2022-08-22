@@ -40,7 +40,7 @@ The focus is in the command line on the bottom. The text on the left details the
 `/help` is similar to this README but it is condensed and in the password manager itself for ease of access. 
 
 #### `/open`
-![example image of /open](https://github.com/ksharnoff/pass/blob/main/examples/:home%20Large.jpeg)
+![example image of /open](https://github.com/ksharnoff/pass/blob/main/examples/:home%20Medium.jpeg)
 `/open` is used to view an entry. 
 
 #### `/copen`
