@@ -10,8 +10,6 @@ In the manager, and in this README, I have used # to represent a number.
 ## tview and visuals
 I used the TUI [tview](https://github.com/rivo/tview). I used four types of primitives: input fields, lists, text boxes, and forms. In order to format them, I used flexes, pages, and grids. I used grids only to add borders around the primitives. 
 
-All of the commands that are done are done through the command line at the bottom. 
-
 The majority of the code is anonymous functions inside of func main in order to set up the primitives.
 
 I coded it for a 84x28 window size with a text font of monaco, size 18. I chose this window size because it best fit the three columns for `/list` and `/find` with that font size.
@@ -19,34 +17,34 @@ I coded it for a 84x28 window size with a text font of monaco, size 18. I chose 
 It will work with all fonts (to my knowledge), however you may not be able to see all the items without scrolling or pressing the tab. Everything should still work and you should be able to access everything, it just may not look as organized. If your font is smaller than monaco size 18, then you should have a bigger window size. 
 
 ## encryption and file writing
-All of the entries are [marshaled] (https://pkg.go.dev/gopkg.in/yaml.v3#Marshal) as if they were going to be written to a yaml file. Instead, that byte slice is entirely encrypted before being written to the file. Then, when reading from the file the byte slice is decrypted and then turned into the slice of entries. 
+All of the entries are [marshaled](https://pkg.go.dev/gopkg.in/yaml.v3#Marshal) as if they were going to be written to a yaml file. Instead, that byte slice is entirely encrypted before being written to the file. Then, when reading from the file the byte slice is decrypted and then turned into the slice of entries. 
 Therefore, the password to the password manager must be put in at the beginning before accessing any of the commands. 
 
 This password manager is unsuitable for cloud computing or a shared computer as the decrypted information is stored in the memory. 
 
 The encryption is in the file encrypt.go which must be in a folder called encrypt  inside the greater pass folder as that is how the imports work. encrypt.go gets imported into not just pass.go but the files for setting up the program. 
 
+There is a pass.yaml uploaded currently that demonstrates what the encrypted data looks like. You can download and read that data if you want, the password is “foobar” with the key parameters the default in encrypt.go.
+
 ## commands
 This section is about all of the actions that can be done with the password manager.
+All of the commands are called through the command line at the bottom. 
 
 #### `/home`
 {image of /home right here}
-`/home` is the starting screen once you’ve logged in. There’s nothing going on yet. 
-
-The focus is in the command line on the bottom. The text on the left details the possible commands. The mouse is enabled. 
+`/home` is the starting screen once you’ve logged in. There’s nothing going on yet. The text on the left details the possible commands. 
 
 #### `/help`
 {image of /help}
 `/help` is similar to this README but it is condensed and in the password manager itself for ease of access. 
 
-#### `/open`
-![example image of /open](https://github.com/ksharnoff/pass/blob/main/examples/:home%20Small.jpeg)
-`/open` is used to view an entry. 
+#### `/open #`
+![example image of /open]()
+`/open` is used to view an entry. It will include time information that is known. Passwords and security questions will also have their values printed, except they’ll be printed out in black text. Therefore, one can highlight it to see the values. 
 
-#### `/copen`
+#### `/copen #`
 {image of /copen}
-`/copen` is also used to view an entry. 
-
+`/copen` is also used to view an entry. It is a list that is used to copy data to the clipboard more easily. With `/copen` you select one of the fields and it copies itself to your clipboard.
 
 #### `/new`
 {image of /new}
@@ -58,6 +56,24 @@ There is no limit to the number of usernames, passwords, or security questions y
 {image of /new with fields already added}
 Once you have added fields, a new button appears that changes the focus to the list below to let you select a field to edit. The reason why I have a button to switch between the two sections is because I believe it is important to disable the mouse in `/new`. (Look at mouse usage and clipboard section) 
 
+#### `/copy #`
+`/copy` is the same as `/new` except fields are already filled in with the information of entry #. 
+
+#### `/edit #`
+{image of /edit}
+`/edit` is used for editing an entry already made. It is a list with each field of the entry. You can select a field and then edit that specific one. 
+
+#### `/find str`
+{image of /find}
+`/find` is used to search the name and tags of all the entries for a string. It then returns the list of entries that contain that string. The entries are printed out following the same format as `/list`.
+
+#### `/list`
+![Example of /list with 70 entries](-------)
+`/list` is used to list all of the entries. You look at /list to see the index number of an entry to open it. `/list` prints the entries in three columns of a fixed size, therefore the entry name can get cut off. This is done with a single text box, using some string and math trickery. 
+
+#### `/pick` and `/pick`
+{image of /pick}
+`/pick` and `/picc` look mostly identical. They are lists of all the entries, like `/list`, except you can select and open an entry. 
 
 ## starting for the first time
 Use the createEncr.go file to create and encrypt your file with your password the first time. There is also changeKey.go for decrypting the file and then then encrypting it with a different key, in order to change your password or key parameters. 
@@ -79,4 +95,4 @@ Date last opened is modified if the entry is opened by `/open #` or  `/copen #`.
 Keeping these dates also works as security in case you notice irregularities.
 
 #### in circulation
-In each entry there is a boolean named `Circulate` which determines if the entry shows up in `/list` or `/pick`. All commands that work on entries still work (edit, open, copy, etc.). This can be used to reduce clutter of old entries.
+In each entry there is a boolean named `Circulate` which determines if the entry shows up in `/list` and `/pick`. All commands that work on entries still work (edit, open, copy, etc.). This can be used to reduce clutter of old entries.
