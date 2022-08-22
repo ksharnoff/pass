@@ -1,20 +1,21 @@
 /*
-	make commands text for all of them:
-		-copen
-		-pick/picc
+	make info.text for all of them:
+		-copen (set done func esc key)
+		-pick/picc (set done func esc key)
 		-copy
+		-open (in order to edit go to /edit)
+		- edit field
 	--for commandsText in /open write that in order to edit you must go to /edit
+	--	write about set done func esc key in info.text
 	
 	send pull request for info
 		tview.Pages is order dependant
 
 	ask dada about extra safe method of writing to 
 
-	have a way to display what number is open in /copen and /edit
-
 	how to change the color of the dropdown box?
 
-	write about set done func esc key in info.text
+	fix problem with erorrs not being written to pass locked error screen 
 */
 package main
 
@@ -120,7 +121,7 @@ func main(){
 
 	// This is the text box on the left that contains information
 	// that changes depending on what the user is doing. 
-	info := textGrid{text: tview.NewTextView().SetScrollable(true), grid: tview.NewGrid().SetBorders(true)}
+	info := textGrid{text: tview.NewTextView().SetScrollable(true).SetWrap(false), grid: tview.NewGrid().SetBorders(true)}
 	homeInfo := " commands\n -------- \n /home\n /help\n\n /open #\n /copen #\n\n /new\n /copy #\n\n /edit #\n\n /find str\n\n /list\n /pick\n /picc"
 
 	// This is the blank box at /home. 
@@ -170,9 +171,9 @@ func main(){
  	example of /open # is: /open 3 
  	example of/find str is: /find library
 
- Sometimes you can use the mouse to click, but sometimes you
- can't. This is because when you can use the mouse to click, you 
- can't use it to select and copy text. 
+ Sometimes you can use the mouse to click, but sometimes you can't.
+ This is because when you can use the mouse to click, you can't 
+ use it to select and copy text. 
 
  Use /open # to view an entry. Passwords and security question 
  values will be blotted out but they can be highlighted and then
@@ -192,33 +193,36 @@ func main(){
 
  Use /edit # to edit an exsisting entry. You can edit the fields 
  already there, add new ones, remove it from circulation, or 
- delete it. While there is a delete button, it is reccomended 
- that you remove it from circulation instead. When that is done, 
- it won't show up in /list or /pick. All of the other commands 
- (such as /open, /edit, etc.) will still work on it. 
- Edits all saved as soon as you click save on each specific 
- field. 
+ delete it. While there is a delete button, it is reccomended that 
+ you remove it from circulation instead. When that is done, it 
+ won't show up in /list or /pick. All of the other commands (such 
+ as /open, /edit, etc.) will still work on it. 
+ Edits are saved as soon as you click save on each specific field.
 
- Use /find str to search for entries. /find str will return 
- all of the entries that contain str in the name or the tags.
- In both /find str and /list, the resulting entries may not  
- show their full name for space. 
+ Use /find str to search for entries. /find str will return all of
+ the entries that contain str in the name or the tags. In both
+ /find str and /list, the resulting entries may not show their
+ full name for space. 
 
- Use /list or /pick to view the list of entries. /list will 
- display them all with their numbers and you can then type 
- /open # or /copen #. /pick will display a list of the 
- entries and you can click on one of them to open it. You 
- can do /picc to copen it. 
+ Use /list or /pick to view the list of entries. /list will
+ display them all with their numbers and you can then type /open #
+ or /copen #. /pick will display a list of the entries and you can
+ click on one of them to open it. You can do /picc to copen it.
 
  When in /pick or /edit, you can press esc to go back to home.
  This can be more efficient than scrolling to select the item
- to leave.`
+ to leave.
+
+ When making / editing notes, you can write [black] to have 
+ it blotted out. Make sure at the end of the line you write 
+ [white] in order for other stuff to write.`
 	help.text.SetText(helpText)
 
 	// This is the text box used for /open.
 	// Also the function for writing to the text box.
 	open := textGrid{text: tview.NewTextView().SetScrollable(true).SetDynamicColors(true), grid: tview.NewGrid().SetBorders(true)}
 	blankOpen := func(i int) string {return "error, blankOpen(i int) didn't run"}
+	openInfo := " /open\n -----\n to edit: \n /edit # \n\n commands\n -------- \n /home\n /help\n\n /open #\n /copen #\n\n /new\n /copy #\n\n /edit #\n\n /find str\n\n /list\n /pick\n /picc"
 
 	// This is the text box used to /copen and its function for 
 	// making it
@@ -312,12 +316,13 @@ func main(){
 	// This is the little pop up to ask if you're sure when you
 	// want to delete an entry. The flex of it is to combine
 	// the text and the form. 
-	editDelete := textFormFlexGrid{text: tview.NewTextView().SetTextAlign(tview.AlignCenter).SetText("delete entry? \nCANNOT BE UNDONE"), form: tview.NewForm().SetButtonBackgroundColor(blue).SetLabelColor(lavender), flex: tview.NewFlex().SetDirection(tview.FlexRow), grid: tview.NewGrid().SetBorders(true)}
+	editDelete := textFormFlexGrid{text: tview.NewTextView().SetTextAlign(tview.AlignCenter).SetText("delete entry?\nCANNOT BE UNDONE"), form: tview.NewForm().SetButtonBackgroundColor(blue).SetLabelColor(lavender), flex: tview.NewFlex().SetDirection(tview.FlexRow), grid: tview.NewGrid().SetBorders(true)}
 	editDeleteFlex := tview.NewFlex() // Flex to situate it in the center
 	blankEditDeleteEntry := func(){}
 
 	// This is whats written in info.text during /edit
-	editInfo := " /edit \n ----- \n move: \n -tab \n -back tab \n -arrows keys \n\n select: \n -return \n -click" 
+	editInfo := " /edit \n ----- \n to move: \n -tab \n -back tab \n -arrows keys\n\n to select: \n -return \n\n to leave: \n -esc key\n\n "
+	editFieldInfo :=  " /edit \n ----- \n to move: \n -tab \n -back tab\n\n to select: \n -return \n\n must name \n field to \n save it \n\n press quit \n to leave"
 
 	// This is the list and its function used for /pick and /picc. 
 	// blankPickList takes in a string in order to print out what it
@@ -463,7 +468,8 @@ func main(){
 		case "/help": // mouse must remain on in order to scroll
 			pages.SwitchToPage("/help")
 		case "/open":
-			if indexSelectEntry > -1 {
+			if indexSelectEntry > -1{
+				info.text.SetText(openInfo)
 				app.EnableMouse(false)
 				open.text.SetText(blankOpen(indexSelectEntry))
 				pages.SwitchToPage("/open")
@@ -518,6 +524,7 @@ func main(){
 	// Needs this function to be done after it is defined.
 	pick.list.SetDoneFunc(switchToHome)
 	edit.list.SetDoneFunc(switchToHome)
+	copen.list.SetDoneFunc(switchToHome)
 
 	runeAlphabetIterate = func(i *int){
 		if *i == len(runeAlphabet){
@@ -863,8 +870,7 @@ func main(){
 		copen.list.Clear()
 		e := entries[i]
 
-		//print += "[" + strconv.Itoa(i) + "] " + e.name + "\n " 
-		copen.list.AddItem("leave /copen", "(takes you back to /home)", runeAlphabet[num], func(){
+		copen.list.AddItem("leave /copen " + strconv.Itoa(i), "(takes you back to /home)", runeAlphabet[num], func(){
 				switchToHome()
 			})
 		runeAlphabetIterate(&num)
@@ -929,7 +935,6 @@ func main(){
 				clipboard.WriteAll(fmt.Sprint(e.Created.Date()))
 			})
 		}
-
 		entries[i].Opened = time.Now()
 		switchToWriteFileErr()
 	}
@@ -939,11 +944,12 @@ func main(){
 		e := &entries[i]
 		num := 0
 
-		edit.list.AddItem("leave /edit", "(takes you back to /home)", runeAlphabet[num], func(){
+		edit.list.AddItem("leave /edit " + strconv.Itoa(i), "(takes you back to /home)", runeAlphabet[num], func(){
 			switchToHome()
 		})
 		runeAlphabetIterate(&num)
 		edit.list.AddItem("name: ", e.Name, runeAlphabet[num], func(){
+			info.text.SetText(editFieldInfo)
 			blankEditStringForm("name", e.Name, e)
 			pages.ShowPage("/editFieldStr") 
 			app.SetFocus(editField.form)
@@ -951,6 +957,7 @@ func main(){
 		if e.Tags != "" {
 			runeAlphabetIterate(&num)
 			edit.list.AddItem("tags:", e.Tags, runeAlphabet[num], func(){
+				info.text.SetText(editFieldInfo)
 				blankEditStringForm("tags", e.Tags, e)
 				pages.ShowPage("/editFieldStr") 
 				app.SetFocus(editField.form)
@@ -961,6 +968,7 @@ func main(){
 			u := &e.Usernames[i]
 			runeAlphabetIterate(&num)
 			edit.list.AddItem(u.DisplayName + ":", u.Value, runeAlphabet[num], func(){
+				info.text.SetText(editFieldInfo)
 				blankEditFieldForm(u, &e.Usernames, i, e, true)
 				pages.ShowPage("/edit-editField") 
 				app.SetFocus(editField.form)
@@ -972,6 +980,7 @@ func main(){
 			runeAlphabetIterate(&num)
 
 			edit.list.AddItem(p.DisplayName + ":", "[black]" + p.Value, runeAlphabet[num], func(){
+				info.text.SetText(editFieldInfo)
 				blankEditFieldForm(p, &e.Passwords, i, e, true)
 				pages.ShowPage("/edit-editField") 
 				app.SetFocus(editField.form)
@@ -983,6 +992,7 @@ func main(){
 			runeAlphabetIterate(&num)
 
 			edit.list.AddItem(sq.DisplayName + ":", "[black]" + sq.Value, runeAlphabet[num], func(){
+				info.text.SetText(editFieldInfo)
 				blankEditFieldForm(sq, &e.SecurityQ, i, e, true)
 				pages.ShowPage("/edit-editField") 
 				app.SetFocus(editField.form)
@@ -999,6 +1009,7 @@ func main(){
 		if !emptyNotes {
 			runeAlphabetIterate(&num)
 			edit.list.AddItem("notes:", condensedNotes, runeAlphabet[num], func(){
+				info.text.SetText(editFieldInfo)
 				blankNewNote(e)
 				pages.ShowPage("/newNote") 
 				app.SetFocus(newNote.form)
@@ -1010,8 +1021,8 @@ func main(){
 		}
 		runeAlphabetIterate(&num)
 		edit.list.AddItem("add new field", newFieldStr + "usernames, passwords, security questions", runeAlphabet[num], func(){
+			info.text.SetText(editFieldInfo)
 			// code copied from blankNewEntry
-			info.text.SetText(newFieldInfo)
 			blankNewField(e)
 			pages.ShowPage("/newField")
 			app.SetFocus(newField.form)
@@ -1031,6 +1042,7 @@ func main(){
 		}
 		runeAlphabetIterate(&num)
 		edit.list.AddItem("delete entry", "(permanant!!)", runeAlphabet[num], func(){
+			info.text.SetText(editFieldInfo)
 			blankEditDeleteEntry()
 			pages.ShowPage("/editDelete")
 			app.SetFocus(editDelete.form)
@@ -1127,6 +1139,7 @@ func main(){
 			blankEditList(indexSelectEntry)
 			pages.SwitchToPage("/edit")
 			app.SetFocus(edit.list)
+			info.text.SetText(editInfo)
 		}
 	}
 
@@ -1166,7 +1179,7 @@ func main(){
 		    			// following code copied from commandLineActions function
 		    			open.text.SetText(blankOpen(i)) // taking input, just to be safe smile -- can change that in future
 						pages.SwitchToPage("/open")
-						app.SetFocus(commandLine.input)
+						app.SetFocus(commandLine.input) 
 						lookRightCommandLinePlaceholder()
 					}else{ // to transfer to /copen #
 						// following code copied from commandLineActions function
@@ -1354,7 +1367,7 @@ func listEntries (entries []entry, indexes []int, str string, showOld bool) (str
 			printEntries = append(printEntries, entries[i]) // equivilent to entries[i] is entries[indexes[i]]
 		}
 	}else{
-		indexes = nil
+		indexes = []int{}
 		for i,e := range entries{
 			if e.Circulate{
 				printEntries = append(printEntries, e)
@@ -1366,7 +1379,6 @@ func listEntries (entries []entry, indexes []int, str string, showOld bool) (str
 	if third < 21 {
 		third = 21
 	}
-
 	for i := 0; i < third; i++{
 		if i >= len(indexes){
 			break
@@ -1376,13 +1388,13 @@ func listEntries (entries []entry, indexes []int, str string, showOld bool) (str
 			printStr += indexName(indexes[i+third], entries)
 		}
 		if len(indexes) > i+third+third{
-			printStr += indexName(indexes[i+third], entries)
+			printStr += indexName(indexes[i+third+third], entries)
 		}
 		if i != third-1 { //so it doesn't do it on the last one
 			printStr += "\n"
 		}
 	}
-	return str, printStr // first string is title, second is the body of the text
+	return str, printStr // first string is the title, second is the body of the text
 }
 // This retursn from a single index from entries to 
 // " [0] twitterDEMO       ", with those exact spaces/number of 
