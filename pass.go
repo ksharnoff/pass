@@ -1,25 +1,13 @@
-/*
-	make info.text for all of them:
-		-copen (set done func esc key)
-		-pick/picc (set done func esc key)
-		-copy
-		-open (in order to edit go to /edit)
-		- edit field
-	--for commandsText in /open write that in order to edit you must go to /edit
-	--	write about set done func esc key in info.text
-	
-	send pull request for info
-		tview.Pages is order dependant
-
-	ask dada about extra safe method of writing to 
-
-	how to change the color of the dropdown box?
-
-	fix problem with erorrs not being written to pass locked error screen 
+/*	
+	Ideas for the future:
+		- change color of dropdown fields in /new
+		- have a button for removing a new entry from circualation in /new
+		- make it scale to other sized windows
+		- results from /find in a list like /pick and /picc
 */
 package main
 
-import (
+import(
 	"github.com/rivo/tview"
 	"github.com/gdamore/tcell/v2"
 	"github.com/atotto/clipboard" // copies the data to clipboard in /copen
@@ -37,7 +25,7 @@ import (
 
 // if this is changed then you should edit this also in 
 // in creatEncr.go and changeKey.go
-type entry struct {
+type entry struct{
 	Name string
 	Tags string
 	Usernames []Field
@@ -49,7 +37,7 @@ type entry struct {
 	Modified time.Time
 	Opened time.Time
 }
-type Field struct {
+type Field struct{
 	DisplayName string
 	Value string
 }
@@ -57,7 +45,7 @@ type Field struct {
 // The following stucts is to make the naming conventions
 // more clear. Instead of "errorText" and "errorTextGrid"
 // there is error.text and error.grid. 
-type textGrid struct {
+type textGrid struct{
 	text *tview.TextView
 	grid *tview.Grid
 }
@@ -166,7 +154,8 @@ func main(){
 
  This gives some basic navigation info. More in depth info is in 
  the README on https://github.com/ksharnoff/pass. 
- This is scrollable with your mouse!
+ This is scrollable with your mouse! In order to quit the manager, 
+ press control+c or quit your terminal. 
  # means entry number and str means some text. 
  	example of /open # is: /open 3 
  	example of/find str is: /find library
@@ -229,6 +218,7 @@ func main(){
 	copen := listGrid{list: tview.NewList().SetSecondaryTextColor(blue). 
 		SetShortcutColor(lavender), grid: tview.NewGrid().SetBorders(true)}
 	blankCopen := func(i int){}
+	copenInfo := " /copen \n ------\n to edit: \n /edit # \n\n to move: \n -tab \n -back tab \n -arrows keys\n -scroll\n\n to select:\n -return\n\n to leave:\n -esc key"
 	
 	// This is where the errors are written to. 
 	// error.title stays the same for all errors. 
@@ -321,7 +311,7 @@ func main(){
 	blankEditDeleteEntry := func(){}
 
 	// This is whats written in info.text during /edit
-	editInfo := " /edit \n ----- \n to move: \n -tab \n -back tab \n -arrows keys\n\n to select: \n -return \n\n to leave: \n -esc key\n\n "
+	editInfo := " /edit \n ----- \n to move: \n -tab \n -back tab \n -arrows keys\n -scroll\n\n to select: \n -return \n\n to leave: \n -esc key\n\n "
 	editFieldInfo :=  " /edit \n ----- \n to move: \n -tab \n -back tab\n\n to select: \n -return \n\n must name \n field to \n save it \n\n press quit \n to leave"
 
 	// This is the list and its function used for /pick and /picc. 
@@ -329,6 +319,8 @@ func main(){
 	// is, and to send the functions to the right place.
 	pick := listGrid{list: tview.NewList().SetSelectedFocusOnly(true).SetSecondaryTextColor(blue).SetShortcutColor(lavender), grid: tview.NewGrid().SetBorders(true)}
 	blankPickList := func(openCopen string){}
+	// The following will add /pick or /picc in the function itself
+	pickInfo := "\n ----- \n to move: \n -tab \n -back tab \n -arrows keys\n\n to select: \n -return\n -click\n\n to leave: \n -esc key\n\n "
 
 	// This is the cipher block generated with the key to encrypt
 	// and decrypt. Normally its the key that gets passed around 
@@ -358,7 +350,7 @@ func main(){
 
 	// This is the error text for when the password is wrong
 	// or another error.
-	passErr := twoTextFlexGrid{title: tview.NewTextView().SetWrap(false).SetText(" error in signing in"), text: tview.NewTextView().SetScrollable(true).SetWrap(false), grid: tview.NewGrid().SetBorders(true), flex: tview.NewFlex()}
+	passErr := twoTextFlexGrid{title: tview.NewTextView().SetWrap(false).SetText(" error in signing in:"), text: tview.NewTextView().SetScrollable(true).SetWrap(false), grid: tview.NewGrid().SetBorders(true), flex: tview.NewFlex()}
 
 	// ------------------------------------------------ //
 	//    all varaibles initialized! function time!     //
@@ -367,7 +359,6 @@ func main(){
 	passActions = func(key tcell.Key){
 		passInputed = password.input.GetText()
 		passBoxPages.SwitchToPage("passBox")
-
 		var keySuccess bool 
 		var keyErr string
 
@@ -375,17 +366,16 @@ func main(){
 
 		if keyErr != ""{
 			passBoxPages.SwitchToPage("passErr")
-			passErr.text.SetText(keyErr)
+			passErr.text.SetText(" " + keyErr)
 		}else if !keySuccess{
 			passBoxPages.SwitchToPage("passErr")
 			passErr.text.SetText(" wrong password!")
 		}else{
-
 			readErr := readFromFile(&entries, ciphBlock)
 
 			if readErr != ""{
-				pages.SwitchToPage("err")
-				error.text.SetText(" " + readErr)
+				passBoxPages.SwitchToPage("passErr")
+				passErr.text.SetText(" " + readErr)
 			}else{
 				passPages.SwitchToPage("passManager")
 				switchToHome()
@@ -451,9 +441,9 @@ func main(){
 				pages.SwitchToPage("/list")
 			}
 		// /test is not listed on the left set of commands. It
-		// just does Sprint(entries) and prints it to /test text box.
-		// It doesn't blott out any of the passwords, it just prints
-		// of all the entries, all of the data.
+		// just does fmt.Sprint(entries) and prints it to /test text 
+		// box. It doesn't blott out any of the passwords or organize,
+		// it just prints of all the data.
 		case "/test":
 			test.text.SetText(testAllFields(entries))
 			pages.SwitchToPage("/test")
@@ -476,6 +466,7 @@ func main(){
 			}
 		case "/copen":
 			if indexSelectEntry > -1{
+				info.text.SetText(copenInfo)
 				app.SetFocus(copen.list)
 				app.EnableMouse(false)
 				blankCopen(indexSelectEntry)
@@ -495,6 +486,7 @@ func main(){
 			cantTypeCommandLinePlaceholder()
 		case "/copy":
 			if indexSelectEntry > -1 {
+				info.text.SetText(newInfo)
 				app.EnableMouse(false)
 				blankNewEntry(entries[indexSelectEntry])
 				app.SetFocus(newEntry.form)
@@ -631,24 +623,24 @@ func main(){
 					if chosenDrop != "tags" { // If it's not tags then it adds displayName and value
 						if chosenDrop == "username"{
 							tempField.DisplayName = "email" // in case it isn't edited, sets this as the default, better than "username" as default
-							newField.form.AddInputField("display name", "email", 50, nil, func(display string){
+							newField.form.AddInputField("display name:", "email", 50, nil, func(display string){
 								tempField.DisplayName = display
 							})
 						}else if chosenDrop == "password"{
 							tempField.DisplayName = "password"
-							newField.form.AddInputField("display name", "password", 20, nil, func(display string){
+							newField.form.AddInputField("display name:", "password", 50, nil, func(display string){
 								tempField.DisplayName = display
 							})
 						}else if (chosenDrop == "security question"){
-							newField.form.AddInputField("question", "", 50, nil, func(display string){
+							newField.form.AddInputField("question:", "", 50, nil, func(display string){
 								tempField.DisplayName = display
 							})
 						}
-						newField.form.AddInputField("value", "", 40, nil, func(value string){
+						newField.form.AddInputField("value:", "", 50, nil, func(value string){
 							tempField.Value = value
 						})
 					}else{ // Only has one input line for adding new tags
-						newField.form.AddInputField("tags", tempEntry.Tags, 40, nil, func(tags string){
+						newField.form.AddInputField("tags:", tempEntry.Tags, 50, nil, func(tags string){
 							tempTags = tags
 						})
 					}
@@ -1097,7 +1089,7 @@ func main(){
 			})
 	}
 
-	// Can either be name or tags as the input, nothing else
+	// For editing the name or tags, nothing else
 	blankEditStringForm = func (display, value string, e *entry){
 		if (display != "name")&&(display != "tags"){
 			error.text.SetText(" AHHHH the input of display should only be tags or name!!")
@@ -1107,7 +1099,7 @@ func main(){
 			tempDisplay := display 
 			tempValue := value
 			editField.form.
-				AddInputField(tempDisplay, tempValue, 40, nil, func(changed string){
+				AddInputField(tempDisplay + ":", tempValue, 40, nil, func(changed string){
 					tempValue = changed
 				}). 
 				AddButton("save", func(){
@@ -1162,9 +1154,10 @@ func main(){
 
 	// openCopen is either going to be "/pick" or "/picc"
 	blankPickList = func(openCopen string){
+		info.text.SetText(" " + openCopen + pickInfo)
 		num := 0
  		pick.list.Clear()
- 		pick.list.AddItem("leave " + openCopen, "(takes you back to /home", runeAlphabet[num], func(){
+ 		pick.list.AddItem("leave " + openCopen, "(takes you back to /home)", runeAlphabet[num], func(){
  			switchToHome()
  		})
  		for i, e := range entries{
@@ -1194,25 +1187,29 @@ func main(){
 	}
 
 	// ------------------------------------------------ //
-	// setting up the flexes, grids, pages :)
+	//     setting up the flexes, grids, pages :)       //
 	// ------------------------------------------------ //
 
 	passErr.flex.SetDirection(tview.FlexRow). 
 		AddItem(passErr.title, 0, 1, false). 
 		AddItem(passErr.text, 0, 8, false)
+
 	passFlex. 
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow). 
 			AddItem(passBoxPages, 0, 9, false). 
 			AddItem(password.grid, 0, 1, false), 0, 1, false)
+
 	newFieldFlex.
 		AddItem(nil, 0, 1, false). 
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow). 
 			AddItem(nil, 0, 2, false). 
 			AddItem(newField.grid, 0, 3, false). 
 			AddItem(nil, 0, 1, false), 0, 4, false)
+
 	error.flex.SetDirection(tview.FlexRow). 
 		AddItem(error.title, 0, 1, false).
 		AddItem(error.text, 0, 8, false)
+
 	newNoteFlex. 
 		AddItem(nil, 0, 1, false). 
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow). 
@@ -1220,30 +1217,36 @@ func main(){
 			// following two, 5 is the max for changing
 			AddItem(newNote.grid, 0, 6, false). // 4 fits 3 input + buttons,,5 fits 4 input + buttons
 			AddItem(nil, 0, 1, false), 0, 5, false) 
+
 	newEntry.flex.SetDirection(tview.FlexRow).
 		AddItem(newEntry.form, 0, 1, false). 
 		AddItem(newFieldsAddedList, 0, 2, false) // 1:2 is the maximum  
+
 	newEditFieldFlex. // for /new
 		AddItem(nil, 0, 1, false). 
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow). 
 			AddItem(nil, 0, 3, false). 
 			AddItem(editField.grid, 0, 3, false). 
 			AddItem(nil, 0, 2, false), 0, 4, false)
+
 	editEditFieldFlex. // for /edit
 		AddItem(nil, 0, 1, false). 
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow). 
 			AddItem(nil, 0, 2, false). 
 			AddItem(editField.grid, 0, 3, false). 
 			AddItem(nil, 0, 3, false), 0, 4, false)
+
 	editFieldStrFlex.
 		AddItem(nil, 0, 1, false). 
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow). 
 			AddItem(nil, 0, 3, false). 
 			AddItem(editField.grid, 0, 2, false). 
 			AddItem(nil, 0, 2, false), 0, 4, false)
+
 	editDelete.flex.
 		AddItem(editDelete.text, 0, 1, false). 
 		AddItem(editDelete.form, 0, 1, false)
+
 	editDeleteFlex. 
 		AddItem(nil, 0, 1, false). 
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow). 
@@ -1251,6 +1254,7 @@ func main(){
 			AddItem(editDelete.grid, 0, 2, false). 
 			AddItem(nil, 0, 2, false), 0, 1, false).  //3
 		AddItem(nil, 0, 1, false)
+
 	list.flex.SetDirection(tview.FlexRow). 
 		AddItem(list.title, 0, 1, false). 
 		AddItem(list.text, 0, 8, false)
@@ -1375,10 +1379,12 @@ func listEntries (entries []entry, indexes []int, str string, showOld bool) (str
 			}
 		}
 	}
+
 	third := len(indexes)/3
 	if third < 21 {
 		third = 21
 	}
+
 	for i := 0; i < third; i++{
 		if i >= len(indexes){
 			break
@@ -1401,12 +1407,15 @@ func listEntries (entries []entry, indexes []int, str string, showOld bool) (str
 // characters in order to make a good column shape. 
 func indexName (index int, entries []entry) string{
 	str := "[" + strconv.Itoa(index) + "] " 
+
 	if !entries[index].Circulate{
 		str += "(rem) "
 	}
+
 	str += entries[index].Name
 	len := len([]rune(str))
-	if len > 21{
+
+	if len > 21{ // Trims it if it's over the character limit
 		str = str[0:21] // Second number in not inclusive
 		str += " "
 	}else{
@@ -1452,12 +1461,12 @@ func writeToFile(entries []entry, ciphBlock cipher.Block) string{
 func readFromFile(entries *[]entry, ciphBlock cipher.Block) string{
 	input, inputErr := os.ReadFile("pass.yaml")
 	if inputErr != nil{
-		return " error in os.ReadFile \n" + inputErr.Error()
+		return " error in os.ReadFile " + inputErr.Error()
 	}else{
 		decryptedInput := encrypt.Decrypt(input, ciphBlock)
 		unmarshErr := yaml.Unmarshal(decryptedInput, &entries)
 		if unmarshErr != nil{
-			return " error in yaml.Unmarshal \n" + unmarshErr.Error()
+			return " error in yaml.Unmarshal \n probably that the file is encrypted with a \n different password than encrypt.go thinks" + unmarshErr.Error()
 		}else{
 			return ""		
 		}
