@@ -32,28 +32,33 @@ All of the commands are called through the command line at the bottom.
 
 #### `/home`
 ![Picture of /home](https://github.com/ksharnoff/pass/blob/main/examples/:home%20Medium.jpeg)
+
 `/home` is the starting screen once you’ve logged in. There’s nothing going on yet. The text on the left details the possible commands. 
 
 #### `/help`
 ![Picture of /help](https://github.com/ksharnoff/pass/blob/main/examples/:help%20Medium.jpeg)
+
 `/help` is similar to this README but it is condensed and in the password manager itself for ease of access. 
 
 #### `/open #`
 ![Example of /open](https://github.com/ksharnoff/pass/blob/main/examples/:open%20Medium.jpeg)
+
 `/open` is used to view an entry. It will include time information that is known. Passwords and security questions will also have their values printed, except they’ll be printed out in black text. Therefore, one can highlight it to see the values. 
 
 #### `/copen #`
-![Example of /copen](https://github.com/ksharnoff/pass/blob/main/examples/:copen%20Medium.jpeg)
+![Example of /copen](https://github.com/ksharnoff/pass/blob/main/examples/:copen%20%20Medium.jpeg)
 `/copen` is also used to view an entry. It is a list that is used to copy data to the clipboard more easily. With `/copen` you select one of the fields and it copies itself to your clipboard.
 
 #### `/new`
 ![Picture of blank /new](https://github.com/ksharnoff/pass/blob/main/examples/:new%20Medium.jpeg)
+
 `\new` has a form at the top with two input fields for the entry name and its tags. Then there are buttons for making a new field (username, password, or security question), saving, quitting, deleting, and making notes.
 You must name the entry in order to save it. 
 
 There is no limit to the number of usernames, passwords, or security questions you can make. They are all encrypted the same, except the values for passwords and security questions are blotted out when viewed. 
 
 ![Picture of /new with fields](https://github.com/ksharnoff/pass/blob/main/examples/:new%20fields%20Medium.jpeg)
+
 Once you have added fields, a new button appears that changes the focus to the list below to let you select a field to edit. The reason why I have a button to switch between the two sections is because I believe it is important to disable the mouse in `/new`. (Look at mouse usage and clipboard section) 
 
 #### `/copy #`
@@ -61,18 +66,22 @@ Once you have added fields, a new button appears that changes the focus to the l
 
 #### `/edit #`
 ![Example of /edit](https://github.com/ksharnoff/pass/blob/main/examples/:edit%20Medium.jpeg)
+
 `/edit` is used for editing an entry already made. It is a list with each field of the entry. You can select a field and then edit that specific one. 
 
 #### `/find str`
 ![Example of /find](https://github.com/ksharnoff/pass/blob/main/examples/:find%20str%20Medium.jpeg)
+
 `/find` is used to search the name and tags of all the entries for a string. It then returns the list of entries that contain that string. The entries are printed out following the same format as `/list`.
 
 #### `/list`
 ![Example of /list](https://github.com/ksharnoff/pass/blob/main/examples/:list%20Medium.jpeg)
+
 `/list` is used to list all of the entries. You look at /list to see the index number of an entry to open it. `/list` prints the entries in three columns of a fixed size, therefore the entry name can get cut off. This is done with a single text box, using some string and math trickery. 
 
-#### `/pick` and `/pick`
+#### `/pick` and `/picc`
 ![Example of /pick](https://github.com/ksharnoff/pass/blob/main/examples/:pick%20Medium.jpeg)
+
 `/pick` and `/picc` look mostly identical. They are lists of all the entries, like `/list`, except you can select and open an entry. 
 
 ## starting for the first time
