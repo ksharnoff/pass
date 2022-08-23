@@ -110,7 +110,7 @@ func main(){
 	// This is the text box on the left that contains information
 	// that changes depending on what the user is doing. 
 	info := textGrid{text: tview.NewTextView().SetScrollable(true).SetWrap(false), grid: tview.NewGrid().SetBorders(true)}
-	homeInfo := " commands\n -------- \n /home\n /help\n\n /open #\n /copen #\n\n /new\n /copy #\n\n /edit #\n\n /find str\n\n /list\n /pick\n /picc"
+	homeInfo := " commands\n -------- \n /home\n /help\n /quit\n\n /open #\n /copen #\n\n /new\n /copy #\n\n /edit #\n\n /find str\n\n /list\n /pick\n /picc"
 
 	// This is the blank box at /home. 
 	sadEmptyBox := tview.NewBox().SetBorder(true).SetTitle("sad, empty box")
@@ -154,8 +154,8 @@ func main(){
 
  This gives some basic navigation info. More in depth info is in 
  the README on https://github.com/ksharnoff/pass. 
- This is scrollable with your mouse! In order to quit the manager, 
- press control+c or quit your terminal. 
+ This is scrollable with your mouse! In order to quit, 
+ press control+c or type /quit. 
  # means entry number and str means some text. 
  	example of /open # is: /open 3 
  	example of/find str is: /find library
@@ -211,7 +211,7 @@ func main(){
 	// Also the function for writing to the text box.
 	open := textGrid{text: tview.NewTextView().SetScrollable(true).SetDynamicColors(true), grid: tview.NewGrid().SetBorders(true)}
 	blankOpen := func(i int) string {return "error, blankOpen(i int) didn't run"}
-	openInfo := " /open\n -----\n to edit: \n /edit # \n\n commands\n -------- \n /home\n /help\n\n /open #\n /copen #\n\n /new\n /copy #\n\n /edit #\n\n /find str\n\n /list\n /pick\n /picc"
+	openInfo := " /open\n -----\n to edit: \n /edit # \n\n commands\n -------- \n /home\n /help\n /quit\n\n /open #\n /copen #\n\n /new\n /copy #\n\n /edit #\n\n /find str\n\n /list\n /pick\n /picc"
 
 	// This is the text box used to /copen and its function for 
 	// making it
@@ -420,6 +420,8 @@ func main(){
 		switch inputedArr[0] {
 		case "/home":
 			pages.SwitchToPage("/home")
+		case "/quit":
+			app.Stop()
 		case "/list":
 			listAllIndexes := []int{}
 			for i := 0; i < len(entries); i++{
@@ -1001,6 +1003,14 @@ func main(){
 		if !emptyNotes {
 			runeAlphabetIterate(&num)
 			edit.list.AddItem("notes:", condensedNotes, runeAlphabet[num], func(){
+				info.text.SetText(editFieldInfo)
+				blankNewNote(e)
+				pages.ShowPage("/newNote") 
+				app.SetFocus(newNote.form)
+			})
+		}else{
+			runeAlphabetIterate(&num)
+			edit.list.AddItem("add notes:", "(none written so far)", runeAlphabet[num], func(){
 				info.text.SetText(editFieldInfo)
 				blankNewNote(e)
 				pages.ShowPage("/newNote") 
