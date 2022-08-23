@@ -1,9 +1,5 @@
 /*	
 	Used to create a file and encrypt it with a specific password
-
-	!!!
-	!!!change the name of the file later for os.WriteFile and os.Rename
-	!!! ^^ because pass.go reads from pass.yaml
 */
 
 package main 
@@ -56,8 +52,8 @@ func main(){
 			encryptedOutput := encrypt.Encrypt(output, ciphBlock, false)
 
 			// if the file doesn't exsist, os.WriteFile creates it
-			writeErr := os.WriteFile("newpass.yaml.tmp", encryptedOutput, 0600)
-			os.Rename("newpass.yaml.tmp", "newpass.yaml")
+			writeErr := os.WriteFile("pass.yaml.tmp", encryptedOutput, 0600)
+			os.Rename("pass.yaml.tmp", "pass.yaml")
 
 			if writeErr != nil{
 				fmt.Println("error in os.writeFile \n", writeErr.Error())
