@@ -1,7 +1,5 @@
 /*
 	This decrypted the file and then reencrypts it with a different password 
-
-	this is done
 */
 
 package main
