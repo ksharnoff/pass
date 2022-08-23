@@ -1,7 +1,3 @@
-/*
-	make the iv gen encrypted ran
-*/
-
 package encrypt
 
 import (
@@ -11,22 +7,21 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 
-	// iv generation
-	"math/rand"
-	"time"
-	"os"
+ 	// for iv generation
+ 	"io"
+ 	"crypto/rand"
 
 	// for comparing the key as the correct one
 	"encoding/base64"
 )
 
 const KnownPlaintext = "trans rights R human rights 1234"
-//const encryptedPlaintext = "AAAAAAAAAAAAAAAAAAAAAPJmzNkoSo2ojkWHqU9w5GJvQgz8Q6smbAeuB8qNdexf"
-const encryptedPlaintext = "AAAAAAAAAAAAAAAAAAAAAPpAr+smJE48hV/gLXQ3+Nu9CjZHnVMpc4d9RPyhN4AZ"
+const encryptedPlaintext = "AAAAAAAAAAAAAAAAAAAAAPJmzNkoSo2ojkWHqU9w5GJvQgz8Q6smbAeuB8qNdexf"
 
 
 // Makes a key, then a cipher block. It also returns a boolea
-// for if the key is the correct key, by checking with CorrectKey function. 
+// for if the key is the correct key, by checking with the CorrectKey function. 
+// If the following fucntion is changed, also change it in changeKey.go
 func KeyGeneration(password string) (cipher.Block, bool, string){
 
 	if len([]byte(password)) < 1{
@@ -75,9 +70,9 @@ func Encrypt(plaintext []byte, ciphBlock cipher.Block, keyTest bool) []byte{
 	// If just testing the key, then the iv will be blank, in order
 	// to compare it to the known plaintext. 
 	if !keyTest{ 
-		// IV GENERATION SHOULD BE CHANGED TO CRYPTO/RAND
-		rand.Seed(time.Now().UnixNano()^int64(os.Getpid()))
-		rand.Read(iv)
+		if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		panic(err)
+		}
 	}
 	encryptBlock := cipher.NewCBCEncrypter(ciphBlock, iv)
 
