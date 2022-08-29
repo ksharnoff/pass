@@ -33,7 +33,7 @@ All of the commands are called through the command line at the bottom.
 #### `/home`
 ![Picture of /home](https://github.com/ksharnoff/pass/blob/main/examples/:home%20Medium.jpeg)
 
-`/home` is the starting screen once you’ve logged in. There’s nothing going on yet. The text on the left details the possible commands. 
+`/home` is the starting screen once you’ve logged in. There’s nothing going on yet. The text on the left details the possible commands. A command that was written on the side after this picture is `/quit` which quits the application. 
 
 #### `/help`
 ![Picture of /help](https://github.com/ksharnoff/pass/blob/main/examples/:help%20Medium.jpeg)
