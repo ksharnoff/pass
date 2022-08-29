@@ -20,11 +20,11 @@ It will work with all fonts (to my knowledge), however you may not be able to se
 All of the entries are [marshaled](https://pkg.go.dev/gopkg.in/yaml.v3#Marshal) as if they were going to be written to a yaml file. Instead, that byte slice is entirely encrypted before being written to the file. Then, when reading from the file the byte slice is decrypted and then turned into the slice of entries. 
 Therefore, the password to the password manager must be put in at the beginning before accessing any of the commands. 
 
+The way that the program knows if you put in the right password is if it can unmarshal the data successfully.
+
 This password manager is unsuitable for cloud computing or a shared computer as the decrypted information is stored in the memory. 
 
 The encryption is in the file encrypt.go which must be in a folder called encrypt  inside the greater pass folder as that is how the imports work. encrypt.go gets imported into not just pass.go but the files for setting up the program. 
-
-There is a pass.yaml uploaded currently that demonstrates what the encrypted data looks like. You can download and read that data if you want, the password is “foobar” with the key parameters the default in encrypt.go.
 
 ## commands
 This section is about all of the actions that can be done with the password manager.
@@ -85,9 +85,7 @@ Once you have added fields, a new button appears that changes the focus to the l
 `/pick` and `/picc` look mostly identical. They are lists of all the entries, like `/list`, except you can select and open an entry. 
 
 ## starting for the first time
-Use the createEncr.go file to create and encrypt your file with your password the first time. There is also changeKey.go for decrypting the file and then then encrypting it with a different key, in order to change your password or key parameters. 
-
-In this repo, they are in their own file called starting for clarity, but they should be in the same folder as pass.go and pass.yaml when you run them. 
+Use the createEncr.go file to create and encrypt your file with your password the first time. There is also changeKey.go for decrypting the file and then then encrypting it with a different key, in order to change your password or key parameters. If you just run createEncr.go then run pass.go, all should work. 
 
 ## miscellaneous info
 
