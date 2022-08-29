@@ -12,7 +12,6 @@ import(
 	"time"
 	"gopkg.in/yaml.v3"
 	"strings"
-	"encoding/base64"
 )
 
 type entry struct {
@@ -44,31 +43,19 @@ func main(){
 	output, outputErr := yaml.Marshal(entries)
 
 	if outputErr == nil{
-		ciphBlock, boo, str := encrypt.KeyGeneration(password)
-
-		fmt.Println("\ndoes the key match the key const in encrypt.go?", boo)
+		ciphBlock, str := encrypt.KeyGeneration(password)
 
 		if str == ""{
 			encryptedOutput := encrypt.Encrypt(output, ciphBlock, false)
 
 			// if the file doesn't exsist, os.WriteFile creates it
-			writeErr := os.WriteFile("pass.yaml.tmp", encryptedOutput, 0600)
-			os.Rename("pass.yaml.tmp", "pass.yaml")
+			writeErr := os.WriteFile(encrypt.FileName + ".tmp", encryptedOutput, 0600)
+			os.Rename(encrypt.FileName + ".tmp", encrypt.FileName)
 
 			if writeErr != nil{
 				fmt.Println("error in os.writeFile \n", writeErr.Error())
 			}else{
-				fmt.Println("success, written!")
-
-				fmt.Println("\nnow, you must copy the following, \nand write it in encrypt.go as encryptedPlaintext")
-
-				encryptedPhrase := encrypt.Encrypt([]byte(encrypt.KnownPlaintext), ciphBlock, true)
-				
-				encoder := base64.NewEncoding("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890+/")
-
-				encryptedKnown := encoder.EncodeToString(encryptedPhrase)
-
-				fmt.Println(encryptedKnown)
+				fmt.Println("success, file written!")
 			}
 		}else{
 			fmt.Println("error in key generation: ", str)
