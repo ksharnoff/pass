@@ -4,6 +4,8 @@
 		- have a button for removing a new entry from circualation in /new
 		- make it scale to other sized windows
 		- results from /find in a list like /pick and /picc
+		- make a comparions function to check if passwords are the same
+
 */
 package main
 
@@ -358,18 +360,19 @@ func main(){
 
 	passActions = func(key tcell.Key){
 		passInputed = password.input.GetText()
+
+		if passInputed == "/quit"{
+			app.Stop()
+		}
+
 		passBoxPages.SwitchToPage("passBox")
-		var keySuccess bool 
 		var keyErr string
 
-		ciphBlock, keySuccess, keyErr = encrypt.KeyGeneration(passInputed)
+		ciphBlock, keyErr = encrypt.KeyGeneration(passInputed)
 
 		if keyErr != ""{
 			passBoxPages.SwitchToPage("passErr")
 			passErr.text.SetText(" " + keyErr)
-		}else if !keySuccess{
-			passBoxPages.SwitchToPage("passErr")
-			passErr.text.SetText(" wrong password!")
 		}else{
 			readErr := readFromFile(&entries, ciphBlock)
 
@@ -548,8 +551,9 @@ func main(){
 	blankNewEntry = func(e entry){
 		newEntry.form.Clear(true)
 		newFieldsAddedList.Clear()
-		
+
 		tempEntry = e
+		tempEntry.Circulate = true
 
 		newEntry.form.
 			AddInputField("name", tempEntry.Name, 40, nil, func(itemName string){
@@ -557,6 +561,9 @@ func main(){
 			}).
 			AddInputField("tags", tempEntry.Tags, 40, nil, func(tagsInput string){
 				tempEntry.Tags = tagsInput
+			}).
+			AddCheckbox("circulate", true, func(checked bool){
+				tempEntry.Circulate = checked
 			}).
 			// this order of the buttons is on purpose and makes sense
 			AddButton("new field", func(){
@@ -568,7 +575,6 @@ func main(){
 			// You can't hit save if there's no name
 			AddButton("save entry", func(){
 				if tempEntry.Name != ""{
-					tempEntry.Circulate = true
 					tempEntry.Created = time.Now()
 					entries = append(entries, tempEntry)
 					if switchToWriteFileErr(){ // if successfully wrote to file, then it switches to home, if not then it switches to error page
@@ -594,16 +600,15 @@ func main(){
 	blankNewField = func(e *entry){
 		edit := false
 
+		dropDownFields = []string{"username", "password", "security question"}
+
+
 		// Only adds tags as an option to add on if it is in /edit,
 		// if there is no tags written already, and if tags isn't
 		// already added.
 		if e != &tempEntry{
 			if (e.Tags == "")&&(len(dropDownFields) == 3){
 				dropDownFields = append(dropDownFields, "tags") // don't change the text of "tags" its used elsewhere
-			}
-			if (e.Tags != "")&&(len(dropDownFields) == 4){ // If tags have been added through this already in /edit so then it's removed
-				dropDownFields = dropDownFields[:3]
-				// above should be equivilent to: slice = slice[:len(slice)-1]
 			}
 			edit = true
 		}
@@ -1229,8 +1234,8 @@ func main(){
 			AddItem(nil, 0, 1, false), 0, 5, false) 
 
 	newEntry.flex.SetDirection(tview.FlexRow).
-		AddItem(newEntry.form, 0, 1, false). 
-		AddItem(newFieldsAddedList, 0, 2, false) // 1:2 is the maximum  
+		AddItem(newEntry.form, 0, 2, false). 
+		AddItem(newFieldsAddedList, 0, 3, false) // 1:2 is the maximum  
 
 	newEditFieldFlex. // for /new
 		AddItem(nil, 0, 1, false). 
@@ -1445,7 +1450,7 @@ func testAllFields(entries []entry) string{
 }
 
 // If this is changed, also change createEncr.go and changeKey.go
-// If it fails to write to the pass.yaml file then it returns
+// If it fails to write to the file then it returns
 // a string with the errors, else it returns ""
 func writeToFile(entries []entry, ciphBlock cipher.Block) string{
 	output, marshErr := yaml.Marshal(entries)
@@ -1454,8 +1459,8 @@ func writeToFile(entries []entry, ciphBlock cipher.Block) string{
 	}else{
 		encryptedOutput := encrypt.Encrypt(output, ciphBlock, false)
 		// conventions of writing to a temp file is write to .tmp
-		writeErr := os.WriteFile("pass.yaml.tmp", encryptedOutput, 0600) // 0600 is the permissions that only this user can read/write/excet to this file
-		os.Rename("pass.yaml.tmp", "pass.yaml") // Only will do this if the previous writing to a file worked, keeps it safe.
+		writeErr := os.WriteFile(encrypt.FileName + ".tmp", encryptedOutput, 0600) // 0600 is the permissions that only this user can read/write/excet to this file
+		os.Rename(encrypt.FileName + ".tmp", encrypt.FileName) // Only will do this if the previous writing to a file worked, keeps it safe.
 
 		if writeErr != nil{
 			return "error in os.writeFile \n" + writeErr.Error()
@@ -1466,17 +1471,17 @@ func writeToFile(entries []entry, ciphBlock cipher.Block) string{
 }
 
 // If this is changed, also change changeKey.go
-// If it fails to read from the pass.yaml file then it returns
+// If it fails to read from the file then it returns
 // a string with the errors, else it returns ""
 func readFromFile(entries *[]entry, ciphBlock cipher.Block) string{
-	input, inputErr := os.ReadFile("pass.yaml")
+	input, inputErr := os.ReadFile(encrypt.FileName)
 	if inputErr != nil{
-		return " error in os.ReadFile " + inputErr.Error()
+		return "error in os.ReadFile " + inputErr.Error()
 	}else{
 		decryptedInput := encrypt.Decrypt(input, ciphBlock)
 		unmarshErr := yaml.Unmarshal(decryptedInput, &entries)
 		if unmarshErr != nil{
-			return " error in yaml.Unmarshal \n probably that the file is encrypted with a \n different password than encrypt.go thinks" + unmarshErr.Error()
+			return "error in yaml.Unmarshal \n aka wrong password! (probably) \n" + unmarshErr.Error()
 		}else{
 			return ""		
 		}
