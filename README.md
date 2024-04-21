@@ -1,4 +1,4 @@
-# password manager
+# pass
 
 ## what is this project?
 This is a password manager run entirely in the terminal. 
