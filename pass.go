@@ -1,11 +1,18 @@
 /*	
+	to do:
+		- check that i did my map function correctly
+		- write comments & in /help & on github for /comp, /reused, and /flist
+		- when you have more entries than fit on the page and are in /list view, cannot scroll -- bug!
+				--> can scroll but is problem where if not multiple of 3 does not show?!
+		- when doing /copy have problem where it also edits the oringal -- some pointer shenanigans
+		- problem where after making a new entry and writing in the tags, then go to edit an existening entry and click new tag it copies the tag from that new entry
+
 	Ideas for the future:
 		- change color of dropdown fields in /new
-		- have a button for removing a new entry from circualation in /new
 		- make it scale to other sized windows
-		- results from /find in a list like /pick and /picc
-		- make a comparions function to check if passwords are the same
-
+		- maybe make a version of /flist for /open instead of /copen
+		- add in entry for carlton portal
+		- fix bug in copy # !!! cahnges the original's password when you change the new ones...
 */
 package main
 
@@ -76,6 +83,13 @@ type twoTextFlexGrid struct{
 	grid *tview.Grid
 }
 
+// The following struct is used in the map in /reused
+type reusedPass struct{
+	DisplayName string
+	entryName string
+	entryIndex int
+}
+
 func main(){
 	app := tview.NewApplication()
 
@@ -112,7 +126,7 @@ func main(){
 	// This is the text box on the left that contains information
 	// that changes depending on what the user is doing. 
 	info := textGrid{text: tview.NewTextView().SetScrollable(true).SetWrap(false), grid: tview.NewGrid().SetBorders(true)}
-	homeInfo := " commands\n -------- \n /home\n /help\n /quit\n\n /open #\n /copen #\n\n /new\n /copy #\n\n /edit #\n\n /find str\n\n /list\n /pick\n /picc"
+	homeInfo := " commands\n -------- \n /home\n /help\n /quit\n\n /open #\n /copen #\n\n /new\n /copy #\n\n /edit #\n\n /find str\n /flist str\n\n /list\n /pick\n /picc\n\n /comp # #\n /reused"
 
 	// This is the blank box at /home. 
 	sadEmptyBox := tview.NewBox().SetBorder(true).SetTitle("sad, empty box")
@@ -160,11 +174,11 @@ func main(){
  press control+c or type /quit. 
  # means entry number and str means some text. 
  	example of /open # is: /open 3 
- 	example of/find str is: /find library
+ 	example of /find str is: /find library
 
- Sometimes you can use the mouse to click, but sometimes you can't.
- This is because when you can use the mouse to click, you can't 
- use it to select and copy text. 
+ Sometimes you can use the mouse to click, but sometimes you
+ can't. This is because when you can use the mouse to click, you 
+ can't use it to select and copy text. 
 
  Use /open # to view an entry. Passwords and security question 
  values will be blotted out but they can be highlighted and then
@@ -182,7 +196,7 @@ func main(){
  Creating a new entry is not saved until you click the save button 
  and you are moved away from /new. 
 
- Use /edit # to edit an exsisting entry. You can edit the fields 
+ Use /edit # to edit an existing entry. You can edit the fields 
  already there, add new ones, remove it from circulation, or 
  delete it. While there is a delete button, it is reccomended that 
  you remove it from circulation instead. When that is done, it 
@@ -193,7 +207,8 @@ func main(){
  Use /find str to search for entries. /find str will return all of
  the entries that contain str in the name or the tags. In both
  /find str and /list, the resulting entries may not show their
- full name for space. 
+ full name for space. Use /flist str to see a list of entries with 
+ that str, when clicked they are /copen.
 
  Use /list or /pick to view the list of entries. /list will
  display them all with their numbers and you can then type /open #
@@ -204,16 +219,21 @@ func main(){
  This can be more efficient than scrolling to select the item
  to leave.
 
- When making / editing notes, you can write [black] to have 
- it blotted out. Make sure at the end of the line you write 
- [white] in order for other stuff to write.`
+ When making / editing notes, you can write [black] to have it
+ blotted out. Make sure at the end of the line you write [white]
+ in order for other stuff to write.
+
+ You can do /reused to see a list of passwords reused in what
+ entries. You can do /comp # # to compare the passwords between
+ two entries to see if there are any in common.`
+
 	help.text.SetText(helpText)
 
 	// This is the text box used for /open.
 	// Also the function for writing to the text box.
 	open := textGrid{text: tview.NewTextView().SetScrollable(true).SetDynamicColors(true), grid: tview.NewGrid().SetBorders(true)}
 	blankOpen := func(i int) string {return "error, blankOpen(i int) didn't run"}
-	openInfo := " /open\n -----\n to edit: \n /edit # \n\n commands\n -------- \n /home\n /help\n /quit\n\n /open #\n /copen #\n\n /new\n /copy #\n\n /edit #\n\n /find str\n\n /list\n /pick\n /picc"
+	openInfo := " /open\n -----\n to edit: \n /edit # \n\n commands\n -------- \n /home\n /help\n /quit\n\n /open #\n /copen #\n\n /new\n /copy #\n\n /find str\n /flist str\n\n /list\n /pick\n /picc\n\n /comp # #\n /reused"
 
 	// This is the text box used to /copen and its function for 
 	// making it
@@ -316,13 +336,29 @@ func main(){
 	editInfo := " /edit \n ----- \n to move: \n -tab \n -back tab \n -arrows keys\n -scroll\n\n to select: \n -return \n\n to leave: \n -esc key\n\n "
 	editFieldInfo :=  " /edit \n ----- \n to move: \n -tab \n -back tab\n\n to select: \n -return \n\n must name \n field to \n save it \n\n press quit \n to leave"
 
-	// This is the list and its function used for /pick and /picc. 
-	// blankPickList takes in a string in order to print out what it
-	// is, and to send the functions to the right place.
+	// This is the list and its function used for /pick, /picc, and
+	// /flist.blankPickList takes in a string in order to print out 
+	// what it is, and to send the functions to the right place. It 
+	// takes in a splice of entries to see what ones get printed.  
 	pick := listGrid{list: tview.NewList().SetSelectedFocusOnly(true).SetSecondaryTextColor(blue).SetShortcutColor(lavender), grid: tview.NewGrid().SetBorders(true)}
-	blankPickList := func(openCopen string){}
+	blankPickList := func(openCopen string, indexes []int){}
 	// The following will add /pick or /picc in the function itself
 	pickInfo := "\n ----- \n to move: \n -tab \n -back tab \n -arrows keys\n\n to select: \n -return\n -click\n\n to leave: \n -esc key\n\n "
+
+	// This is the text box and the function used for /comp
+	// /comp # # takes in two numbers and compares all their
+	// passwords to see if there are any in common
+	comp := textGrid{text: tview.NewTextView().SetScrollable(true).SetDynamicColors(true), grid: tview.NewGrid().SetBorders(true)}
+	blankComp := func(i1 int, i2 int)string {
+		return "failed! did not run /comp!"
+	}
+	compIndSelectOne := -1
+	compIndSelectTwo := -1
+
+	reused := textGrid{text: tview.NewTextView().SetScrollable(true).SetDynamicColors(true), grid: tview.NewGrid().SetBorders(true)}
+	blankReused := func()string {
+		return "failed! didn't run /reused!"
+	}
 
 	// This is the cipher block generated with the key to encrypt
 	// and decrypt. Normally its the key that gets passed around 
@@ -395,6 +431,13 @@ func main(){
 		inputed = commandLine.input.GetText() 
 		inputedArr := strings.Split(inputed, " ") 
 
+		// Three+ of the cases have you need this, just have it redone 
+		// here each time as to not repeat code. 
+		listAllIndexes := []int{}
+		for i := 0; i < len(entries); i++{
+			listAllIndexes = append(listAllIndexes, i)
+		}
+
 		// The following is a check for the commands that take in a number.
 		// they check: is there a second thing? is it a number? is it a valid number? 
 		if (inputedArr[0] == "/open")||(inputedArr[0] == "/edit")||(inputedArr[0] == "/copen")||(inputedArr[0] == "/copy"){
@@ -418,6 +461,35 @@ func main(){
 					}
 				}
 			}
+		}else if inputedArr[0] == "/comp"{
+
+			compIndSelectOne = -1
+			compIndSelectTwo = -1
+
+			if len(inputedArr) < 3{
+				error.text.SetText( " You must specify which two entries you would like to /comp. \n Ex: \n\t /comp 3 4")
+				pages.SwitchToPage("err")
+			}else{
+				compOneInt, compOneErr := strconv.Atoi(inputedArr[1])
+				compTwoInt, compTwoErr := strconv.Atoi(inputedArr[2])
+				if (compOneErr != nil)||(compTwoErr != nil){
+					error.text.SetText(" Make sure to only use " + inputedArr[0] + " by writing a number! \n For an example do /help")
+					pages.SwitchToPage("err")
+				}else{
+					if compOneInt == compTwoInt {
+							error.text.SetText(" The entries you tried to /comp are the same.\n Therefore, all the passwords would be the same!\n Do /list to see the entries (and their numbers that exist)")
+							pages.SwitchToPage("err")
+					}else{
+						if (compOneInt >= len(entries))||(compTwoInt >= len(entries)){
+						error.text.SetText(" The number you entered does not correspond to an entry. \n Do /list to see the entries (and their numbers) that exist.")
+						pages.SwitchToPage("err")
+						}else{
+							compIndSelectOne = compOneInt
+							compIndSelectTwo = compTwoInt
+						}
+					}
+				}
+			}
 		}
 
 		switch inputedArr[0] {
@@ -426,10 +498,6 @@ func main(){
 		case "/quit":
 			app.Stop()
 		case "/list":
-			listAllIndexes := []int{}
-			for i := 0; i < len(entries); i++{
-				listAllIndexes = append(listAllIndexes, i)
-			}
 			title, text := listEntries(entries, listAllIndexes, " /list \n -----", false)
 			list.title.SetText(title)
 			list.text.SetText(text).ScrollToBeginning()
@@ -485,7 +553,7 @@ func main(){
 				switchToEditList(false)
 			}
 		case "/pick":
-			blankPickList(inputedArr[0])
+			blankPickList(inputedArr[0], listAllIndexes)
 			app.SetFocus(pick.list)
 			pages.SwitchToPage("/pick")
 			cantTypeCommandLinePlaceholder()
@@ -499,10 +567,30 @@ func main(){
 				pages.SwitchToPage("/newEntry")
 			}
 		case "/picc":
-			blankPickList(inputedArr[0])
+			blankPickList(inputedArr[0], listAllIndexes)
 			app.SetFocus(pick.list)
 			pages.SwitchToPage("/pick")
 			cantTypeCommandLinePlaceholder()
+		case "/flist":
+			if len(inputedArr) < 2{
+				error.text.SetText("To find entries using you must write /flist and then characters. \n With a space after /flist. \n Ex: \n\t /flist college")
+				pages.SwitchToPage("err")
+			}else{
+				indexesFound := findIndexes(entries, inputedArr[1])
+				blankPickList(inputedArr[0], indexesFound)
+				app.SetFocus(pick.list)
+				pages.SwitchToPage("/pick")
+				cantTypeCommandLinePlaceholder()
+			}
+		case "/comp":
+			if (compIndSelectOne != -1)&&(compIndSelectTwo != -1){
+				comp.text.SetText(blankComp(compIndSelectOne, compIndSelectTwo))
+				pages.SwitchToPage("/comp")
+			}
+		case "/reused":
+			app.EnableMouse(true)
+			reused.text.SetText(blankReused())
+			pages.SwitchToPage("/reused")
 		default:
 			error.text.SetText(" That input doesn't match a command! \n Look to the right right to see the possible commands. \n Make sure to spell it correctly!")
 			pages.SwitchToPage("err")
@@ -556,10 +644,10 @@ func main(){
 		tempEntry.Circulate = true
 
 		newEntry.form.
-			AddInputField("name", tempEntry.Name, 40, nil, func(itemName string){
+			AddInputField("name", tempEntry.Name, 50, nil, func(itemName string){
 				tempEntry.Name = itemName
 			}).
-			AddInputField("tags", tempEntry.Tags, 40, nil, func(tagsInput string){
+			AddInputField("tags", tempEntry.Tags, 50, nil, func(tagsInput string){
 				tempEntry.Tags = tagsInput
 			}).
 			AddCheckbox("circulate", true, func(checked bool){
@@ -791,14 +879,14 @@ func main(){
 
 	switchToNewFieldsList = func(doSwitch bool){
 		blankFieldsAdded()
-		if (doSwitch) && (newFieldsAddedList.GetItemCount() > 1) {
+		if (doSwitch) && (newFieldsAddedList.GetItemCount() > 1){
 			pages.SwitchToPage("/newEntry")
 			app.SetFocus(newFieldsAddedList)
 		}
 		if newFieldsAddedList.GetItemCount() < 2{ // if all the fields are deleted, then:
 			newFieldsAddedList.Clear()
 			editFieldIndex := newEntry.form.GetButtonIndex("edit field")
-			if editFieldIndex > -1 {
+			if editFieldIndex > -1{
 				newEntry.form.RemoveButton(editFieldIndex)
 				pages.SwitchToPage("/newEntry")
 				app.SetFocus(newEntry.form)
@@ -870,6 +958,7 @@ func main(){
 		e := entries[i]
 
 		copen.list.AddItem("leave /copen " + strconv.Itoa(i), "(takes you back to /home)", runeAlphabet[num], func(){
+				clipboard.WriteAll("banana")
 				switchToHome()
 			})
 		runeAlphabetIterate(&num)
@@ -1114,7 +1203,7 @@ func main(){
 			tempDisplay := display 
 			tempValue := value
 			editField.form.
-				AddInputField(tempDisplay + ":", tempValue, 40, nil, func(changed string){
+				AddInputField(tempDisplay + ":", tempValue, 50, nil, func(changed string){
 					tempValue = changed
 				}). 
 				AddButton("save", func(){
@@ -1168,28 +1257,28 @@ func main(){
 	}
 
 	// openCopen is either going to be "/pick" or "/picc"
-	blankPickList = func(openCopen string){
+	blankPickList = func(openCopen string, indexes []int){
 		info.text.SetText(" " + openCopen + pickInfo)
 		num := 0
  		pick.list.Clear()
  		pick.list.AddItem("leave " + openCopen, "(takes you back to /home)", runeAlphabet[num], func(){
  			switchToHome()
  		})
- 		for i, e := range entries{
+ 		for _, i := range indexes{
  			num++
  			if num == len(runeAlphabet){
  				num = 0
  			}
  			i := i
-			if (e.Circulate){
-	    		pick.list.AddItem("[" + strconv.Itoa(i) + "] " + e.Name, "tags: " + e.Tags, runeAlphabet[num], func(){
+			if (entries[i].Circulate){
+	    		pick.list.AddItem("[" + strconv.Itoa(i) + "] " + entries[i].Name, "tags: " + entries[i].Tags, runeAlphabet[num], func(){
 	    			if openCopen == "/pick"{ // to transfer to /open #
 		    			// following code copied from commandLineActions function
 		    			open.text.SetText(blankOpen(i)) // taking input, just to be safe smile -- can change that in future
 						pages.SwitchToPage("/open")
 						app.SetFocus(commandLine.input) 
 						lookRightCommandLinePlaceholder()
-					}else{ // to transfer to /copen #
+					}else{ // to transfer to /copen # (for both /picc and /flist)
 						// following code copied from commandLineActions function
 						app.SetFocus(copen.list)
 						app.EnableMouse(false)
@@ -1200,6 +1289,38 @@ func main(){
 	    	}
 		}
 	}
+
+	blankComp = func(i1 int, i2 int)string {
+		e1 := entries[i1]
+		e2 := entries[i2]
+		print := " "
+
+		print += "/comp: " + "[" + strconv.Itoa(i1) + "] " + e1.Name + " and " + "[" + strconv.Itoa(i2) + "] " + e2.Name + "\n "
+		print += strings.Repeat("-", len([]rune(print))-3) + "\n\n" 
+
+		print += comparedPass(e1, e2)
+
+		return print
+	}
+
+	blankReused = func()string {
+		print := ""
+
+		print += " /reused\n -------\n The following are the passwords reused\n\n"
+
+		print += reusedAll(entries)
+
+		return print
+	}
+
+	/*blankFlist = func(){
+		indexesFound := findIndexes(entries)
+		num := 0
+		flist.list.Clear()
+
+
+	}
+	*/
 
 	// ------------------------------------------------ //
 	//     setting up the flexes, grids, pages :)       //
@@ -1292,6 +1413,8 @@ func main(){
 	grider(copen.list, copen.grid)
 	grider(password.input, password.grid)
 	grider(passErr.flex, passErr.grid)
+	grider(comp.text, comp.grid)
+	grider(reused.text, reused.grid)
 
 	// All the different pages are added here. 
 	// The order in which the pages are added matters. 
@@ -1311,7 +1434,9 @@ func main(){
 		AddPage("/new-editField", newEditFieldFlex, true, false). 
 		AddPage("/editFieldStr", editFieldStrFlex, true, false).
 		AddPage("/editDelete", editDeleteFlex, true, false). 
-		AddPage("/edit-editField", editEditFieldFlex, true, false)
+		AddPage("/edit-editField", editEditFieldFlex, true, false). 
+		AddPage("/comp", comp.grid, true, false). 
+		AddPage("/reused", reused.grid, true, false)
 
 	// Sets up the flex row of the left side, top is the pages 
 	// bottom is the commandLine.input
@@ -1417,7 +1542,7 @@ func listEntries (entries []entry, indexes []int, str string, showOld bool) (str
 	}
 	return str, printStr // first string is the title, second is the body of the text
 }
-// This retursn from a single index from entries to 
+// This returns from a single index from entries to 
 // " [0] twitterDEMO       ", with those exact spaces/number of 
 // characters in order to make a good column shape. 
 func indexName (index int, entries []entry) string{
@@ -1438,6 +1563,104 @@ func indexName (index int, entries []entry) string{
 	}
 	return str
 }
+
+// old washed comp function:
+/*
+// This is called during /compare to compare two entries.
+// This will be changed in the future to be done with maps
+// and therefore will become faster than it is now. :)
+func comparePass(e1 entry, e2 entry) string{
+	compared := ""
+
+	for _, p1 := range e1.Passwords{
+		for _, p2 := range e2.Passwords{
+			if p1.Value == p2.Value{
+				compared += " " + e1.Name + "'s " + p1.DisplayName + " = " + e2.Name + "'s " + p2.DisplayName + "\n"
+			}
+		} 
+	}
+	if len(compared) == 0{
+		compared = " There are no passwords in common!" 
+	}
+	return compared
+}
+*/
+
+// new shiny compare function:
+func comparedPass(e1 entry, e2 entry) string{
+	compared := ""
+
+	// where the key is the value of the password and the string is the display name
+	compMap := make(map[string]string)
+
+	for _, p := range e1.Passwords{
+		compMap[p.Value] = p.DisplayName
+	}
+
+	for _, p := range e2.Passwords{
+		_, exsists := compMap[p.Value]
+		if exsists{
+			compared += " " + e1.Name + "'s " + compMap[p.Value] + " = " + e2.Name + "'s " + p.DisplayName + "\n"
+		}
+	}
+
+	if compared == ""{
+		if len(e1.Passwords) < 1{
+			compared = " " + e1.Name + " has no passwords" + "\n"
+		}
+		if len(e2.Passwords) < 1{
+			compared += " " + e2.Name + " has no passwords" + "\n"
+		}
+		if compared == ""{
+			return " There are no passwords in common!"
+		}
+		compared += "\n Therefore, there are no passwords in common!"
+	}
+
+	return compared
+}
+
+
+func reusedAll(entries []entry)string {
+	print := ""
+
+	reused := make(map[string][]reusedPass) // reusedPass is a struct
+
+	for i, e := range entries{
+		for _, p := range e.Passwords{
+			reused[p.Value] = append(reused[p.Value], reusedPass{DisplayName: p.DisplayName, entryName: e.Name, entryIndex: i})
+		}
+	}
+
+	for keys, reusedStruct := range reused{ 
+		if len(reusedStruct) > 1 { // if there's more than one entry in the list of entries for password
+			print += " [darkslategray]" + keys + "[white]:\n"
+			for _, r := range reusedStruct{
+				print += " [" + strconv.Itoa(r.entryIndex) + "] " + r.entryName + "'s " + r.DisplayName + "\n"
+			}
+			print += "\n"
+		}
+	}
+	
+	if print == ""{
+		return " There are no reused passwords anywhere!?\n Good job!"
+	}
+
+	return print
+}
+
+func findIndexes(entries []entry, str string)[]int{
+	indexes := []int{}
+	str = strings.ToLower(str)
+	for i, e := range entries{
+		if (strings.Contains(strings.ToLower(e.Name), str))||(strings.Contains(strings.ToLower(e.Tags), str)){
+			indexes = append(indexes, i)
+		}
+	}
+	return indexes	
+}
+// WORKING HERE PART TWO WORKING HERE ^^^
+
 
 // This is called in /test in order to add all of the entries
 // to a single string. 
