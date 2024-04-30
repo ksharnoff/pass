@@ -1,6 +1,6 @@
 package encrypt
 
-import (
+import (  
 
 	// for encrypting things
 	"golang.org/x/crypto/argon2"
@@ -11,13 +11,15 @@ import (
  	"io"
  	"crypto/rand"
 )
-const FileName = "pass.yaml"
-//const FileName = "realPass.yaml"
+
+//const FileName = "pass.yaml"
+const FileName = "realPass.yaml"
 
 
-// Makes a key, then a cipher block. It also returns a boolea
-// for if the key is the correct key, by checking with the CorrectKey function. 
-// If the following fucntion is changed, also change it in changeKey.go
+
+// Makes a key, then a cipher block. It returns "" if the 
+// password generation was successfull. 
+// If the following function is changed, also change it in changeKey.go
 func KeyGeneration(password string) (cipher.Block, string){
 
 	if len([]byte(password)) < 1{
@@ -38,6 +40,7 @@ func KeyGeneration(password string) (cipher.Block, string){
 	return ciphBlock, ""
 }
 
+// QUESTION: get rid of keyTest bool? 
 func Encrypt(plaintext []byte, ciphBlock cipher.Block, keyTest bool) []byte{
 	// adds padding in form of "\n"
 	if len(plaintext)%aes.BlockSize != 0{
@@ -49,6 +52,8 @@ func Encrypt(plaintext []byte, ciphBlock cipher.Block, keyTest bool) []byte{
 
 	iv := encrypt[:aes.BlockSize]
 
+
+	// QUESTION: get rid of following, no key test?
 	// If just testing the key, then the iv will be blank, in order
 	// to compare it to the known plaintext. 
 	if !keyTest{ 
