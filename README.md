@@ -14,7 +14,7 @@ The majority of the code is anonymous functions inside of func main in order to 
 
 I coded it for a 84x28 window size with a text font of monaco, size 18. I chose this window size because it best fit the three columns for `/list` and `/find` with that font size.
 
-It will work with all fonts (to my knowledge), however you may not be able to see all the items without scrolling or pressing the tab. Everything should still work and you should be able to access everything, it just may not look as organized. If your font is smaller than monaco size 18, then you should have a bigger window size. 
+It will work with all fonts (to my knowledge), however you may not be able to see all the items without scrolling or pressing tab. Everything should still work and you should be able to access everything, it just may not look as organized. If your font is smaller than monaco size 18, then you should have a bigger window size. 
 
 ## encryption and file writing
 All of the entries are [marshaled](https://pkg.go.dev/gopkg.in/yaml.v3#Marshal) as if they were going to be written to a yaml file. Instead, that byte slice is entirely encrypted before being written to the file. Then, when reading from the file the byte slice is decrypted and then turned into the slice of entries. 
