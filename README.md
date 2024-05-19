@@ -24,7 +24,7 @@ The way that the program knows if you put in the right password is if it can unm
 
 This password manager is unsuitable for cloud computing or a shared computer as the decrypted information is stored in the memory. 
 
-The encryption is in the file encrypt.go which must be in a folder called encrypt  inside the greater pass folder as that is how the imports work. encrypt.go gets imported into not just pass.go but the files for setting up the program. 
+The encryption is in the file encrypt.go which must be in a folder called encrypt inside the greater pass folder as that is how the imports work. encrypt.go gets imported into not just pass.go but the files for setting up the program. 
 
 ## commands
 This section is about all of the actions that can be done with the password manager.
