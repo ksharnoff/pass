@@ -20,6 +20,8 @@ It will work with all fonts (to my knowledge), however you may not be able to se
 All of the entries are [marshaled](https://pkg.go.dev/gopkg.in/yaml.v3#Marshal) as if they were going to be written to a yaml file. Instead, that byte slice is entirely encrypted before being written to the file. Then, when reading from the file the byte slice is decrypted and then turned into the slice of entries. 
 Therefore, the password to the password manager must be put in at the beginning before accessing any of the commands. 
 
+Argon2 is used to make the key and the entries are encrypted with AES-256. 
+
 The way that the program knows if you put in the right password is if it can unmarshal the data successfully.
 
 This password manager is unsuitable for cloud computing or a shared computer as the decrypted information is stored in the memory. 
