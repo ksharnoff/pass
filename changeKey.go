@@ -46,11 +46,17 @@ func main() {
 	fmt.Print("\033[F\r", strings.Repeat(" ", len(oldPass)))
 	fmt.Println("")
 
-	var newPass string
-	fmt.Println("Write your new password: ")
-	fmt.Scan(&newPass)
-	fmt.Print("\033[F\r", strings.Repeat(" ", len(newPass)))
-	fmt.Println("")
+	newPass := "/quit"
+	for newPass == "/quit" {
+		fmt.Println("Write your new password: ")
+		fmt.Scan(&newPass)
+		fmt.Print("\033[F\r", strings.Repeat(" ", len(newPass)))
+		fmt.Println("")
+
+		if newPass == "/quit" {
+			fmt.Println("Please chose a different password!\nIt cannot be /quit\n")
+		}
+	}
 
 	fmt.Println("THINGS ARE HAPPENING - DO NOT QUIT THE PROGRAM\n")
 
@@ -103,7 +109,6 @@ func main() {
 	}
 	
 	encryptedOutput := encrypt.Encrypt(output, ciphBlockNew)
-
 	writeErr := os.WriteFile(encrypt.FileName + ".tmp", encryptedOutput, 0600)
 
 	if writeErr != nil {
@@ -116,15 +121,15 @@ func main() {
 }
 
 // This is different than KeyGeneration in encrypt.go only so that
-// this can be used to decrypt the file initially with parameters
+// it can be used to decrypt the file initially with parameters
 // different than in pass/encrypt. So if you want to change the
 // parameters, have the old ones here and the new ones you want to
-// change in encrypt.go.
+// change to in encrypt.go.
 func keyGeneration(password string) (cipher.Block, string) {
 	if len([]byte(password)) < 1 {
-		return nil, "password for key generation is too short, string empty"
+		return nil, "Password given for key generation is zero characters"
 	}
-	
+
 	salt := []byte("qwertyuiopasdfghjklzxcvbnm")
 
 	// parameters currently in encrypt.go are: 4, 2048*1024, 4, 32
