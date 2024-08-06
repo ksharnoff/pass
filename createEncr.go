@@ -39,33 +39,43 @@ func main() {
 
 	entries := []entry{entry{Name: "Demo", Circulate: true}}
 
-	var password string
-	fmt.Println("\nPlease write your password to encrypt your password manager.\nIf you forget it, there will be no way to access your passwords.\nAfter you press return, the password will disapear from terminal.")
-	fmt.Scan(&password)
-	fmt.Print("\033[F\r", strings.Repeat(" ", len(password)))
-	fmt.Println("")
-	fmt.Println("Do not quit the program! Things are happening!\n")
+	password := "/quit"
+
+	for password == "/quit" {
+		fmt.Println("\n----------\nPlease write your password to encrypt your password manager.\nIf you forget it, there will be no way to access your passwords.\nAfter you press return, the password will disapear from terminal.")
+		fmt.Scan(&password)
+		fmt.Print("\033[F\r", strings.Repeat(" ", len(password)))
+		fmt.Println("")
+
+		if password == "/quit" {
+			fmt.Println("Please chose a different password!\nIt cannot be /quit")
+			continue
+		}
+	}
+
+	fmt.Println("\nTHINGS ARE HAPPENING - DO NOT QUIT THE PROGRAM\n")
 
 	output, outputErr := yaml.Marshal(entries)
 
 	if outputErr != nil {
-		printAndExit("Error in marshaling to yaml: " + outputErr.Error())
+		printAndExit("Error in yaml.Marshal:\n" + outputErr.Error())
 	}
 
 	ciphBlock, keyErr := encrypt.KeyGeneration(password)
 
 	if keyErr != "" {
-		printAndExit("Error in key generation: " + keyErr)
+		printAndExit("Error in key generation:\n" + keyErr)
 	}
 
 	encryptedOutput := encrypt.Encrypt(output, ciphBlock)
 
 	writeErr := os.WriteFile(encrypt.FileName + ".tmp", encryptedOutput, 0600)
-	os.Rename(encrypt.FileName + ".tmp", encrypt.FileName)
-
+	
 	if writeErr != nil {
-		printAndExit("Error in os.writeFile: " + writeErr.Error())
+		printAndExit("Error in os.WriteFile:\n" + writeErr.Error())
 	}
+
+	os.Rename(encrypt.FileName + ".tmp", encrypt.FileName)
 
 	fmt.Println("Success, file written!\nYou can run the password manager now.")
 }
