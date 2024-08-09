@@ -5,6 +5,13 @@ This is a password manager run entirely in the terminal.
 
 In the manager, and in this README, I have used `#` to represent a number and `str` to represent any random characters. 
 
+## starting for the first time
+Download all of the files (except the example folder of screenshots) into a folder called `pass`. Make sure there is a folder within `pass` called `encrypt` that `encrypt.go` is in. This is necessary as `encrypt.go` is imported for several different files.
+
+Use the createEncr.go file to create and encrypt your file of password the first time. In all future times, you can just run pass.go and all should work.
+
+There is also changeKey.go for decrypting the file and then encrypting it with a different key, in order to change your password or key parameters. 
+
 ## tview and visuals
 I used the TUI [tview](https://github.com/rivo/tview). I used four types of primitives: input fields, lists, text boxes, and forms. In order to format them, I used flexes, pages, and grids. I used grids only to add borders around the primitives. 
 
@@ -12,10 +19,10 @@ The majority of the code is anonymous functions inside of func main in order to 
 
 I coded it for a 84x28 window size with a text font of monaco, size 18. I chose this window size because it best fit the three columns for `/list` and `/find` with that font size.
 
-It will work with all fonts (to my knowledge), however you may not be able to see all the items without scrolling or pressing the tab. Everything should still work and you should be able to access everything, it just may not look as organized. If your font is smaller than monaco size 18, then you should have a bigger window size. 
+It will work with all fonts (to my knowledge), however you may not be able to see all the items without scrolling or pressing the tab. If your font is bigger than monaco size 18, then you should use a bigger window size. 
 
 ## encryption and file writing
-All of the entries are [marshaled](https://pkg.go.dev/gopkg.in/yaml.v3#Marshal) as if they were going to be written to a yaml file. Instead, that byte slice is entirely encrypted before being written to the file. Then, when reading from the file the byte slice is decrypted and then turned into the slice of entries. Therefore, the password to the password manager must be put in at the beginning before accessing any of the commands.
+All of the entries are [marshaled](https://pkg.go.dev/gopkg.in/yaml.v3#Marshal) as if they were going to be written to a yaml file. Instead, that byte slice is entirely encrypted before being written to the file. Then, when reading from the file, the byte slice is decrypted and turned into the slice of entries. Therefore, the password to the password manager must be put in at the beginning before accessing any of the commands.
 
 Argon2 is used to make a key and then the entries are encrypted with AES-256.
 
@@ -66,35 +73,42 @@ There is no limit to the number of usernames, passwords, or security questions y
 `/edit` is used for editing an entry already made. It is a list with each field of the entry. You can select a field and then edit that specific one. 
 
 ### `/find str`
-![Picture of /find ak. Listed in the right side box are six entries, their numbers and indices. Some of the names do not have the letters “ak”, therefore those entries must have it in the tags.  The column box on the right listing all of the commands has separated out /open, /copen, and /edit to the top. There is the blue input line at the bottom.](https://github.com/ksharnoff/pass/blob/main/examples/%3Afind%20str%20Medium.jpeg)
+![Picture of /find ak. Listed in the left side box are six entries, their numbers and indices. Some of the names do not have the letters “ak”, therefore those entries must have it in the tags. The column box on the right listing all of the commands has separated out /open, /copen, and /edit to the top. There is the blue input line at the bottom.](https://github.com/ksharnoff/pass/blob/main/examples/%3Afind%20str%20Medium.jpeg)
 
-`/find` is used to search the name and tags of all the entries for a string. It then returns the list of entries that contain that string. The entries are printed out following the same format as `/list`.
+`/find` is used to search the name and tags of all the entries for a string. It then returns the list of entries that contain that string. The entries are printed out following the same format as `/list`. The example above is searching for “ak”.
 
-#### `/list`
-![Example of /list](https://github.com/ksharnoff/pass/blob/main/examples/:list%20Medium.jpeg)
+### `/list`
+![Picture of /list. Listed in the left box are all of the entries, formatted into three columns. In this screenshot, there are only enough entries for one and a half columns. Each entry number and entry name is listed. Not all of the numbers are there - look at information about circulation. The column box on the right listing all of the commands has separated out /open, /copen, and /edit to the top. There is the blue input line at the bottom.](https://github.com/ksharnoff/pass/blob/main/examples/%3Alist%20Medium.jpeg)
 
-`/list` is used to list all of the entries. You look at /list to see the index number of an entry to open it. `/list` prints the entries in three columns of a fixed size, therefore the entry name can get cut off. This is done with a single text box, using some string and math trickery. 
+`/list` is used to list all of the entries. /list is useful to see the index number of an entry to open it. `/list` prints the entries in three columns of a fixed size, therefore the entry name can get cut off. This is done with a single text box, using some string and math trickery. 
 
-#### `/pick` and `/picc`
-![Example of /pick](https://github.com/ksharnoff/pass/blob/main/examples/:pick%20Medium.jpeg)
+### `/pick` and `/picc`
+![Picture of /pick. In a numerated list of letters, each entry, its number, and its tags are listed. If you click on any of the elements, it takes you to /open to view that entry. The column box to the right has instructions for how to move around /pick. There is a blue input line at the bottom.](https://github.com/ksharnoff/pass/blob/main/examples/%3Apick%20Medium.jpeg)
 
-`/pick` and `/picc` look mostly identical. They are lists of all the entries, like `/list`, except you can select and open an entry. 
+`/pick` and `/picc` look mostly identical. They are lists of all the entries, like `/list`, except you can select and open an entry. `/pick` will `/open` an entry while `/picc` will `/copen` an entry.
 
-## starting for the first time
-Use the createEncr.go file to create and encrypt your file with your password the first time. There is also changeKey.go for decrypting the file and then then encrypting it with a different key, in order to change your password or key parameters. If you just run createEncr.go then run pass.go, all should work. 
+### `/comp # #`
+![Picture of /comp 2 24. In the big square left text box, it says the entries’ indices and names, [2] akjsdf;k and [24] cvbnncbbcveqwbcnew. Under that, it says that akjsdf;k’s security question 0 = cvbnncbbcveqwbcnew’s password. There is a column box on the right listing all of the commands and a blue input line at the bottom.](https://github.com/ksharnoff/pass/blob/main/examples/%3Acomp%20Medium.jpeg)
+
+`/comp # #` looks for duplicate passwords or answers to security questions between two entries.
+
+### `/reused`
+![Picture of /reused. In the big text box on the left, it has listed out blahg, then two entries and their indices. After that is aghikl and then two entries and their indices. After each entry is what field uses it, in these examples it is password or security question 0 or 1. There is a column box on the right listing all of the commands and a blue input line at the bottom.](https://github.com/ksharnoff/pass/blob/main/examples/%3Areused%20Medium.jpeg )
+
+`/reused` shows any duplicate passwords or answers to security questions from all of the entries. The passwords (or answers) are printed in dark gray, but one can use their mouse to select the text to read it more clearly if needed.
 
 ## miscellaneous info
 
-#### mouse usage and clipboard
-When the mouse is enabled in tview in order to change the focus or click buttons, one cannot select and copy any text. To combat this, sometimes the mouse in disabled. 
+### mouse usage and clipboard
+When the mouse is enabled in tview in order to change the focus or click buttons, one cannot select and copy any text. 
 
-For ease of copying, there is `/copen #` which utilizes tview.List so that when you select one one of the fields it copies it to the clipboard.
+For ease of copying, there is `/copen #` which uses tview.List, where you select one of the fields and it copies to your clipboard.
 
-#### time values
+### time values
 Times are saved for the date created, date last modified, and the date last opened. 
-Date last modified is only updated if any real edits are done in `/edit`, just opening the entry does not suffice.
+Date last modified is only updated if any edits are made and saved in `/edit`.
 Date last opened is modified if the entry is opened by `/open #` or  `/copen #`. 
-Keeping these dates also works as security in case you notice irregularities.
+These dates also work as security in case you notice irregularities.
 
-#### in circulation
-In each entry there is a boolean named `Circulate` which determines if the entry shows up in `/list` and `/pick`. All commands that work on entries still work (edit, open, copy, etc.). This can be used to reduce clutter of old entries.
+### circulation
+In each entry there is a boolean named `Circulate` which determines if the entry shows up in `/list`, `/pick`, and `/picc`. All commands that work on entries still work (`/edit`, `/open`, `/copy`, etc.). This can be used to reduce clutter of old entries without changing the entry numbers of later ones.
