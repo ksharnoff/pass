@@ -1,4 +1,4 @@
-module pass
+module github.com/ksharnoff/pass
 
 go 1.18
 
