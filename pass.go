@@ -2,78 +2,62 @@ package main
 
 import (
 	"fmt"
-	"github.com/atotto/clipboard" // copies the data to clipboard in /copen
-	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
 	"strconv"
 	"strings"
 	"time"
+	"crypto/cipher" // encryption
+	"os" // writing to file
 
-	// encryption:
-	"crypto/cipher"
-	"pass/encrypt"
-
-	// writing to a file:
-	"gopkg.in/yaml.v3"
-	"os"
+	"github.com/atotto/clipboard" // copies the data to clipboard in /copen
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
+	"github.com/ksharnoff/pass/encrypt" // encryption
+	"gopkg.in/yaml.v3" // writing to file
 )
 
-// if this is changed then you should edit this also in
-// in creatEncr.go and changeKey.go
+// If entry or field is changed then you should edit
+// creatEncr.go and changeKey.go
+
+// An entry represents an account or site
 type entry struct {
 	Name      string
 	Tags      string
-	Usernames []Field
-	Passwords []Field
-	SecurityQ []Field
-	Notes     [6]string
+	Usernames []field
+	Passwords []field
+	SecurityQ []field
+	Notes     [6]string // is 6 because that looks the best in /new
 	Circulate bool
 	Created   time.Time
 	Modified  time.Time
 	Opened    time.Time
 }
-type Field struct {
+type field struct {
 	DisplayName string
 	Value       string
 }
 
-// The following stucts is to make the naming conventions
-// more clear. Instead of "errorText" and "errorTextGrid"
-// there is error.text and error.grid.
-type textGrid struct {
-	text *tview.TextView
-	grid *tview.Grid
-}
-type formGrid struct {
-	form *tview.Form
-	grid *tview.Grid
-}
-type listGrid struct {
-	list *tview.List
-	grid *tview.Grid
-}
-type textFormFlexGrid struct {
+// The following structs are for combination primitives.
+type textFormFlex struct {
 	text *tview.TextView
 	form *tview.Form
 	flex *tview.Flex
-	grid *tview.Grid
 }
-type inputGrid struct {
-	input *tview.InputField
-	grid  *tview.Grid
-}
-type twoTextFlexGrid struct {
+type twoTextFlex struct {
 	title *tview.TextView
 	text  *tview.TextView
 	flex  *tview.Flex
-	grid  *tview.Grid
 }
 
 // The following struct is used in the map in /reused and /comp
+// It has the fields associated with a certain password.
 type reusedPass struct {
 	displayName string
 	entryName   string
 	entryIndex  int
+}
+
+type alphabetIterater struct {
+	count int
 }
 
 func main() {
@@ -83,7 +67,7 @@ func main() {
 	// for it to have a higher contrast that complies
 	// with WCAG AAA everywhere.
 
-	// lavender := white // this is white
+	// lavender := tcell.GetColor("white") // this is white
 	// blue := tcell.NewRGBColor(0, 0, 255) // this is blue
 	lavender := tcell.NewRGBColor(149, 136, 204) // label names and shortcut names
 	blue := tcell.NewRGBColor(106, 139, 166) // secondary text in lists, buttons in forms, input field color
@@ -92,18 +76,18 @@ func main() {
 
 	app := tview.NewApplication()
 
+	// Entries is a slice of the entries, the entries get
+	// loaded in after signing in.
 	// The following entry names should only be seen if the manager
 	// opens without loading a file.
-	entries := []entry{entry{Name: "QUIT NOW, DANGER", Circulate: true}, entry{Name: "SOMETHING'S VERY", Circulate: true}, entry{Name: "BROKEN. QUIT!", Circulate: true}}
+	entries := []entry{
+		entry{Name: "QUIT NOW, DANGER", Circulate: true}, 
+		entry{Name: "SOMETHING'S VERY", Circulate: true}, 
+		entry{Name: "BROKEN. QUIT!", Circulate: true},
+	}
 
-	// Pages is the pages set up for the left top box
+	// Pages is the pages set up for the left box in pass
 	pages := tview.NewPages()
-
-	// This is the set up for being logged in, "flex which
-	// contains flexRow and commands.text. flexRow contains
-	// pages and commandLine.
-	flex := tview.NewFlex()
-	flexRow := tview.NewFlex().SetDirection(tview.FlexRow)
 
 	// This is to set the background colors of the text in
 	// the input lines. There was no function for it, so it
@@ -114,51 +98,42 @@ func main() {
 
 	// This is the text box on the right that contains information
 	// that changes depending on what the user is doing.
-	info := textGrid{text: tview.NewTextView().SetScrollable(true).SetWrap(false), grid: tview.NewGrid().SetBorders(true)}
-	// TO DO - this is only referenced once vvvv
+	infoText := tview.NewTextView().SetScrollable(true).SetWrap(false)
 	homeInfo := " commands\n -------- \n /home\n /help\n /quit\n\n /open #\n /copen #\n\n /new\n /copy #\n\n /edit #\n\n /find str\n /flist str\n\n /list\n /pick\n /picc\n\n /comp # #\n /reused"
-
-	// TO DO - this is only referenced once vvvv
-	// This is the blank box at /home.
-	sadEmptyBox := tview.NewBox().SetBorder(true).SetTitle("sad, empty box")
 
 	// String of what is inputed into the commandLind
 	inputed := ""
 	// This is the input line used for navigation and input of
 	// commands for the entire password manager.
-	commandLine := inputGrid{input: tview.NewInputField().
+	commandLineInput := tview.NewInputField().
 		SetLabel("input: ").SetFieldWidth(60).
 		SetFieldBackgroundColor(blue).
 		SetLabelColor(lavender).
-		SetPlaceholderStyle(placeholdStyle), grid: tview.NewGrid().SetBorders(true)}
-
-	// TO DO - this is only referenced once vvvv 
-	// This is the function that handles the input from commandLine
-	commandLineActions := func(key tcell.Key) {}
+		SetPlaceholderStyle(placeholdStyle)
 
 	// This is called when you can type in the commandLine.
 	// It changes the placeholder text to say to look at the right,
-	// where there is info.text.
-	lookRightCommandLinePlaceholder := func() {
-		commandLine.input.SetPlaceholder("psst look to the right")
+	// where there is infoText.
+	canTypeCommandLinePlaceholder := func() {
+		commandLineInput.SetPlaceholder("psst look to the right")
 	}
 	// This function is called when you can't type in the commandLine
 	cantTypeCommandLinePlaceholder := func() {
-		commandLine.input.SetPlaceholder("psst you can't type here right now")
+		commandLineInput.SetPlaceholder("psst you can't type here right now")
 	}
 
 	// This is for /list as well as /find. It has the title text
 	// box (/find str) as well as the text text box where it will
 	// list the entries.
-	list := twoTextFlexGrid{title: tview.NewTextView().SetWrap(false), text: tview.NewTextView().SetScrollable(true).SetWrap(false), grid: tview.NewGrid().SetBorders(true), flex: tview.NewFlex()}
+	list := twoTextFlex{title: tview.NewTextView().SetWrap(false), text: tview.NewTextView().SetScrollable(true).SetWrap(false), flex: tview.NewFlex()}
 	listInfo := " /list\n -----\n to open:\n  /open #\n to copy:\n  /copen #\n to edit:\n  /edit #\n\n /home\n /help\n /quit\n\n /new\n /copy #\n\n /find str\n /flist str\n\n /pick\n /picc\n\n /comp # #\n /reused"
 	findInfo := " /find\n -----\n to open:\n  /open #\n to copy:\n  /copen #\n to edit:\n  /edit #\n\n /home\n /help\n /quit\n\n /new\n /copy #\n\n /flist str\n\n /list\n /pick\n /picc\n\n /comp # #\n /reused"
 
 	// This is the text box that /test prints to
-	test := textGrid{text: tview.NewTextView().SetScrollable(true), grid: tview.NewGrid().SetBorders(true)}
+	testText := tview.NewTextView().SetScrollable(true)
 
 	// This is the text box for /help and the string for it
-	help := textGrid{text: tview.NewTextView().SetScrollable(true).SetText(` /help
+	helpText := tview.NewTextView().SetScrollable(true).SetText(` /help
  -----
  In order to quit, press control+c or type /quit. 
 
@@ -249,24 +224,21 @@ func main() {
  run changeKey.go. 
 
  More info about the project is on the README at 
- https://github.com/ksharnoff/pass.`), grid: tview.NewGrid().SetBorders(true)}
+ https://github.com/ksharnoff/pass.`)
 
 	// This is the text box used for /open.
-	// Also the function for writing to the text box.
-	open := textGrid{text: tview.NewTextView().SetScrollable(true).SetDynamicColors(true), grid: tview.NewGrid().SetBorders(true)}
-	blankOpen := func(i int) string { return "error, blankOpen(i int) didn't run" }
+	openText := tview.NewTextView().SetScrollable(true).SetDynamicColors(true)
 	openInfo := " /open\n -----\n to edit:\n  /edit #\n to copy:\n  /copen # \n\n /home\n /help\n /quit\n\n /new\n /copy #\n\n /find str\n /flist str\n\n /list\n /pick\n /picc\n\n /comp # #\n /reused"
 
 	// This is the text box used to /copen and its function for
 	// making it
-	copen := listGrid{list: tview.NewList().SetSecondaryTextColor(blue).
-		SetShortcutColor(lavender), grid: tview.NewGrid().SetBorders(true)}
+	copenList := tview.NewList().SetSecondaryTextColor(blue).SetShortcutColor(lavender)
 	blankCopen := func(i int) {}
 	copenInfo := " /copen \n ------\n to edit: \n /edit # \n\n to move: \n -tab \n -back tab \n -arrows keys\n -scroll\n\n to select:\n -return\n\n to leave:\n -esc key"
 
 	// This is where the errors are written to.
 	// error.title stays the same for all errors.
-	error := twoTextFlexGrid{title: tview.NewTextView().SetText(" Uh oh! There was an error:"), text: tview.NewTextView().SetScrollable(true), flex: tview.NewFlex(), grid: tview.NewGrid().SetBorders(true)}
+	error := twoTextFlex{title: tview.NewTextView().SetText(" Uh oh! There was an error:"), text: tview.NewTextView().SetScrollable(true), flex: tview.NewFlex()}
 
 	// Switches to the error page, sets error.text to err.
 	// Also sets the commandLine to blank again -- useful for 
@@ -274,15 +246,15 @@ func main() {
 	switchToError := func(err string) {
 		error.text.SetText(err)
 		pages.SwitchToPage("err")
-		commandLine.input.SetText("")
+		commandLineInput.SetText("")
 	}
 	// Switches to home, rights everything again.
 	switchToHome := func() {
 		pages.SwitchToPage("/home")
-		app.SetFocus(commandLine.input)
-		info.text.SetText(homeInfo)
-		lookRightCommandLinePlaceholder()
-		app.EnableMouse(false)
+		app.SetFocus(commandLineInput)
+		infoText.SetText(homeInfo)
+		canTypeCommandLinePlaceholder()
+		app.EnableMouse(true)
 	}
 
 	writeFileErr := func() bool { return false }
@@ -291,7 +263,7 @@ func main() {
 	// The flex puts the list of the entries added with the
 	// form of /new. The struct being used has text, but this does
 	// not use a flex. Also there is the function for it.
-	newEntry := textFormFlexGrid{form: tview.NewForm().SetButtonBackgroundColor(blue).SetFieldBackgroundColor(blue).SetLabelColor(lavender), flex: tview.NewFlex(), grid: tview.NewGrid().SetBorders(true)}
+	newEntry := textFormFlex{form: tview.NewForm().SetButtonBackgroundColor(blue).SetFieldBackgroundColor(blue).SetLabelColor(lavender), flex: tview.NewFlex()}
 	blankNewEntry := func(e entry) {}
 
 	// This is the fields added so far list and its function,
@@ -307,36 +279,36 @@ func main() {
 	switchToNewFieldsList := func(doSwitch bool) {}
 
 	// This is the form of when you're adding a new field.
-	newField := formGrid{form: tview.NewForm().SetButtonBackgroundColor(blue).SetFieldBackgroundColor(blue).SetLabelColor(lavender), grid: tview.NewGrid().SetBorders(true)}
-	newFieldFlex := tview.NewFlex()     // Flex to situate it in the middle of page.
+	newFieldForm := tview.NewForm().SetButtonBackgroundColor(blue).SetFieldBackgroundColor(blue).SetLabelColor(lavender)
 	blankNewField := func(e *entry) {}  // Function to set up the form.
-	newEditFieldFlex := tview.NewFlex() // Flex to situate it slightly differently you're in /edit.
 
 	// fieldType is used to track what type of field is being added.
 	fieldType := ""
 
 	// This is the form for adding or editing notes and
 	// its function.
-	newNote := formGrid{form: tview.NewForm().SetButtonBackgroundColor(blue).SetFieldBackgroundColor(blue).SetLabelColor(lavender), grid: tview.NewGrid().SetBorders(true)}
-	newNoteFlex := tview.NewFlex() // Flex to situate it in the middle of the page.
+	newNoteForm := tview.NewForm().SetButtonBackgroundColor(blue).SetFieldBackgroundColor(blue).SetLabelColor(lavender)
 	blankNewNote := func(e *entry) {}
 
 	// These are tempory and used when someone is making a new entry,
 	// or new field. Also used when someone is editing an entry.
 	tempEntry := entry{}
-	tempField := Field{}
+	tempField := field{}
 
 	// This is the drop down slice in making a new entry, "tags"
 	// can get added in /edit.
 	dropDownFields := []string{}
 
-	// This is the text to be shown on the left in info.text
+	// This is the text to be shown on the left in infoText
 	// when creating a new entry or a new field.
 	newInfo := " /new \n ---- \n to move: \n -tab \n -back tab \n\n to select: \n -return \n\n must name \n entry to \n save it \n\n press quit \n to leave"
 	newFieldInfo := " /new \n ---- \n to move: \n -tab \n -back tab \n\n to select: \n -return \n\n must name \n field to \n save it \n\n press quit \n to leave" // only change from this one to the newInfo is field vs. entry
 
 	// This is the list for /edit and its function for making it
-	edit := listGrid{list: tview.NewList().SetSelectedFocusOnly(true).SetSecondaryTextColor(blue).SetShortcutColor(lavender), grid: tview.NewGrid().SetBorders(true)}
+	editList := tview.NewList().
+		SetSelectedFocusOnly(true).
+		SetSecondaryTextColor(blue).
+		SetShortcutColor(lavender)
 	blankEditList := func(i int) {}
 
 	// runeAlphabet is used for the character shortcuts in lists.
@@ -355,10 +327,13 @@ func main() {
 	// There are two functions, one to edit the name or tags.
 	// The other is to edit one of the fields (password, username,
 	// or security questions)
-	editField := formGrid{form: tview.NewForm().SetButtonBackgroundColor(blue).SetFieldBackgroundColor(blue).SetLabelColor(lavender), grid: tview.NewGrid().SetBorders(true)}
+	editFieldForm := tview.NewForm().
+		SetButtonBackgroundColor(blue).
+		SetFieldBackgroundColor(blue).
+		SetLabelColor(lavender)
 	editEditFieldFlex := tview.NewFlex() // Flex to situate it in the middle of the page
 	editFieldStrFlex := tview.NewFlex()  // Flex to situate it in the middle of the page, differenct than the other because it is smaller.
-	blankEditFieldForm := func(f *Field, fieldArr *[]Field, index int, e *entry, edit bool) {}
+	blankEditFieldForm := func(f *field, fieldArr *[]field, index int, e *entry, edit bool) {}
 	blankEditStringForm := func(display, value string, e *entry) {}
 
 	// This function switches back to the edit list. It remakes
@@ -374,11 +349,10 @@ func main() {
 	// This is the little pop up to ask if you're sure when you
 	// want to delete an entry. The flex of it is to combine
 	// the text and the form.
-	editDelete := textFormFlexGrid{text: tview.NewTextView().SetTextAlign(tview.AlignCenter).SetText("delete entry?\nCANNOT BE UNDONE"), form: tview.NewForm().SetButtonBackgroundColor(blue).SetLabelColor(lavender), flex: tview.NewFlex().SetDirection(tview.FlexRow), grid: tview.NewGrid().SetBorders(true)}
-	editDeleteFlex := tview.NewFlex() // Flex to situate it in the center
+	editDelete := textFormFlex{text: tview.NewTextView().SetTextAlign(tview.AlignCenter).SetText("delete entry?\nCANNOT BE UNDONE"), form: tview.NewForm().SetButtonBackgroundColor(blue).SetLabelColor(lavender), flex: tview.NewFlex().SetDirection(tview.FlexRow)}
 	blankEditDeleteEntry := func() {}
 
-	// This is whats written in info.text during /edit
+	// This is whats written in infoText during /edit
 	editInfo := " /edit \n ----- \n to move: \n -tab \n -back tab \n -arrows keys\n -scroll\n\n to select: \n -return \n\n to leave: \n -esc key\n\n "
 	editFieldInfo := " /edit \n ----- \n to move: \n -tab \n -back tab\n\n to select: \n -return \n\n must name \n field to \n save it \n\n press quit \n to leave"
 
@@ -386,61 +360,58 @@ func main() {
 	// /flist. blankPickList takes in a string in order to print out
 	// what it is, and to send the functions to the right place. It
 	// takes in a splice of entries to see what ones get printed.
-	pick := listGrid{list: tview.NewList().SetSelectedFocusOnly(true).SetSecondaryTextColor(blue).SetShortcutColor(lavender), grid: tview.NewGrid().SetBorders(true)}
+	pickList := tview.NewList().SetSelectedFocusOnly(true).SetSecondaryTextColor(blue).SetShortcutColor(lavender)
 	blankPickList := func(openCopen string, indexes []int) {}
 	// The following will add /pick or /picc in the function itself
 	pickInfo := " to move: \n -tab \n -back tab \n -arrows keys\n\n to select: \n -return\n -click\n\n to leave: \n -esc key\n\n "
 
-	// This is the text box and the function used for /comp
-	// /comp # # takes in two numbers and compares all their
-	// passwords to see if there are any in common
-	comp := textGrid{text: tview.NewTextView().SetScrollable(true).SetDynamicColors(true), grid: tview.NewGrid().SetBorders(true)}
-	blankComp := func(i1 int, i2 int) string {
-		return "failed! did not run /comp!"
-	}
+	// This is the text box for /comp
+	compText := tview.NewTextView().SetScrollable(true).SetDynamicColors(true)
 	compIndSelectOne := -1
 	compIndSelectTwo := -1
 
-	reused := textGrid{text: tview.NewTextView().SetScrollable(true).SetDynamicColors(true), grid: tview.NewGrid().SetBorders(true)}
+	// The text box for /reused
+	reusedText := tview.NewTextView().SetScrollable(true).SetDynamicColors(true)
 
 	// This is the cipher block generated with the key to encrypt
 	// and decrypt. Normally its the key that gets passed around
-	// not the cipher block, but I chose to do it this way because
-	// it's less redudant.
+	// not the cipher block, but I chose to do it this way.
 	var ciphBlock cipher.Block
 
 	// This is the input command line for putting in your password
 	// to the password manager and also its function for what to do
 	// with the input.
-	password := inputGrid{input: tview.NewInputField().SetLabel("password: ").SetFieldWidth(71).SetMaskCharacter('*').SetFieldBackgroundColor(blue).SetLabelColor(lavender).SetPlaceholderStyle(placeholdStyle), grid: tview.NewGrid().SetBorders(true)}
-	passActions := func(key tcell.Key) {}
-	// This is the string of what's inputed.
-	passInputed := ""
+	passwordInput := tview.NewInputField().
+		SetLabel("password: ").
+		SetFieldWidth(71).
+		SetMaskCharacter('*').
+		SetFieldBackgroundColor(blue).
+		SetLabelColor(lavender).
+		SetPlaceholderStyle(placeholdStyle)
 
-	// This is passBoxPages and password.input
-	passFlex := tview.NewFlex()
-
-	// passBoxPages is switching between passBox and passErr
+	// passBoxPages switches between passBox and passErr
 	passBoxPages := tview.NewPages()
-	// passPages is switching between the locked screen and
+	// passPages switches between the locked screen and
 	// unlocked normal passowrd manager.
 	passPages := tview.NewPages()
 
-	// This is the blank box for when its locked
-	passBox := tview.NewBox().SetBorder(true)
-
-	// This is the error text for when the password is wrong
-	// or another error.
-	passErr := twoTextFlexGrid{title: tview.NewTextView().SetWrap(false).SetText(" Uh oh! There was an error in signing in:"), text: tview.NewTextView().SetScrollable(true).SetWrap(false), grid: tview.NewGrid().SetBorders(true), flex: tview.NewFlex()}
+	// This is the error text when logging in 
+	passErr := twoTextFlex{
+		title: tview.NewTextView().
+			SetWrap(false).
+			SetText(" Uh oh! There was an error in signing in:"), 
+		text: tview.NewTextView().SetScrollable(true).SetWrap(false), 
+		flex: tview.NewFlex(),
+	}
 
 	// ------------------------------------------------ //
 	//    all variables initialized! functions time!    //
 	// ------------------------------------------------ //
 
-	passActions = func(key tcell.Key) {
-		passInputed = password.input.GetText()
+	passActions := func(key tcell.Key) {
+		passInputed := passwordInput.GetText()
 
-		if passInputed == "/quit" {
+		if (passInputed == "/quit") || (passInputed == "/q") {
 			app.Stop()
 		}
 
@@ -452,7 +423,7 @@ func main() {
 		if keyErr != "" {
 			passBoxPages.SwitchToPage("passErr")
 			passErr.text.SetText(keyErr)
-			password.input.SetText("")
+			passwordInput.SetText("")
 			return
 		} 
 
@@ -461,23 +432,23 @@ func main() {
 		if readErr != "" {
 			passBoxPages.SwitchToPage("passErr")
 			passErr.text.SetText(readErr)
-			password.input.SetText("")
+			passwordInput.SetText("")
 			return
 		} 
 		passPages.SwitchToPage("passManager")
 		switchToHome()
 
-		password.input.SetText("")
+		passwordInput.SetText("")
 	}
 
-	password.input.SetDoneFunc(passActions)
+	passwordInput.SetDoneFunc(passActions)
 
 	// extra checks with: open edit copen copy comp find flist
-	commandLineActions = func(key tcell.Key) {
+	commandLineActions := func(key tcell.Key) {
 		app.EnableMouse(true)
 		switchToHome()
 
-		inputed = commandLine.input.GetText()
+		inputed = commandLineInput.GetText()
 		inputedArr := strings.Split(inputed, " ")
 		action := inputedArr[0]
 
@@ -579,24 +550,25 @@ func main() {
 			title, text := listEntries(entries, listAllIndexes, " /list \n -----", false)
 			list.title.SetText(title)
 			list.text.SetText(text).ScrollToBeginning()
-			info.text.SetText(listInfo)
+			infoText.SetText(listInfo)
 			pages.SwitchToPage("/list")
 		case "/find":
 			title, text := findEntries(entries, inputedArr[1])
 			list.title.SetText(title)
 			list.text.SetText(text).ScrollToBeginning()
 			pages.SwitchToPage("/list")
-			info.text.SetText(findInfo)
+			infoText.SetText(findInfo)
 
 		// /test is not listed on the left set of commands. It
 		// does fmt.Sprint(entries) and prints it to /test text
 		// box. It doesn't blott out any of the passwords
 		case "/test", "/t":
-			test.text.SetText(testAllFields(entries))
+			app.EnableMouse(true)
+			testText.SetText(testAllFields(entries))
 			pages.SwitchToPage("/test")
 		case "/new", "/n":
 			app.EnableMouse(false)
-			info.text.SetText(newInfo)
+			infoText.SetText(newInfo)
 			tempEntry = entry{}
 			blankNewEntry(tempEntry)
 			app.SetFocus(newEntry.form)
@@ -605,30 +577,31 @@ func main() {
 		case "/help", "/he": // mouse must remain on in order to scroll
 			pages.SwitchToPage("/help")
 		case "/open":
-			info.text.SetText(openInfo)
+			infoText.SetText(openInfo)
 			app.EnableMouse(false)
 			pages.SwitchToPage("/open")
-			open.text.SetText(blankOpen(indexSelected)) // needs to be called last because writeErr is called from it, don't want to switch to /open after errors
+			openText.SetText(blankOpen(indexSelected, entries)) // needs to be called last because writeErr is called from it, don't want to switch to /open after errors
+			writeFileErr()
 		case "/copen":
-			info.text.SetText(copenInfo)
-			app.SetFocus(copen.list)
+			infoText.SetText(copenInfo)
+			app.SetFocus(copenList)
 			app.EnableMouse(false)
 			pages.SwitchToPage("/copen")
 			blankCopen(indexSelected) // needs to be at the end, same as above
 		case "/edit":
 			tempEntry = entry{}
 			app.EnableMouse(false)
-			info.text.SetText(editInfo)
+			infoText.SetText(editInfo)
 			cantTypeCommandLinePlaceholder()
 			switchToEditList(false)
 		case "/pick", "/pk":
 			blankPickList("/pick", listAllIndexes)
-			app.SetFocus(pick.list)
+			app.SetFocus(pickList)
 			pages.SwitchToPage("/pick")
 			cantTypeCommandLinePlaceholder()
 		case "/copy":
 			tempEntry = entry{}
-			info.text.SetText(newInfo)
+			infoText.SetText(newInfo)
 			app.EnableMouse(false)
 			blankNewEntry(entries[indexSelected])
 			app.SetFocus(newEntry.form)
@@ -636,33 +609,33 @@ func main() {
 			pages.SwitchToPage("/newEntry")
 		case "/picc", "/p":
 			blankPickList("/picc", listAllIndexes)
-			app.SetFocus(pick.list)
+			app.SetFocus(pickList)
 			pages.SwitchToPage("/pick")
 			cantTypeCommandLinePlaceholder()
 		case "/flist":
 			indexesFound := findIndexes(entries, inputedArr[1])
 			blankPickList("/flist " + inputedArr[1], indexesFound)
-			app.SetFocus(pick.list)
+			app.SetFocus(pickList)
 			pages.SwitchToPage("/pick")
 			cantTypeCommandLinePlaceholder()
 		case "/comp":
-			comp.text.SetText(blankComp(compIndSelectOne, compIndSelectTwo))
+			compText.SetText(blankComp(compIndSelectOne, compIndSelectTwo, entries))
 			pages.SwitchToPage("/comp")
 		case "/reused", "/r":
 			app.EnableMouse(false)
-			reused.text.SetText(" /reused\n -------\n The following are the passwords and answers reused:\n\n" + reusedAll(entries)) // used to have this be its own blankReused func, not necessary.
+			reusedText.SetText(" /reused\n -------\n The following are the passwords and answers reused:\n\n" + reusedAll(entries)) // used to have this be its own blankReused func, not necessary.
 			pages.SwitchToPage("/reused")
 		default:
 			switchToError(" That input doesn't match a command! \n Look to the right right to see the possible commands. \n Make sure to spell it correctly!")
 		}
-		commandLine.input.SetText("")
+		commandLineInput.SetText("")
 	}
-	commandLine.input.SetDoneFunc(commandLineActions)
+	commandLineInput.SetDoneFunc(commandLineActions)
 
 	// Needs this to be done after the function is defined.
-	pick.list.SetDoneFunc(switchToHome)
-	edit.list.SetDoneFunc(switchToHome)
-	copen.list.SetDoneFunc(switchToHome)
+	pickList.SetDoneFunc(switchToHome)
+	editList.SetDoneFunc(switchToHome)
+	copenList.SetDoneFunc(switchToHome)
 
 	// This tries to write to file, if it fails, it switches to
 	// the error page and returns false. 
@@ -692,13 +665,13 @@ func main() {
 		tempEntry.Name = e.Name
 		tempEntry.Tags = e.Tags
 
-		tempEntry.Usernames = make([]Field, len(e.Usernames))
+		tempEntry.Usernames = make([]field, len(e.Usernames))
 		copy(tempEntry.Usernames, e.Usernames)
 
-		tempEntry.Passwords = make([]Field, len(e.Passwords))
+		tempEntry.Passwords = make([]field, len(e.Passwords))
 		copy(tempEntry.Passwords, e.Passwords)
 
-		tempEntry.SecurityQ = make([]Field, len(e.SecurityQ))
+		tempEntry.SecurityQ = make([]field, len(e.SecurityQ))
 		copy(tempEntry.SecurityQ, e.SecurityQ)
 
 		tempEntry.Notes = e.Notes
@@ -716,10 +689,10 @@ func main() {
 			}).
 			// this order of the buttons is on purpose and makes sense
 			AddButton("new field", func() {
-				info.text.SetText(newFieldInfo)
+				infoText.SetText(newFieldInfo)
 				blankNewField(&tempEntry)
 				pages.ShowPage("/newField")
-				app.SetFocus(newField.form)
+				app.SetFocus(newFieldForm)
 			}).
 			// You can't hit save if there's no name
 			AddButton("save entry", func() {
@@ -737,7 +710,7 @@ func main() {
 			AddButton("notes", func() {
 				blankNewNote(&tempEntry)
 				pages.ShowPage("/newNote")
-				app.SetFocus(newNote.form)
+				app.SetFocus(newNoteForm)
 			})
 
 		// put at the end so in case there is already fields it puts the button at the end
@@ -761,15 +734,15 @@ func main() {
 			edit = true
 		}
 
-		tempField = Field{}
+		tempField = field{}
 		tempTags := ""
 		fieldType = ""
-		newField.form.Clear(true)
+		newFieldForm.Clear(true)
 
 		fieldDropDown := tview.NewDropDown().SetLabel("new field: ").SetCurrentOption(-1).SetListStyles(tcell.Style{}.Background(blue).Foreground(white), tcell.Style{}.Background(white).Foreground(blue)) // changes the colors of the drop down options -- selected & unselected styles 
 		fieldDropDown.SetOptions(dropDownFields, func(chosenDrop string, index int) {
-			for newField.form.GetFormItemCount() > 1 { // needed for when you change your mind
-				newField.form.RemoveFormItem(1)
+			for newFieldForm.GetFormItemCount() > 1 { // needed for when you change your mind
+				newFieldForm.RemoveFormItem(1)
 			}
 
 			fieldType = chosenDrop
@@ -790,22 +763,22 @@ func main() {
 
 					tempField.DisplayName = initialValue
 
-					newField.form.AddInputField(inputLabel, initialValue, 50, nil, func(display string){
+					newFieldForm.AddInputField(inputLabel, initialValue, 50, nil, func(display string){
 						tempField.DisplayName = display
 					})
 
-					newField.form.AddInputField("value:", "", 50, nil, func(value string) {
+					newFieldForm.AddInputField("value:", "", 50, nil, func(value string) {
 						tempField.Value = value
 					})
 				} else { // Only has one input line for adding new tags
-					newField.form.AddInputField("tags:", tempEntry.Tags, 50, nil, func(tags string) {
+					newFieldForm.AddInputField("tags:", tempEntry.Tags, 50, nil, func(tags string) {
 						tempTags = tags
 					})
 				}
 			}
 		})
 
-		newField.form.AddFormItem(fieldDropDown).AddButton("save field", func() {
+		newFieldForm.AddFormItem(fieldDropDown).AddButton("save field", func() {
 			if (tempField.DisplayName != "") || (tempTags != "") {
 				switch fieldType {
 				case "username":
@@ -819,7 +792,7 @@ func main() {
 				}
 				if !edit { // If in /new
 					blankFieldsAdded()
-					info.text.SetText(newInfo)
+					infoText.SetText(newInfo)
 					pages.SwitchToPage("/newEntry")
 					app.SetFocus(newEntry.form)
 				} else { // If in /edit
@@ -829,7 +802,7 @@ func main() {
 		}).
 			AddButton("quit", func() {
 				if !edit {
-					info.text.SetText(newInfo)
+					infoText.SetText(newInfo)
 					pages.SwitchToPage("/newEntry")
 					app.SetFocus(newEntry.form)
 				} else {
@@ -839,12 +812,12 @@ func main() {
 	}
 
 	// Takes in a pointer to an entry if used in /edit.
-	// akes in a pointer to tempEntry if in /new.
+	// Takes in a pointer to tempEntry if in /new.
 	blankNewNote = func(e *entry) {
-		newNote.form.Clear(true)
+		newNoteForm.Clear(true)
 		toAdd := e.Notes
 
-		newNote.form.
+		newNoteForm.
 			AddInputField("notes:", toAdd[0], 0, nil, func(inputed string) {
 				toAdd[0] = inputed
 			})
@@ -853,14 +826,14 @@ func main() {
 		// has i equal to the last iteration of it (would be 6)
 		for i := 1; i < 6; i++ {
 			i := i
-			newNote.form.AddInputField("", toAdd[i], 0, nil, func(inputed string) {
+			newNoteForm.AddInputField("", toAdd[i], 0, nil, func(inputed string) {
 				toAdd[i] = inputed
 			})
 		}
 
 		// TO DO? idea: write a func to go between edit or home instead of the if/else in each button!
 		// ask em what they think :D
-		newNote.form.
+		newNoteForm.
 			AddButton("save", func() {
 				e.Notes = toAdd
 				if e == &tempEntry { // if this is being done in /new
@@ -893,10 +866,6 @@ func main() {
 	// because tempEntry is defined to be equal to entry e in 
 	// blankNewEntry when called after /copy.
 
-
-	// TO DO -- idea -- stop giving the funcs to do with /new a pointer to tempEntry or to 
-	// entry e, instead just defined tempEntry to be e and carry a bool of its in /edit or
-	// /new. would be easier? maybe!
 	blankFieldsAdded = func() {
 		newFieldsAddedList.Clear()
 		num := 0 // This iterates through all of runeAlphabet for the shortcuts.
@@ -918,7 +887,7 @@ func main() {
 			newFieldsAddedList.AddItem(u.DisplayName + ":", u.Value, runeAlphabet[num], func() {
 				blankEditFieldForm(u, &tempEntry.Usernames, i, &tempEntry, false)
 				pages.ShowPage("/new-editField")
-				app.SetFocus(editField.form)
+				app.SetFocus(editFieldForm)
 			})
 		}
 		for i := range tempEntry.Passwords {
@@ -928,7 +897,7 @@ func main() {
 			newFieldsAddedList.AddItem(p.DisplayName + ":", "[black]" + p.Value, runeAlphabet[num], func() {
 				blankEditFieldForm(p, &tempEntry.Passwords, i, &tempEntry, false)
 				pages.ShowPage("/new-editField")
-				app.SetFocus(editField.form)
+				app.SetFocus(editFieldForm)
 			})
 		}
 		for i := range tempEntry.SecurityQ {
@@ -938,7 +907,7 @@ func main() {
 			newFieldsAddedList.AddItem(sq.DisplayName + ":", "[black]" + sq.Value, runeAlphabet[num], func() {
 				blankEditFieldForm(sq, &tempEntry.SecurityQ, i, &tempEntry, false)
 				pages.ShowPage("/new-editField")
-				app.SetFocus(editField.form)
+				app.SetFocus(editFieldForm)
 			})
 		}
 	}
@@ -965,98 +934,43 @@ func main() {
 		}
 	}
 
-	blankOpen = func(i int) string {
-		e := entries[i]
-		print := " "
-
-		print += "[" + strconv.Itoa(i) + "] " + e.Name + "\n "
-		print += strings.Repeat("-", len([]rune(print))-3) + " \n" // Right now it matches under the letters of title, if at -2 then it goes one out
-		if e.Tags != "" {
-			print += " tags: " + e.Tags + "\n"
-		}
-		for _, u := range e.Usernames {
-			print += " " + u.DisplayName + ": " + u.Value + "[white]\n"
-		}
-		for _, p := range e.Passwords {
-			print += " " + p.DisplayName + ": [black]" + p.Value + "[white]\n"
-		}
-		for _, sq := range e.SecurityQ {
-			print += " " + sq.DisplayName + ": [black]" + sq.Value + "[white]\n"
-		}
-		emptyNotes := true
-		for _, n := range e.Notes {
-			if n != "" {
-				emptyNotes = false
-				break
-			}
-		}
-		if !emptyNotes {
-			blankLines := 0
-			print += " notes: "
-			for _, n := range e.Notes {
-				if n == "" {
-					blankLines++
-				} else {
-					print += strings.Repeat("\n", blankLines)
-					print += "\n\t " + n
-					blankLines = 0
-				}
-			}
-		}
-		print += "\n\n[white]"
-		// Following is info about the entry
-		print += " in circulation: " + strconv.FormatBool(e.Circulate) + "\n"
-		if !e.Modified.IsZero() { // if it's not jan 1, year 1
-			print += " date last modified: " + fmt.Sprint(e.Modified.Date()) + "\n"
-		}
-		if !e.Opened.IsZero() { // if it's not jan 1, year 1
-			print += " date last opened: " + fmt.Sprint(e.Opened.Date()) + "\n"
-		}
-		if !e.Created.IsZero() { // if it's not jan 1, year 1
-			print += " date created: " + fmt.Sprint(e.Created.Date())
-		}
-		entries[i].Opened = time.Now()
-		writeFileErr()
-		return print
-	}
-
 	blankCopen = func(i int) {
 		num := 0
-		copen.list.Clear()
+		copenList.Clear()
 		e := entries[i]
 
-		copen.list.AddItem("leave /copen " + strconv.Itoa(i), "(takes you back to /home)", runeAlphabet[num], func() {
+		copenList.AddItem("leave /copen " + strconv.Itoa(i), "(takes you back to /home)", runeAlphabet[num], func() {
 			clipboard.WriteAll("banana")
 			switchToHome()
 		})
 		runeAlphabetIterate(&num)
-		copen.list.AddItem("name:", e.Name, runeAlphabet[num], func() {
+		copenList.AddItem("name:", e.Name, runeAlphabet[num], func() {
 			clipboard.WriteAll(e.Name)
 		})
 		if e.Tags != "" {
 			runeAlphabetIterate(&num)
-			copen.list.AddItem("tags:", e.Tags, runeAlphabet[num], func() {
+			copenList.AddItem("tags:", e.Tags, runeAlphabet[num], func() {
 				clipboard.WriteAll(e.Tags)
 			})
 		}
 		for _, u := range e.Usernames {
 			u := u
 			runeAlphabetIterate(&num)
-			copen.list.AddItem(u.DisplayName + ":", u.Value, runeAlphabet[num], func() {
+			copenList.AddItem(u.DisplayName + ":", u.Value, runeAlphabet[num], func() {
 				clipboard.WriteAll(u.Value)
 			})
 		}
 		for _, p := range e.Passwords {
 			p := p
 			runeAlphabetIterate(&num)
-			copen.list.AddItem(p.DisplayName + ":", "[black]" + p.Value, runeAlphabet[num], func() {
+			copenList.AddItem(p.DisplayName + ":", "[black]" + p.Value, runeAlphabet[num], func() {
 				clipboard.WriteAll(p.Value)
 			})
 		}
 		for _, sq := range e.SecurityQ {
 			sq := sq
 			runeAlphabetIterate(&num)
-			copen.list.AddItem(sq.DisplayName + ":", "[black]" + sq.Value, runeAlphabet[num], func() {
+			copenList.AddItem(sq.DisplayName + ":", "[black]" + sq.Value, runeAlphabet[num], func() {
 				clipboard.WriteAll(sq.Value)
 			})
 		}
@@ -1064,30 +978,30 @@ func main() {
 			n := n
 			if n != "" {
 				runeAlphabetIterate(&num)
-				copen.list.AddItem("note:", n, runeAlphabet[num], func() {
+				copenList.AddItem("note:", n, runeAlphabet[num], func() {
 					clipboard.WriteAll(n)
 				})
 			}
 		}
 		runeAlphabetIterate(&num)
-		copen.list.AddItem("in circulation:", strconv.FormatBool(e.Circulate), runeAlphabet[num], func() {
+		copenList.AddItem("in circulation:", strconv.FormatBool(e.Circulate), runeAlphabet[num], func() {
 			clipboard.WriteAll(strconv.FormatBool(e.Circulate))
 		})
 		if !e.Modified.IsZero() {
 			runeAlphabetIterate(&num)
-			copen.list.AddItem("date last modifed:", fmt.Sprint(e.Modified.Date()), runeAlphabet[num], func() {
+			copenList.AddItem("date last modifed:", fmt.Sprint(e.Modified.Date()), runeAlphabet[num], func() {
 				clipboard.WriteAll(fmt.Sprint(e.Modified.Date()))
 			})
 		}
 		if !e.Opened.IsZero() {
 			runeAlphabetIterate(&num)
-			copen.list.AddItem("date last opened:", fmt.Sprint(e.Opened.Date()), runeAlphabet[num], func() {
+			copenList.AddItem("date last opened:", fmt.Sprint(e.Opened.Date()), runeAlphabet[num], func() {
 				clipboard.WriteAll(fmt.Sprint(e.Opened.Date()))
 			})
 		}
 		if !e.Created.IsZero() {
 			runeAlphabetIterate(&num)
-			copen.list.AddItem("date created:", fmt.Sprint(e.Created.Date()), runeAlphabet[num], func() {
+			copenList.AddItem("date created:", fmt.Sprint(e.Created.Date()), runeAlphabet[num], func() {
 				clipboard.WriteAll(fmt.Sprint(e.Created.Date()))
 			})
 		}
@@ -1095,40 +1009,39 @@ func main() {
 		writeFileErr()
 	}
 
-	// TO DO -- maybe make this tempentry as well?! ask em about it
 	blankEditList = func(i int) {
-		edit.list.Clear()
+		editList.Clear()
 		e := &entries[i]
 		num := 0
 
-		edit.list.AddItem("leave /edit " + strconv.Itoa(i), "(takes you back to /home)", runeAlphabet[num], func() {
+		editList.AddItem("leave /edit " + strconv.Itoa(i), "(takes you back to /home)", runeAlphabet[num], func() {
 			switchToHome()
 		})
 		runeAlphabetIterate(&num)
-		edit.list.AddItem("name: ", e.Name, runeAlphabet[num], func() {
-			info.text.SetText(editFieldInfo)
+		editList.AddItem("name: ", e.Name, runeAlphabet[num], func() {
+			infoText.SetText(editFieldInfo)
 			blankEditStringForm("name", e.Name, e)
 			pages.ShowPage("/editFieldStr")
-			app.SetFocus(editField.form)
+			app.SetFocus(editFieldForm)
 		})
 		if e.Tags != "" {
 			runeAlphabetIterate(&num)
-			edit.list.AddItem("tags:", e.Tags, runeAlphabet[num], func() {
-				info.text.SetText(editFieldInfo)
+			editList.AddItem("tags:", e.Tags, runeAlphabet[num], func() {
+				infoText.SetText(editFieldInfo)
 				blankEditStringForm("tags", e.Tags, e)
 				pages.ShowPage("/editFieldStr")
-				app.SetFocus(editField.form)
+				app.SetFocus(editFieldForm)
 			})
 		}
 		for i := range e.Usernames {
 			i := i
 			u := &e.Usernames[i]
 			runeAlphabetIterate(&num)
-			edit.list.AddItem(u.DisplayName + ":", u.Value, runeAlphabet[num], func() {
-				info.text.SetText(editFieldInfo)
+			editList.AddItem(u.DisplayName + ":", u.Value, runeAlphabet[num], func() {
+				infoText.SetText(editFieldInfo)
 				blankEditFieldForm(u, &e.Usernames, i, e, true)
 				pages.ShowPage("/edit-editField")
-				app.SetFocus(editField.form)
+				app.SetFocus(editFieldForm)
 			})
 		}
 		for i := range e.Passwords {
@@ -1136,11 +1049,11 @@ func main() {
 			p := &e.Passwords[i]
 			runeAlphabetIterate(&num)
 
-			edit.list.AddItem(p.DisplayName + ":", "[black]" + p.Value, runeAlphabet[num], func() {
-				info.text.SetText(editFieldInfo)
+			editList.AddItem(p.DisplayName + ":", "[black]" + p.Value, runeAlphabet[num], func() {
+				infoText.SetText(editFieldInfo)
 				blankEditFieldForm(p, &e.Passwords, i, e, true)
 				pages.ShowPage("/edit-editField")
-				app.SetFocus(editField.form)
+				app.SetFocus(editFieldForm)
 			})
 		}
 		for i := range e.SecurityQ {
@@ -1148,11 +1061,11 @@ func main() {
 			sq := &e.SecurityQ[i]
 			runeAlphabetIterate(&num)
 
-			edit.list.AddItem(sq.DisplayName + ":", "[black]" + sq.Value, runeAlphabet[num], func() {
-				info.text.SetText(editFieldInfo)
+			editList.AddItem(sq.DisplayName + ":", "[black]" + sq.Value, runeAlphabet[num], func() {
+				infoText.SetText(editFieldInfo)
 				blankEditFieldForm(sq, &e.SecurityQ, i, e, true)
 				pages.ShowPage("/edit-editField")
-				app.SetFocus(editField.form)
+				app.SetFocus(editFieldForm)
 			})
 		}
 		condensedNotes := ""
@@ -1165,19 +1078,19 @@ func main() {
 		}
 		if !emptyNotes {
 			runeAlphabetIterate(&num)
-			edit.list.AddItem("notes:", condensedNotes, runeAlphabet[num], func() {
-				info.text.SetText(editFieldInfo)
+			editList.AddItem("notes:", condensedNotes, runeAlphabet[num], func() {
+				infoText.SetText(editFieldInfo)
 				blankNewNote(e)
 				pages.ShowPage("/newNote")
-				app.SetFocus(newNote.form)
+				app.SetFocus(newNoteForm)
 			})
 		} else {
 			runeAlphabetIterate(&num)
-			edit.list.AddItem("add notes:", "(none written so far)", runeAlphabet[num], func() {
-				info.text.SetText(editFieldInfo)
+			editList.AddItem("add notes:", "(none written so far)", runeAlphabet[num], func() {
+				infoText.SetText(editFieldInfo)
 				blankNewNote(e)
 				pages.ShowPage("/newNote")
-				app.SetFocus(newNote.form)
+				app.SetFocus(newNoteForm)
 			})
 		}
 		newFieldStr := ""
@@ -1185,29 +1098,29 @@ func main() {
 			newFieldStr += "tags, "
 		}
 		runeAlphabetIterate(&num)
-		edit.list.AddItem("add new field", newFieldStr + "usernames, passwords, security questions", runeAlphabet[num], func() {
-			info.text.SetText(editFieldInfo)
+		editList.AddItem("add new field", newFieldStr + "usernames, passwords, security questions", runeAlphabet[num], func() {
+			infoText.SetText(editFieldInfo)
 			// code copied from blankNewEntry
 			blankNewField(e)
 			pages.ShowPage("/newField")
-			app.SetFocus(newField.form)
+			app.SetFocus(newFieldForm)
 		})
 		runeAlphabetIterate(&num)
 		if e.Circulate { // If it is in circulation, option to opt out
-			edit.list.AddItem("remove from circulation", "(not permanant), check /help for info", runeAlphabet[num], func() {
+			editList.AddItem("remove from circulation", "(not permanant), check /help for info", runeAlphabet[num], func() {
 				e.Circulate = false
 				switchToEditList(true)
 			})
 
 		} else { // If it's not in circulation, option to opt back in
-			edit.list.AddItem("add back to circulation", "(not permanant), check /help for info", runeAlphabet[num], func() {
+			editList.AddItem("add back to circulation", "(not permanant), check /help for info", runeAlphabet[num], func() {
 				e.Circulate = true
 				switchToEditList(true)
 			})
 		}
 		runeAlphabetIterate(&num)
-		edit.list.AddItem("delete entry", "(permanant!!)", runeAlphabet[num], func() {
-			info.text.SetText(editFieldInfo)
+		editList.AddItem("delete entry", "(permanant!!)", runeAlphabet[num], func() {
+			infoText.SetText(editFieldInfo)
 			blankEditDeleteEntry()
 			pages.ShowPage("/editDelete")
 			app.SetFocus(editDelete.form)
@@ -1216,12 +1129,12 @@ func main() {
 
 	// Takes in an extra boolean to know if its from /edit or /new,
 	// in order to know where to go back to.
-	blankEditFieldForm = func(f *Field, fieldArr *[]Field, index int, e *entry, edit bool) {
-		editField.form.Clear(true)
+	blankEditFieldForm = func(f *field, fieldArr *[]field, index int, e *entry, edit bool) {
+		editFieldForm.Clear(true)
 		tempField.DisplayName = f.DisplayName
 		tempField.Value = f.Value
 
-		editField.form.
+		editFieldForm.
 			AddInputField("display name:", tempField.DisplayName, 40, nil, func(input string) {
 				tempField.DisplayName = input
 			}).
@@ -1267,10 +1180,10 @@ func main() {
 			switchToError(" Error, unexpected input\n blackEditStringForm can only change name or tags")
 			return
 		}
-		editField.form.Clear(true)
+		editFieldForm.Clear(true)
 		tempDisplay := display
 		tempValue := value
-		editField.form.
+		editFieldForm.
 			AddInputField(tempDisplay + ":", tempValue, 50, nil, func(changed string) {
 				tempValue = changed
 			}).
@@ -1287,7 +1200,7 @@ func main() {
 			})
 		// Can only delete tags, not the name
 		if display == "tags" {
-			editField.form.AddButton("delete", func() {
+			editFieldForm.AddButton("delete", func() {
 				e.Tags = ""
 				switchToEditList(true)
 			})
@@ -1301,8 +1214,8 @@ func main() {
 			}
 			blankEditList(indexSelected)
 			pages.SwitchToPage("/edit")
-			app.SetFocus(edit.list)
-			info.text.SetText(editInfo)
+			app.SetFocus(editList)
+			infoText.SetText(editInfo)
 		}
 	}
 
@@ -1323,39 +1236,46 @@ func main() {
 			})
 	}
 
-	// openCopen is either going to be "/pick", "/picc", or "/flist str"
-	blankPickList = func(openCopen string, indexes []int) {
-		printCommand := openCopen
+	// action is either going to be "/pick", "/picc", or "/flist str"
+	blankPickList = func(action string, indexes []int) {
+		printCommand := action
 
-		if len([]rune(openCopen)) > 5 { // if is /flist str or at all /flist
+		if len([]rune(action)) > 5 { // if is /flist str or at all /flist
 			printCommand = "/flist\n ------ \n"
+			if len([]rune(action)) > 45 {
+				action = action[:42]
+				action += "..."
+			}
 		} else {
 			printCommand += "\n ----- \n"
 		}
 
-		info.text.SetText(" " + printCommand + pickInfo)
+		infoText.SetText(" " + printCommand + pickInfo)
 		num := 0
-		pick.list.Clear()
-		pick.list.AddItem("leave " + openCopen, "(takes you back to /home)", runeAlphabet[num], func() {
+		pickList.Clear()
+		pickList.AddItem("leave " + action, "(takes you back to /home)", runeAlphabet[num], func() {
 			switchToHome()
 		})
 		for _, i := range indexes {
+			// TO DO MAKE IT RUNEALPHABETITERATE
+			// make rune alphabet iterate have its own num that gets reset?
 			num++
 			if num == len(runeAlphabet) {
 				num = 0
 			}
 			i := i
 			if entries[i].Circulate {
-				pick.list.AddItem("[" + strconv.Itoa(i) + "] " + entries[i].Name, "tags: " + entries[i].Tags, runeAlphabet[num], func() {
-					if openCopen == "/pick" { // to transfer to /open #
+				pickList.AddItem("[" + strconv.Itoa(i) + "] " + entries[i].Name, "tags: " + entries[i].Tags, runeAlphabet[num], func() {
+					if action == "/pick" { // to transfer to /open #
 						// following code copied from commandLineActions function
 						pages.SwitchToPage("/open")
-						app.SetFocus(commandLine.input)
-						lookRightCommandLinePlaceholder()
-						open.text.SetText(blankOpen(i)) // taking input, just to be safe smile -- can change that in future
+						app.SetFocus(commandLineInput)
+						canTypeCommandLinePlaceholder()
+						openText.SetText(blankOpen(i, entries))
+						writeFileErr()
 					} else { // to transfer to /copen # (for both /picc and /flist)
 						// following code copied from commandLineActions function
-						app.SetFocus(copen.list)
+						app.SetFocus(copenList)
 						app.EnableMouse(false)
 						pages.SwitchToPage("/copen")
 						blankCopen(i)
@@ -1363,19 +1283,6 @@ func main() {
 				})
 			}
 		}
-	}
-
-	blankComp = func(i1 int, i2 int) string {
-		e1 := entries[i1]
-		e2 := entries[i2]
-		print := " "
-
-		print += "/comp: " + "[" + strconv.Itoa(i1) + "] " + e1.Name + " and " + "[" + strconv.Itoa(i2) + "] " + e2.Name + "\n "
-		print += strings.Repeat("-", len([]rune(print))-3) + "\n\n"
-
-		print += compPass(e1, e2)
-
-		return print
 	}
 
 	// ------------------------------------------------ //
@@ -1386,64 +1293,74 @@ func main() {
 		AddItem(passErr.title, 0, 1, false).
 		AddItem(passErr.text, 0, 8, false)
 
-	passFlex.
+	// This is passBoxPages and passwordInput
+	passFlex := tview.NewFlex().
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
 			AddItem(passBoxPages, 0, 9, false).
-			AddItem(password.grid, 0, 1, false), 0, 1, false)
+			AddItem(grider(passwordInput), 0, 1, false), 0, 1, false)
 
-	newFieldFlex.
+	// Flex to situate newFieldForm in the middle of the page.
+	newFieldFlex := tview.NewFlex().
 		AddItem(nil, 0, 1, false).
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
 			AddItem(nil, 0, 2, false).
-			AddItem(newField.grid, 0, 3, false).
+			AddItem(grider(newFieldForm), 0, 3, false).
 			AddItem(nil, 0, 1, false), 0, 4, false)
 
 	error.flex.SetDirection(tview.FlexRow).
 		AddItem(error.title, 0, 1, false).
 		AddItem(error.text, 0, 8, false)
 
-	newNoteFlex.
+	// Flex to situate editing or making notes in the middle.
+	newNoteFlex := tview.NewFlex().
 		AddItem(nil, 0, 1, false).
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
 			AddItem(nil, 0, 2, false).
 			// following two, 5 is the max for changing
-			AddItem(newNote.grid, 0, 6, false). // 4 fits 3 input + buttons, 5 fits 4 input + buttons
+			AddItem(grider(newNoteForm), 0, 6, false). // 4 fits 3 input + buttons, 5 fits 4 input + buttons
 			AddItem(nil, 0, 1, false), 0, 5, false)
 
 	newEntry.flex.SetDirection(tview.FlexRow).
 		AddItem(newEntry.form, 0, 2, false).
 		AddItem(newFieldsAddedList, 0, 3, false) // 1:2 is the maximum
 
-	newEditFieldFlex. // for /new
+	// Created the grid here which is added to the following
+	// three flexes.
+	editFieldGrid := grider(editFieldForm)
+	// To situate edit field differently if you're in /new.
+	newEditFieldFlex := tview.NewFlex().
 		AddItem(nil, 0, 1, false).
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
 			AddItem(nil, 0, 3, false).
-			AddItem(editField.grid, 0, 3, false).
+			AddItem(editFieldGrid, 0, 3, false).
 			AddItem(nil, 0, 2, false), 0, 4, false)
-
-	editEditFieldFlex. // for /edit
+	// To situate edit field differently if you're in /edit
+	editEditFieldFlex.
 		AddItem(nil, 0, 1, false).
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
 			AddItem(nil, 0, 2, false).
-			AddItem(editField.grid, 0, 3, false).
+			AddItem(editFieldGrid, 0, 3, false).
 			AddItem(nil, 0, 3, false), 0, 4, false)
-
+	// To situate edit field if it is editing tags or names in /edit
 	editFieldStrFlex.
 		AddItem(nil, 0, 1, false).
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
 			AddItem(nil, 0, 3, false).
-			AddItem(editField.grid, 0, 2, false).
+			AddItem(editFieldGrid, 0, 2, false).
 			AddItem(nil, 0, 2, false), 0, 4, false)
 
+	// This contains the text and form for the pop up asking 
+	// about deleting an entry
 	editDelete.flex.
 		AddItem(editDelete.text, 0, 1, false).
 		AddItem(editDelete.form, 0, 1, false)
 
-	editDeleteFlex.
+	// To situate the editDelete.flex in the middle
+	editDeleteFlex := tview.NewFlex().
 		AddItem(nil, 0, 1, false).
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
 			AddItem(nil, 0, 2, false). // 2
-			AddItem(editDelete.grid, 0, 2, false).
+			AddItem(grider(editDelete.flex), 0, 2, false).
 			AddItem(nil, 0, 2, false), 0, 1, false).
 		AddItem(nil, 0, 1, false)
 
@@ -1451,83 +1368,134 @@ func main() {
 		AddItem(list.title, 0, 1, false).
 		AddItem(list.text, 0, 8, false)
 
-	// Add each primitive to its perspective grid
-	grider(commandLine.input, commandLine.grid)
-	grider(info.text, info.grid)
-	grider(list.flex, list.grid)
-	grider(test.text, test.grid)
-	grider(newEntry.flex, newEntry.grid) // update this one!
-	grider(newField.form, newField.grid)
-	grider(newNote.form, newNote.grid)
-	grider(help.text, help.grid)
-	grider(error.flex, error.grid)
-	grider(open.text, open.grid)
-	grider(edit.list, edit.grid)
-	grider(editField.form, editField.grid)
-	grider(editDelete.flex, editDelete.grid)
-	grider(pick.list, pick.grid)
-	grider(copen.list, copen.grid)
-	grider(password.input, password.grid)
-	grider(passErr.flex, passErr.grid)
-	grider(comp.text, comp.grid)
-	grider(reused.text, reused.grid)
-
 	// All the different pages are added here.
 	// The order in which the pages are added matters.
 	pages.
-		AddPage("/home", sadEmptyBox, true, true).
-		AddPage("/list", list.grid, true, false).
-		AddPage("/test", test.grid, true, false).
-		AddPage("/edit", edit.grid, true, false).
-		AddPage("/help", help.grid, true, false).
-		AddPage("err", error.grid, true, false).
-		AddPage("/open", open.grid, true, false).
-		AddPage("/pick", pick.grid, true, false).
-		AddPage("/copen", copen.grid, true, false).
-		AddPage("/newEntry", newEntry.grid, true, false).
+		AddPage("/home", tview.NewBox().SetBorder(true).SetTitle("sad, empty box"), true, false).
+		AddPage("/list", grider(list.flex), true, false).
+		AddPage("/test", grider(testText), true, false).
+		AddPage("/edit", grider(editList), true, false).
+		AddPage("/help", grider(helpText), true, false).
+		AddPage("err", grider(error.flex), true, false).
+		AddPage("/open", grider(openText), true, false).
+		AddPage("/pick", grider(pickList), true, false).
+		AddPage("/copen", grider(copenList), true, false).
+		AddPage("/newEntry", grider(newEntry.flex), true, false).
 		AddPage("/newField", newFieldFlex, true, false).
 		AddPage("/newNote", newNoteFlex, true, false).
 		AddPage("/new-editField", newEditFieldFlex, true, false).
 		AddPage("/editFieldStr", editFieldStrFlex, true, false).
 		AddPage("/editDelete", editDeleteFlex, true, false).
 		AddPage("/edit-editField", editEditFieldFlex, true, false).
-		AddPage("/comp", comp.grid, true, false).
-		AddPage("/reused", reused.grid, true, false)
+		AddPage("/comp", grider(compText), true, false).
+		AddPage("/reused", grider(reusedText), true, false)
 
-	// Sets up the flex row of the left side, top is the pages
-	// bottom is the commandLine.input
-	// Ratio of 8:1 is the maximum that it can be (9:1 is the same
-	// as 8:1) for 26x78.
-	// ratio of 9:1 is the maximum on 28x84 grid (10:1 is the same)
-	flexRow.
+	// Left side of pass manager, pages and commandLineInput
+	// Ratio of 8:1 is the max on 26x78 (9:1 is the same)
+	// ratio of 9:1 is the max on 28x84 grid (10:1 is the same)
+	flexRow := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(pages, 0, 9, false).
-		AddItem(commandLine.grid, 0, 1, false)
+		AddItem(grider(commandLineInput), 0, 1, false)
 
 	// Left and right sides of pass
-	flex.
+	flex := tview.NewFlex().
 		AddItem(flexRow, 0, 14, false).
-		AddItem(info.grid, 0, 3, false)
+		AddItem(grider(infoText), 0, 3, false)
 
+	// "passBox" just has an empty box
 	passBoxPages.
-		AddPage("passBox", passBox, true, true).
-		AddPage("passErr", passErr.grid, true, false)
+		AddPage("passBox", tview.NewBox().SetBorder(true), true, true).
+		AddPage("passErr", grider(passErr.flex), true, false)
 
+	// Contains the password screen and the password manager
 	passPages.
 		AddPage("passInput", passFlex, true, true).
 		AddPage("passManager", flex, true, false) // the page passManager is the flex of pass
 
-	if err := app.SetRoot(passPages, true).SetFocus(password.input).EnableMouse(true).Run(); err != nil {
+	if err := app.SetRoot(passPages, true).SetFocus(passwordInput).EnableMouse(true).Run(); err != nil {
 		panic(err)
 	}
 }
 
-// This is the function used to put any type of primitive
-// into a grid, to make a border.
-func grider(prim tview.Primitive, grid *tview.Grid) {
+// Makes a grid for any primitive, adding a visual border.
+func grider(prim tview.Primitive) *tview.Grid {
+	grid := tview.NewGrid().SetBorders(true)
 	grid.AddItem(prim, 0, 0, 1, 1, 0, 0, false)
+	return grid
+}
+
+// To write to the text box for /open of the entry index i.
+func blankOpen(i int, entries []entry) string {
+	e := entries[i]
+	print := " "
+
+	print += "[" + strconv.Itoa(i) + "] " + e.Name + "\n "
+	print += strings.Repeat("-", len([]rune(print))-3) + " \n" // Right now it matches under the letters of title, if at -2 then it goes one out
+	if e.Tags != "" {
+		print += " tags: " + e.Tags + "\n"
+	}
+	for _, u := range e.Usernames {
+		print += " " + u.DisplayName + ": " + u.Value + "[white]\n"
+	}
+	for _, p := range e.Passwords {
+		print += " " + p.DisplayName + ": [black]" + p.Value + "[white]\n"
+	}
+	for _, sq := range e.SecurityQ {
+		print += " " + sq.DisplayName + ": [black]" + sq.Value + "[white]\n"
+	}
+	emptyNotes := true
+	for _, n := range e.Notes {
+		if n != "" {
+			emptyNotes = false
+			break
+		}
+	}
+	if !emptyNotes {
+		blankLines := 0
+		print += " notes: "
+		for _, n := range e.Notes {
+			if n == "" {
+				blankLines++
+			} else {
+				print += strings.Repeat("\n", blankLines)
+				print += "\n\t " + n
+				blankLines = 0
+			}
+		}
+	}
+	print += "\n\n[white]"
+	// Following is info about the entry
+	print += " in circulation: " + strconv.FormatBool(e.Circulate) + "\n"
+	if !e.Modified.IsZero() { // if it's not jan 1, year 1
+		print += " date last modified: " + fmt.Sprint(e.Modified.Date()) + "\n"
+	}
+	if !e.Opened.IsZero() { // if it's not jan 1, year 1
+		print += " date last opened: " + fmt.Sprint(e.Opened.Date()) + "\n"
+	}
+	if !e.Created.IsZero() { // if it's not jan 1, year 1
+		print += " date created: " + fmt.Sprint(e.Created.Date())
+	}
+	entries[i].Opened = time.Now()
+	return print
+}
+
+// The string to write to the text box for /comp i1 i2
+func blankComp (i1 int, i2 int, entries []entry) string {
+	e1 := entries[i1]
+	e2 := entries[i2]
+
+	print := " "
+
+	print += "/comp: " + "[" + strconv.Itoa(i1) + "] " + e1.Name + " and " + "[" + strconv.Itoa(i2) + "] " + e2.Name + "\n "
+	print += strings.Repeat("-", len([]rune(print))-3) + "\n\n"
+
+	print += compPass(e1, e2)
+
+	return print
 }
 
 // This finds all of the entries with str in tags or names
+// Retuns the action name in first string, found entries in second.
 func findEntries(entries []entry, str string) (string, string) {
 	indexes := []int{}
 	str = strings.ToLower(str)
@@ -1558,8 +1526,6 @@ func findEntries(entries []entry, str string) (string, string) {
 // and is for example: " /find str \n-----..." or " /list \n -----"
 // The bool taken in differentiates it from /list or /find, to show
 // or not to show the ones that are not in ciculation.
-// If it is in /find but the entry isn't in circulation, it will
-// type (rem) right before the entry name. Ex: [1] (rem) Twitter
 func listEntries(entries []entry, indexes []int, str string, showOld bool) (string, string) {
 	printStr := ""
 	printEntries := []entry{}
@@ -1616,6 +1582,8 @@ func listEntries(entries []entry, indexes []int, str string, showOld bool) (stri
 // This returns from a single index from entries to
 // " [0] twitterDEMO       ", with those exact spaces/number of
 // characters in order to make a good column shape. Used in /list
+// If it is in /find but the entry isn't in circulation, it will
+// type (rem) right before the entry name. Ex: [1] (rem) Twitterg
 func indexName(index int, entries []entry) string {
 	str := "[" + strconv.Itoa(index) + "] "
 
@@ -1716,7 +1684,6 @@ func reusedAll(entries []entry) string {
 	}
 
 	print = print[:len([]rune(print))-2] // gets rid of the last \n\n
-
 	return print
 }
 
