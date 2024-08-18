@@ -144,12 +144,10 @@ func main() {
 	// else where so it can't be seen.
 	writeFileErr := func() bool {
 		writeErr := writeToFile(entries, ciphBlock)
-
 		if writeErr != "" {
 			switchToError(writeErr)
 			return false
 		}
-
 		return true
 	}
 
@@ -287,7 +285,7 @@ func main() {
 				pages.SwitchToPage("/newEntry")
 				app.SetFocus(newEntry.form)
 			} else {
-				switchToError(" AHHHHHHH for some reason the edit field button wasn't added despite a field later trying to be deleted!!!!")
+				switchToError(" For some reason the edit field button wasn't added despite a field later trying to be deleted!\n that's not supposed to happen!")
 			}
 		}
 	}
@@ -506,7 +504,7 @@ func main() {
 	// For editing the name or tags.
 	blankEditStringForm := func(display, value string, e *entry) {
 		if (display != "name") && (display != "tags") {
-			switchToError(" Error, unexpected input\n blackEditStringForm can only change name or tags")
+			switchToError(" Unexpected input!\n blankEditStringForm can only change name or tags")
 			return
 		}
 		editFieldForm.Clear(true)
@@ -741,8 +739,7 @@ func main() {
 				pages.ShowPage("/newNote")
 				app.SetFocus(newNoteForm)
 			})
-
-		// put at the end so in case there is already fields it puts the button at the end
+		// Put at the end so in case there is already fields it puts the button at the end
 		switchToNewFieldsList(false)
 	}
 
@@ -856,15 +853,14 @@ func main() {
 
 		if len([]rune(action)) > 5 { // if is /flist str or at all /flist
 			printCommand = "/flist\n ------ \n"
-			if len([]rune(action)) > 45 {
-				action = action[:42]
-				action += "..."
+			if len([]rune(action)) > 56 {
+				action = action[:53] + "..."
 			}
 		} else {
 			printCommand += "\n ----- \n"
 		}
 
-		infoText.SetText(" " + printCommand + pickInfo)
+		infoText.SetText(fmt.Sprint(" " + printCommand + pickInfo))
 		letter := newIterator()
 		pickList.Clear()
 		pickList.AddItem("leave " + action, "(takes you back to /home)", getRune(letter), func() {
@@ -875,7 +871,7 @@ func main() {
 			if entries[i].Circulate {
 				letter = increment(letter)
 
-				pickList.AddItem("[" + strconv.Itoa(i) + "] " + entries[i].Name, "tags: " + entries[i].Tags, getRune(letter), func() {
+				pickList.AddItem(fmt.Sprint("[" + strconv.Itoa(i) + "] " + entries[i].Name), "tags: " + entries[i].Tags, getRune(letter), func() {
 					if action == "/pick" { // to transfer to /open #
 						// following code copied from commandLineActions function
 						pages.SwitchToPage("/open")
@@ -928,7 +924,6 @@ func main() {
 		if (passInputed == "/quit") || (passInputed == "/q") {
 			app.Stop()
 		}
-
 		passBoxPages.SwitchToPage("passBox")
 		var keyErr string
 
@@ -940,7 +935,6 @@ func main() {
 			passwordInput.SetText("")
 			return
 		} 
-
 		readErr := readFromFile(&entries, ciphBlock)
 
 		if readErr != "" {
@@ -986,7 +980,6 @@ func main() {
 		for i := 0; i < len(entries); i++ {
 			listAllIndexes[i] = i
 		}
-
 		// if it is one of the actions with extra checks, change it to be its
 		// longer name. Less or statements needed, therefore.
 		if len([]rune(action)) < 5 {
@@ -1011,32 +1004,29 @@ func main() {
 		// The following is a check for the commands that take in a number. Is
 		// there a second thing? is it a number? is it a valid number?
 		if (action == "/open") || (action == "/edit") || (action == "/copen") || (action == "/copy") {
-
 			indexSelected = -1 // Sets it here to remove any previous doings
 
 			if len(inputedArr) < 2 { // if there is no number written
-				switchToError(" To " + action[1:] + " an entry you must write " + action + " and then a number.\n Ex: \n\t" + action + " 3")
+				switchToError(fmt.Sprint(" To " + action[1:] + " an entry you must write " + action + " and then a number.\n Ex: \n\t" + action + " 3"))
 				return
 			}
-
 			intTranslated, intErr := strconv.Atoi(inputedArr[1])
 
 			if intErr != nil { // if what passed in is not a number
-				switchToError(" Make sure to use " + action + " by writing a number!\n Ex: \n\t " + action + " 3")
+				switchToError(fmt.Sprint(" Make sure to use " + action + " by writing a number!\n Ex: \n\t " + action + " 3"))
 				return
 			}
 			if (intTranslated >= len(entries)) || (intTranslated < 0)  { // if the number passed in isn't an index
 				switchToError(" The number you entered does not correspond to an entry.\n Do /list to see the entries (and their numbers) that exist.")
 				return 
 			}
-
 			indexSelected = intTranslated
+
 		} else if action == "/comp" {
 			if len(inputedArr) < 3 {
 				switchToError(" You must specify which two entries you would like to /comp.\n Ex: \n\t /comp 3 4")
 				return
 			}
-
 			compOneInt, compOneErr := strconv.Atoi(inputedArr[1])
 			compTwoInt, compTwoErr := strconv.Atoi(inputedArr[2])
 
@@ -1052,17 +1042,16 @@ func main() {
 				switchToError(" The number you entered does not correspond to an entry.\n Do /list to see the entries (and their numbers) that exist.")
 				return
 			}
-
 			compIndSelectOne = compOneInt
 			compIndSelectTwo = compTwoInt
+
 		} else if (action == "/find") || (action == "/flist") {
 			// old error message: "To find entries you must write /find and then characters. \n With a space after /find. \n Ex: \n\t /find bank" <-- is specifying the space better?
 			if (len(inputedArr) < 2) || (inputedArr[1] == " ") || (inputedArr[1] == ""){
-				switchToError(" To find entries you must write " + action + " and then characters. \n Ex: \n\t " + action + " bank")
+				switchToError(fmt.Sprint(" To find entries you must write " + action + " and then characters. \n Ex: \n\t " + action + " bank"))
 				return
 			}
 		}
-
 		switch action {
 		case "/home", "/h":
 			pages.SwitchToPage("/home")
@@ -1140,7 +1129,7 @@ func main() {
 			pages.SwitchToPage("/comp")
 		case "/reused", "/r":
 			app.EnableMouse(false)
-			reusedText.SetText(" /reused\n -------\n The following are the passwords and answers reused:\n\n" + reusedAll(entries)) // used to have this be its own blankReused func, not necessary.
+			reusedText.SetText(fmt.Sprint(" /reused\n -------\n The following are the passwords and answers reused:\n\n" + reusedAll(entries))) // used to have this be its own blankReused func, not necessary.
 			pages.SwitchToPage("/reused")
 		default:
 			switchToError(" That input doesn't match a command! \n Look to the right right to see the possible commands. \n Make sure to spell it correctly!")
@@ -1403,29 +1392,34 @@ func blankOpen(i int, entries []entry) string {
 
 	var print strings.Builder
 
-	print.WriteString(" [" + strconv.Itoa(i) + "] " + e.Name)
-	print.WriteString("\n " + strings.Repeat("-", len([]rune(print.String()))-1)) // Right now it matches under the letters of title, if at -2 then it goes one out
+	name := e.Name
+	if len([]rune(name)) > 57 {
+		name = name[:57] + "..."
+	}
+
+	print.WriteString(fmt.Sprint(" [" + strconv.Itoa(i) + "] " + name))
+	print.WriteString(fmt.Sprint("\n " + strings.Repeat("-", len([]rune(print.String()))-1))) // Right now it matches under the letters of title, if at -2 then it goes one out
 	if e.Tags != "" {
-		print.WriteString("\n tags: " + e.Tags)
+		print.WriteString(fmt.Sprint("\n tags: " + e.Tags))
 	}
 	for _, u := range e.Usernames {
-		print.WriteString("\n " + u.DisplayName + ": " + u.Value + "[white]")
+		print.WriteString(fmt.Sprint("\n " + u.DisplayName + ": " + u.Value + "[white]"))
 	}
 	for _, p := range e.Passwords {
-		print.WriteString("\n " + p.DisplayName + ": [black]" + p.Value + "[white]")
+		print.WriteString(fmt.Sprint("\n " + p.DisplayName + ": [black]" + p.Value + "[white]"))
 	}
 	for _, sq := range e.SecurityQ {
-		print.WriteString("\n " + sq.DisplayName + ": [black]" + sq.Value + "[white]")
+		print.WriteString(fmt.Sprint("\n " + sq.DisplayName + ": [black]" + sq.Value + "[white]"))
 	}
 	emptyNotes := true
 	for _, n := range e.Notes {
 		if n != "" {
 			emptyNotes = false
-			print.WriteString(" notes: ")
 			break
 		}
 	}
 	if !emptyNotes {
+		print.WriteString("\n notes:")
 		blankLines := 0 // Stops printing \n\n\n\n if only text in first line
 		for _, n := range e.Notes {
 			if n == "" {
@@ -1433,26 +1427,25 @@ func blankOpen(i int, entries []entry) string {
 			} else {
 				print.WriteString(strings.Repeat("\n", blankLines))
 				for len([]rune(n)) > 61 {
-					print.WriteString("\n\t " + n[:61])
+					print.WriteString(fmt.Sprint("\n\t " + n[:61]))
 					n = n[60:]
 				}
 				print.WriteString("\n\t " + n)
-				// print += "\n\t " + n
 				blankLines = 0
 			}
 		}
 	}
 	print.WriteString("\n\n[white]")
 	// Following is info about the entry
-	print.WriteString(" in circulation: " + strconv.FormatBool(e.Circulate) + "\n")
+	print.WriteString(fmt.Sprint(" in circulation: " + strconv.FormatBool(e.Circulate) + "\n"))
 	if !e.Modified.IsZero() { // if it's not jan 1, year 1
-		print.WriteString(" date last modified: " + fmt.Sprint(e.Modified.Date()) + "\n")
+		print.WriteString(fmt.Sprint(" date last modified: " + fmt.Sprint(e.Modified.Date())) + "\n")
 	}
 	if !e.Opened.IsZero() { // if it's not jan 1, year 1
-		print.WriteString(" date last opened: " + fmt.Sprint(e.Opened.Date()) + "\n")
+		print.WriteString(fmt.Sprint(" date last opened: " + fmt.Sprint(e.Opened.Date()) + "\n"))
 	}
 	if !e.Created.IsZero() { // if it's not jan 1, year 1
-		print.WriteString(" date created: " + fmt.Sprint(e.Created.Date()))
+		print.WriteString(fmt.Sprint(" date created: " + fmt.Sprint(e.Created.Date())))
 	}
 	entries[i].Opened = time.Now()
 	return print.String()
@@ -1463,20 +1456,16 @@ func blankOpen(i int, entries []entry) string {
 func blankFind(entries []entry, str string) (string, string) {
 	indexes := findIndexes(entries, str)
 
-	// Trims out the /find str that prints so it won't go all the
-	// way to the other side of the text box. It still used the full
-	// str in the search. When printed, it will add a ... if it was trimmed
-	trimmedStr := str
-
-	if len([]byte(trimmedStr)) > 59 {
-		trimmedStr = trimmedStr[:56]
-		trimmedStr += "..."
+	// Trims the /find str for printing, adding a ... if trimmmed. It still
+	// used the full str in the search.
+	if len([]byte(str)) > 59 {
+		str = str[:56]
+		str += "..."
 	}
-
 	if len(indexes) > 0 {
-		return listEntries(entries, indexes, " /find " + trimmedStr + " \n " + strings.Repeat("-", len([]rune(trimmedStr)) + 6), true)
+		return listEntries(entries, indexes, fmt.Sprint(" /find " + str + " \n " + strings.Repeat("-", len([]rune(str)) + 6)), true)
 	} else {
-		return " /find " + trimmedStr + " \n " + strings.Repeat("-", len([]rune(trimmedStr)) + 6), " no entries found"
+		return fmt.Sprint(" /find " + str + " \n " + strings.Repeat("-", len([]rune(str)) + 6)), " no entries found"
 	}
 }
 
@@ -1528,7 +1517,6 @@ func listEntries(entries []entry, indexes []int, str string, showOld bool) (stri
 	} else if floatThird > float64(int(floatThird)) {
 		floatThird ++
 	}
-
 	third := int(floatThird)
 	var print strings.Builder
 
@@ -1556,7 +1544,7 @@ func listEntries(entries []entry, indexes []int, str string, showOld bool) (stri
 // it will type (rem) right before the entry name. Ex: [1] (rem) Twitter
 // Not worth it to do strings.Builder here because of the str[0:21] calls.
 func indexName(index int, entries []entry) string {
-	str := "[" + strconv.Itoa(index) + "] "
+	str := fmt.Sprint("[" + strconv.Itoa(index) + "] ")
 
 	if !entries[index].Circulate { // if out of circulation
 		str += "(rem) "
@@ -1580,10 +1568,8 @@ func blankComp (i1 int, i2 int, entries []entry) string {
 
 	var print strings.Builder
 
-	print.WriteString(" ")
-
-	print.WriteString("/comp: " + "[" + strconv.Itoa(i1) + "] " + shortenedName(e1.Name) + " and " + "[" + strconv.Itoa(i2) + "] " + shortenedName(e2.Name) + "\n ")
-	print.WriteString(strings.Repeat("-", len([]rune(print.String()))-3) + "\n\n")
+	print.WriteString(fmt.Sprint(" /comp: " + "[" + strconv.Itoa(i1) + "] " + shortenedName(e1.Name) + " and " + "[" + strconv.Itoa(i2) + "] " + shortenedName(e2.Name) + "\n "))
+	print.WriteString(fmt.Sprint(strings.Repeat("-", len([]rune(print.String()))-3) + "\n\n"))
 
 	print.WriteString(compPass(e1, e2))
 
@@ -1611,25 +1597,23 @@ func compPass(e1 entry, e2 entry) string {
 	for i, s := range e2.SecurityQ {
 		compMap[s.Value] = append(compMap[s.Value], reusedPass{displayName: "security question " + strconv.Itoa(i), entryName: name2})
 	}
-
 	var print strings.Builder
 
 	// Going through the map and looking at duplicates
 	for _, reusedStruct := range compMap {
 		if len(reusedStruct) == 2 { // if same pass twice, most common
-			print.WriteString(" " + reusedStruct[0].entryName + "'s " + reusedStruct[0].displayName + " = " + reusedStruct[1].entryName + "'s " + reusedStruct[1].displayName + "\n")
+			print.WriteString(fmt.Sprint(" " + reusedStruct[0].entryName + "'s " + reusedStruct[0].displayName + " = " + reusedStruct[1].entryName + "'s " + reusedStruct[1].displayName + "\n"))
 		} else if len(reusedStruct) > 2 { // less common
 			for i, r := range reusedStruct {
-				print.WriteString(" " + r.entryName + "'s " + r.displayName)
+				print.WriteString(fmt.Sprint(" " + r.entryName + "'s " + r.displayName))
 				if (i + 1) < len(reusedStruct) { // on the not last time through
-					print.WriteString(" =\n")
+					print.WriteString(" \n")
 				} else { // happens on the last time through
 					print.WriteString("\n")
 				}
 			}
 		}
 	}
-
 	if print.Len() < 1 {
 		if (len(e1.Passwords) < 1) && (len(e1.SecurityQ) < 1) {
 			print.WriteString(" " + name1 + " has no passwords or security questions" + "\n")
@@ -1659,12 +1643,11 @@ func reusedAll(entries []entry) string {
 			reused[s.Value] = append(reused[s.Value], reusedPass{displayName: "security question " + strconv.Itoa(iSq), entryName: name, entryIndex: i})
 		}
 	}
-
 	for pass, reusedStruct := range reused {
 		if len(reusedStruct) > 1 { // if there's more than one entry in the list of entries for password
-			print.WriteString(" [darkslategray]" + pass + "[white]:\n")
+			print.WriteString(fmt.Sprint(" [darkslategray]" + pass + "[white]:\n"))
 			for _, r := range reusedStruct {
-				print.WriteString(" [" + strconv.Itoa(r.entryIndex) + "] " + r.entryName + "'s " + r.displayName + "\n")
+				print.WriteString(fmt.Sprint(" [" + strconv.Itoa(r.entryIndex) + "] " + r.entryName + "'s " + r.displayName + "\n"))
 			}
 			print.WriteString("\n")
 		}
@@ -1673,8 +1656,8 @@ func reusedAll(entries []entry) string {
 	if print.Len() < 1 {
 		return " There are no reused passwords anywhere!?\n Good job!"
 	}
-
-	printStr := print.String()[:len([]rune(print.String()))-2] // gets rid of the last \n\n
+	printStr := print.String()
+	printStr = printStr[:len([]rune(printStr))-2] // gets rid of the last \n\n
 	return printStr
 }
 
