@@ -54,7 +54,7 @@ type reusedPass struct {
 	entryIndex  int
 }
 
-// This is used with methods to figure count the alphabet in lists.
+// This is used with methods to have the letters of the alphabet in lists.
 type alphabetIterater struct {
 	count int
 }
@@ -233,14 +233,14 @@ func main() {
 				})
 		}
 		newFieldsAddedList.
-			AddItem("move back to top", "", letter.getRune(), func() {
+			AddItem("move back to top", "", getRune(letter), func() {
 				app.SetFocus(newEntry.form)
 			})
 		for i := range tempEntry.Usernames {
 			i := i
 			u := &tempEntry.Usernames[i]
-			letter.increment()
-			newFieldsAddedList.AddItem(u.DisplayName + ":", u.Value, letter.getRune(), func() {
+			letter = increment(letter)
+			newFieldsAddedList.AddItem(u.DisplayName + ":", u.Value, getRune(letter), func() {
 				blankEditFieldForm(u, &tempEntry.Usernames, i, &tempEntry, false)
 				pages.ShowPage("/new-editField")
 				app.SetFocus(editFieldForm)
@@ -249,8 +249,8 @@ func main() {
 		for i := range tempEntry.Passwords {
 			i := i
 			p := &tempEntry.Passwords[i]
-			letter.increment()
-			newFieldsAddedList.AddItem(p.DisplayName + ":", "[black]" + p.Value, letter.getRune(), func() {
+			letter = increment(letter)
+			newFieldsAddedList.AddItem(p.DisplayName + ":", "[black]" + p.Value, getRune(letter), func() {
 				blankEditFieldForm(p, &tempEntry.Passwords, i, &tempEntry, false)
 				pages.ShowPage("/new-editField")
 				app.SetFocus(editFieldForm)
@@ -259,8 +259,8 @@ func main() {
 		for i := range tempEntry.SecurityQ {
 			i := i
 			sq := &tempEntry.SecurityQ[i]
-			letter.increment()
-			newFieldsAddedList.AddItem(sq.DisplayName + ":", "[black]" + sq.Value, letter.getRune(), func() {
+			letter = increment(letter)
+			newFieldsAddedList.AddItem(sq.DisplayName + ":", "[black]" + sq.Value, getRune(letter), func() {
 				blankEditFieldForm(sq, &tempEntry.SecurityQ, i, &tempEntry, false)
 				pages.ShowPage("/new-editField")
 				app.SetFocus(editFieldForm)
@@ -333,8 +333,8 @@ func main() {
 					} else {
 						switchToNewFieldsList(true) // true meaning keep in list section
 					}
-				} else { 
-					switchToError(" AHHHHH! the array given to blankEditFieldForm is nil \n and it shouldnt be!! or the index is -1 which it also shouldn't be")
+				} else {
+					switchToError(" The slice given to blankEditFieldForm is nil \n and it shouldnt be! or the index is -1 which it also shouldn't be!")
 				}
 			})
 	}
@@ -555,7 +555,6 @@ func main() {
 			}).
 			AddButton("delete", func() { // deletes element from slice, slower version, keeps everything else in order, copied the code from a website lol
 				copy(entries[indexSelected:], entries[indexSelected+1:])
-				entries[len(entries)-1] = entry{} // TO DO -- ask why this is here?
 				entries = entries[:len(entries)-1]
 				if writeFileErr() {
 					switchToHome()
@@ -570,19 +569,19 @@ func main() {
 		e := &entries[i]
 		letter := newIterator()
 
-		editList.AddItem("leave /edit " + strconv.Itoa(i), "(takes you back to /home)", letter.getRune(), func() {
+		editList.AddItem("leave /edit " + strconv.Itoa(i), "(takes you back to /home)", getRune(letter), func() {
 			switchToHome()
 		})
-		letter.increment()
-		editList.AddItem("name: ", e.Name, letter.getRune(), func() {
+		letter = increment(letter)
+		editList.AddItem("name: ", e.Name, getRune(letter), func() {
 			infoText.SetText(editFieldInfo)
 			blankEditStringForm("name", e.Name, e)
 			pages.ShowPage("/editFieldStr")
 			app.SetFocus(editFieldForm)
 		})
 		if e.Tags != "" {
-			letter.increment()
-			editList.AddItem("tags:", e.Tags, letter.getRune(), func() {
+			letter = increment(letter)
+			editList.AddItem("tags:", e.Tags, getRune(letter), func() {
 				infoText.SetText(editFieldInfo)
 				blankEditStringForm("tags", e.Tags, e)
 				pages.ShowPage("/editFieldStr")
@@ -592,8 +591,8 @@ func main() {
 		for i := range e.Usernames {
 			i := i
 			u := &e.Usernames[i]
-			letter.increment()
-			editList.AddItem(u.DisplayName + ":", u.Value, letter.getRune(), func() {
+			letter = increment(letter)
+			editList.AddItem(u.DisplayName + ":", u.Value, getRune(letter), func() {
 				infoText.SetText(editFieldInfo)
 				blankEditFieldForm(u, &e.Usernames, i, e, true)
 				pages.ShowPage("/edit-editField")
@@ -603,9 +602,9 @@ func main() {
 		for i := range e.Passwords {
 			i := i
 			p := &e.Passwords[i]
-			letter.increment()
+			letter = increment(letter)
 
-			editList.AddItem(p.DisplayName + ":", "[black]" + p.Value, letter.getRune(), func() {
+			editList.AddItem(p.DisplayName + ":", "[black]" + p.Value, getRune(letter), func() {
 				infoText.SetText(editFieldInfo)
 				blankEditFieldForm(p, &e.Passwords, i, e, true)
 				pages.ShowPage("/edit-editField")
@@ -615,9 +614,9 @@ func main() {
 		for i := range e.SecurityQ {
 			i := i
 			sq := &e.SecurityQ[i]
-			letter.increment()
+			letter = increment(letter)
 
-			editList.AddItem(sq.DisplayName + ":", "[black]" + sq.Value, letter.getRune(), func() {
+			editList.AddItem(sq.DisplayName + ":", "[black]" + sq.Value, getRune(letter), func() {
 				infoText.SetText(editFieldInfo)
 				blankEditFieldForm(sq, &e.SecurityQ, i, e, true)
 				pages.ShowPage("/edit-editField")
@@ -633,16 +632,16 @@ func main() {
 			}
 		}
 		if !emptyNotes {
-			letter.increment()
-			editList.AddItem("notes:", condensedNotes, letter.getRune(), func() {
+			letter = increment(letter)
+			editList.AddItem("notes:", condensedNotes, getRune(letter), func() {
 				infoText.SetText(editFieldInfo)
 				blankNewNote(e)
 				pages.ShowPage("/newNote")
 				app.SetFocus(newNoteForm)
 			})
 		} else {
-			letter.increment()
-			editList.AddItem("add notes:", "(none written so far)", letter.getRune(), func() {
+			letter = increment(letter)
+			editList.AddItem("add notes:", "(none written so far)", getRune(letter), func() {
 				infoText.SetText(editFieldInfo)
 				blankNewNote(e)
 				pages.ShowPage("/newNote")
@@ -653,29 +652,29 @@ func main() {
 		if e.Tags == "" {
 			newFieldStr += "tags, "
 		}
-		letter.increment()
-		editList.AddItem("add new field", newFieldStr + "usernames, passwords, security questions", letter.getRune(), func() {
+		letter = increment(letter)
+		editList.AddItem("add new field", newFieldStr + "usernames, passwords, security questions", getRune(letter), func() {
 			infoText.SetText(editFieldInfo)
 			// code copied from blankNewEntry
 			blankNewField(e)
 			pages.ShowPage("/newField")
 			app.SetFocus(newFieldForm)
 		})
-		letter.increment()
+		letter = increment(letter)
 		if e.Circulate { // If it is in circulation, option to opt out
-			editList.AddItem("remove from circulation", "(not permanant), check /help for info", letter.getRune(), func() {
+			editList.AddItem("remove from circulation", "(not permanant), check /help for info", getRune(letter), func() {
 				e.Circulate = false
 				switchToEditList(true)
 			})
 
 		} else { // If it's not in circulation, option to opt back in
-			editList.AddItem("add back to circulation", "(not permanant), check /help for info", letter.getRune(), func() {
+			editList.AddItem("add back to circulation", "(not permanant), check /help for info", getRune(letter), func() {
 				e.Circulate = true
 				switchToEditList(true)
 			})
 		}
-		letter.increment()
-		editList.AddItem("delete entry", "(permanant!!)", letter.getRune(), func() {
+		letter = increment(letter)
+		editList.AddItem("delete entry", "(permanant!!)", getRune(letter), func() {
 			infoText.SetText(editFieldInfo)
 			blankEditDeleteEntry()
 			pages.ShowPage("/editDelete")
@@ -752,74 +751,75 @@ func main() {
 		SetSecondaryTextColor(blue).
 		SetShortcutColor(lavender).
 		SetDoneFunc(switchToHome) // Needs to happen after switchToHome is filled
+
 	blankCopen := func(i int) {
 		letter := newIterator()
 		copenList.Clear()
 		e := entries[i]
 
-		copenList.AddItem("leave /copen " + strconv.Itoa(i), "(takes you back to /home)", letter.getRune(), func() {
+		copenList.AddItem("leave /copen " + strconv.Itoa(i), "(takes you back to /home)", getRune(letter), func() {
 			clipboard.WriteAll("banana")
 			switchToHome()
 		})
-		letter.increment()
-		copenList.AddItem("name:", e.Name, letter.getRune(), func() {
+		letter = increment(letter)
+		copenList.AddItem("name:", e.Name, getRune(letter), func() {
 			clipboard.WriteAll(e.Name)
 		})
 		if e.Tags != "" {
-			letter.increment()
-			copenList.AddItem("tags:", e.Tags, letter.getRune(), func() {
+			letter = increment(letter)
+			copenList.AddItem("tags:", e.Tags, getRune(letter), func() {
 				clipboard.WriteAll(e.Tags)
 			})
 		}
 		for _, u := range e.Usernames {
 			u := u
-			letter.increment()
-			copenList.AddItem(u.DisplayName + ":", u.Value, letter.getRune(), func() {
+			letter = increment(letter)
+			copenList.AddItem(u.DisplayName + ":", u.Value, getRune(letter), func() {
 				clipboard.WriteAll(u.Value)
 			})
 		}
 		for _, p := range e.Passwords {
 			p := p
-			letter.increment()
-			copenList.AddItem(p.DisplayName + ":", "[black]" + p.Value, letter.getRune(), func() {
+			letter = increment(letter)
+			copenList.AddItem(p.DisplayName + ":", "[black]" + p.Value, getRune(letter), func() {
 				clipboard.WriteAll(p.Value)
 			})
 		}
 		for _, sq := range e.SecurityQ {
 			sq := sq
-			letter.increment()
-			copenList.AddItem(sq.DisplayName + ":", "[black]" + sq.Value, letter.getRune(), func() {
+			letter = increment(letter)
+			copenList.AddItem(sq.DisplayName + ":", "[black]" + sq.Value, getRune(letter), func() {
 				clipboard.WriteAll(sq.Value)
 			})
 		}
 		for _, n := range e.Notes {
 			n := n
 			if n != "" {
-				letter.increment()
-				copenList.AddItem("note:", n, letter.getRune(), func() {
+				letter = increment(letter)
+				copenList.AddItem("note:", n, getRune(letter), func() {
 					clipboard.WriteAll(n)
 				})
 			}
 		}
-		letter.increment()
-		copenList.AddItem("in circulation:", strconv.FormatBool(e.Circulate), letter.getRune(), func() {
+		letter = increment(letter)
+		copenList.AddItem("in circulation:", strconv.FormatBool(e.Circulate), getRune(letter), func() {
 			clipboard.WriteAll(strconv.FormatBool(e.Circulate))
 		})
 		if !e.Modified.IsZero() {
-			letter.increment()
-			copenList.AddItem("date last modifed:", fmt.Sprint(e.Modified.Date()), letter.getRune(), func() {
+			letter = increment(letter)
+			copenList.AddItem("date last modifed:", fmt.Sprint(e.Modified.Date()), getRune(letter), func() {
 				clipboard.WriteAll(fmt.Sprint(e.Modified.Date()))
 			})
 		}
 		if !e.Opened.IsZero() {
-			letter.increment()
-			copenList.AddItem("date last opened:", fmt.Sprint(e.Opened.Date()), letter.getRune(), func() {
+			letter = increment(letter)
+			copenList.AddItem("date last opened:", fmt.Sprint(e.Opened.Date()), getRune(letter), func() {
 				clipboard.WriteAll(fmt.Sprint(e.Opened.Date()))
 			})
 		}
 		if !e.Created.IsZero() {
-			letter.increment()
-			copenList.AddItem("date created:", fmt.Sprint(e.Created.Date()), letter.getRune(), func() {
+			letter = increment(letter)
+			copenList.AddItem("date created:", fmt.Sprint(e.Created.Date()), getRune(letter), func() {
 				clipboard.WriteAll(fmt.Sprint(e.Created.Date()))
 			})
 		}
@@ -867,15 +867,15 @@ func main() {
 		infoText.SetText(" " + printCommand + pickInfo)
 		letter := newIterator()
 		pickList.Clear()
-		pickList.AddItem("leave " + action, "(takes you back to /home)", letter.getRune(), func() {
+		pickList.AddItem("leave " + action, "(takes you back to /home)", getRune(letter), func() {
 			switchToHome()
 		})
 		for _, i := range indexes {
 			i := i
 			if entries[i].Circulate {
-				letter.increment()
+				letter = increment(letter)
 
-				pickList.AddItem("[" + strconv.Itoa(i) + "] " + entries[i].Name, "tags: " + entries[i].Tags, letter.getRune(), func() {
+				pickList.AddItem("[" + strconv.Itoa(i) + "] " + entries[i].Name, "tags: " + entries[i].Tags, getRune(letter), func() {
 					if action == "/pick" { // to transfer to /open #
 						// following code copied from commandLineActions function
 						pages.SwitchToPage("/open")
@@ -960,7 +960,7 @@ func main() {
 	findInfo := " /find\n -----\n to open:\n  /open #\n to copy:\n  /copen #\n to edit:\n  /edit #\n\n /home\n /help\n /quit\n\n /new\n /copy #\n\n /flist str\n\n /list\n /pick\n /picc\n\n /comp # #\n /reused"
 	// /test or /t is a secret command. It does fmt.Sprint(entries) and prints
 	// it to testText. It doesn't blott out any of the passwords.
-	testText := tview.NewTextView().SetScrollable(true)	
+	testText := tview.NewTextView().SetScrollable(true)
 	// This is the text box for /comp
 	compText := tview.NewTextView().SetScrollable(true)
 	// The text box for /reused
@@ -1075,7 +1075,7 @@ func main() {
 			infoText.SetText(listInfo)
 			pages.SwitchToPage("/list")
 		case "/find":
-			title, text := findEntries(entries, inputedArr[1])
+			title, text := blankFind(entries, inputedArr[1])
 			list.title.SetText(title)
 			list.text.SetText(text).ScrollToBeginning()
 			pages.SwitchToPage("/list")
@@ -1147,10 +1147,6 @@ func main() {
 		}
 	}
 	commandLineInput.SetDoneFunc(commandLineActions)
-
-	// ------------------------------------------------ //
-	//     setting up the flexes, grids, pages :)       //
-	// ------------------------------------------------ //
 
 	passErr.flex.SetDirection(tview.FlexRow).
 		AddItem(passErr.title, 0, 1, false).
@@ -1385,46 +1381,47 @@ func grider(prim tview.Primitive) *tview.Grid {
 	return grid
 }
 
+// Used for alphabet letters in the lists in /pic(k/c), /copen, /flist.
 func newIterator() alphabetIterater {
 	return alphabetIterater{count: int('a')}
 }
-
-func (iterator *alphabetIterater) increment() {
+func increment(iterator alphabetIterater) alphabetIterater {
 	iterator.count++
 
 	if (iterator.count - int('a')) > 25 {
 		iterator.count = int('a')
 	}
+	return iterator
 }
-
-func (iterator alphabetIterater) getRune() rune {
+func getRune(iterator alphabetIterater) rune {
 	return rune(iterator.count) 
 }
 
 // To write to the text box for /open of the entry index i.
 func blankOpen(i int, entries []entry) string {
 	e := entries[i]
-	print := " "
 
-	print += "[" + strconv.Itoa(i) + "] " + e.Name + "\n "
-	print += strings.Repeat("-", len([]rune(print))-3) + " \n" // Right now it matches under the letters of title, if at -2 then it goes one out
+	var print strings.Builder
+
+	print.WriteString(" [" + strconv.Itoa(i) + "] " + e.Name)
+	print.WriteString("\n " + strings.Repeat("-", len([]rune(print.String()))-1)) // Right now it matches under the letters of title, if at -2 then it goes one out
 	if e.Tags != "" {
-		print += " tags: " + e.Tags + "\n"
+		print.WriteString("\n tags: " + e.Tags)
 	}
 	for _, u := range e.Usernames {
-		print += " " + u.DisplayName + ": " + u.Value + "[white]\n"
+		print.WriteString("\n " + u.DisplayName + ": " + u.Value + "[white]")
 	}
 	for _, p := range e.Passwords {
-		print += " " + p.DisplayName + ": [black]" + p.Value + "[white]\n"
+		print.WriteString("\n " + p.DisplayName + ": [black]" + p.Value + "[white]")
 	}
 	for _, sq := range e.SecurityQ {
-		print += " " + sq.DisplayName + ": [black]" + sq.Value + "[white]\n"
+		print.WriteString("\n " + sq.DisplayName + ": [black]" + sq.Value + "[white]")
 	}
 	emptyNotes := true
 	for _, n := range e.Notes {
 		if n != "" {
 			emptyNotes = false
-			print += " notes: "
+			print.WriteString(" notes: ")
 			break
 		}
 	}
@@ -1432,60 +1429,40 @@ func blankOpen(i int, entries []entry) string {
 		blankLines := 0 // Stops printing \n\n\n\n if only text in first line
 		for _, n := range e.Notes {
 			if n == "" {
-				print += "\n"
+				blankLines++
 			} else {
-				print += strings.Repeat("\n", blankLines)
+				print.WriteString(strings.Repeat("\n", blankLines))
 				for len([]rune(n)) > 61 {
-					print += "\n\t " + n[:61]
+					print.WriteString("\n\t " + n[:61])
 					n = n[60:]
 				}
-				print += "\n\t " + n
+				print.WriteString("\n\t " + n)
 				// print += "\n\t " + n
 				blankLines = 0
 			}
 		}
 	}
-	print += "\n\n[white]"
+	print.WriteString("\n\n[white]")
 	// Following is info about the entry
-	print += " in circulation: " + strconv.FormatBool(e.Circulate) + "\n"
+	print.WriteString(" in circulation: " + strconv.FormatBool(e.Circulate) + "\n")
 	if !e.Modified.IsZero() { // if it's not jan 1, year 1
-		print += " date last modified: " + fmt.Sprint(e.Modified.Date()) + "\n"
+		print.WriteString(" date last modified: " + fmt.Sprint(e.Modified.Date()) + "\n")
 	}
 	if !e.Opened.IsZero() { // if it's not jan 1, year 1
-		print += " date last opened: " + fmt.Sprint(e.Opened.Date()) + "\n"
+		print.WriteString(" date last opened: " + fmt.Sprint(e.Opened.Date()) + "\n")
 	}
 	if !e.Created.IsZero() { // if it's not jan 1, year 1
-		print += " date created: " + fmt.Sprint(e.Created.Date())
+		print.WriteString(" date created: " + fmt.Sprint(e.Created.Date()))
 	}
 	entries[i].Opened = time.Now()
-	return print
+	return print.String()
 }
 
-// The string to write to the text box for /comp i1 i2
-func blankComp (i1 int, i2 int, entries []entry) string {
-	e1 := entries[i1]
-	e2 := entries[i2]
+// Formats the text box for /find. Retuns the action name in first string,
+// found entries in second.
+func blankFind(entries []entry, str string) (string, string) {
+	indexes := findIndexes(entries, str)
 
-	print := " "
-
-	print += "/comp: " + "[" + strconv.Itoa(i1) + "] " + e1.Name + " and " + "[" + strconv.Itoa(i2) + "] " + e2.Name + "\n "
-	print += strings.Repeat("-", len([]rune(print))-3) + "\n\n"
-
-	print += compPass(e1, e2)
-
-	return print
-}
-
-// This finds all of the entries with str in tags or names. Retuns the action
-// name in first string, found entries in second.
-func findEntries(entries []entry, str string) (string, string) {
-	indexes := []int{}
-	str = strings.ToLower(str)
-	for i, e := range entries {
-		if (strings.Contains(strings.ToLower(e.Name), str)) || (strings.Contains(strings.ToLower(e.Tags), str)) {
-			indexes = append(indexes, i)
-		}
-	}
 	// Trims out the /find str that prints so it won't go all the
 	// way to the other side of the text box. It still used the full
 	// str in the search. When printed, it will add a ... if it was trimmed
@@ -1503,12 +1480,24 @@ func findEntries(entries []entry, str string) (string, string) {
 	}
 }
 
+// Used in /find and /flist. Returns a slice of ints of all indexes with
+// 'inputStr' in the tags or name.
+func findIndexes(entries []entry, inputStr string) []int {
+	indexes := []int{}
+	str := strings.ToLower(inputStr)
+	for i, e := range entries {
+		if (strings.Contains(strings.ToLower(e.Name), str)) || (strings.Contains(strings.ToLower(e.Tags), str)) {
+			indexes = append(indexes, i)
+		}
+	}
+	return indexes
+}
+
 // This function formats some/all of the entries into thirds in a string. The
 // str taken in is put at the top, and is for example: " /find str \n-----..."
 // or " /list \n -----" The bool taken in differentiates it from /list or 
 // /find, to show or not to show the ones that are not in ciculation.
 func listEntries(entries []entry, indexes []int, str string, showOld bool) (string, string) {
-	printStr := ""
 	printEntries := []entry{}
 
 	if showOld {
@@ -1541,29 +1530,31 @@ func listEntries(entries []entry, indexes []int, str string, showOld bool) (stri
 	}
 
 	third := int(floatThird)
+	var print strings.Builder
 
 	for i := 0; i < third; i++ {
 		if i >= len(indexes) {
 			break
 		}
-		printStr += " " + indexName(indexes[i], entries)
+		print.WriteString(" " + indexName(indexes[i], entries))
 		if len(indexes) > i+third {
-			printStr += indexName(indexes[i+third], entries)
+			print.WriteString(indexName(indexes[i+third], entries))
 		}
 		if len(indexes) > i+third+third {
-			printStr += indexName(indexes[i+third+third], entries)
+			print.WriteString(indexName(indexes[i+third+third], entries))
 		}
 		if i != third-1 { // so it doesn't do it on the last one
-			printStr += "\n"
+			print.WriteString("\n")
 		}
 	}
-	return str, printStr // first string is the title, second is the body of the text
+	return str, print.String() // first string is the title, second is the body of the text
 }
 
 // This returns from a single index from entries to " [0] twitterDEMO       ",
 // with those exact spaces/number of characters in order to make a good column
-// shape. Used in /list If it is in /find but the entry isn't in circulation,
-// it will type (rem) right before the entry name. Ex: [1] (rem) Twitterg
+// shape. Used in /list. If it is in /find but the entry isn't in circulation,
+// it will type (rem) right before the entry name. Ex: [1] (rem) Twitter
+// Not worth it to do strings.Builder here because of the str[0:21] calls.
 func indexName(index int, entries []entry) string {
 	str := "[" + strconv.Itoa(index) + "] "
 
@@ -1575,119 +1566,135 @@ func indexName(index int, entries []entry) string {
 	len := len([]rune(str))
 
 	if len > 21 { // Trims it if it's over the character limit
-		str = str[0:21]
-		str += " "
+		str = str[0:21] + " "
 	} else {
 		str += strings.Repeat(" ", 22-len)
 	}
 	return str
 }
 
+// The string to write to the text box for /comp i1 i2
+func blankComp (i1 int, i2 int, entries []entry) string {
+	e1 := entries[i1]
+	e2 := entries[i2]
+
+	var print strings.Builder
+
+	print.WriteString(" ")
+
+	print.WriteString("/comp: " + "[" + strconv.Itoa(i1) + "] " + shortenedName(e1.Name) + " and " + "[" + strconv.Itoa(i2) + "] " + shortenedName(e2.Name) + "\n ")
+	print.WriteString(strings.Repeat("-", len([]rune(print.String()))-3) + "\n\n")
+
+	print.WriteString(compPass(e1, e2))
+
+	return print.String()
+}
+
 // Looks for duplicates between the passwords and security question answers of
 // two entries, e1 and e2.
 func compPass(e1 entry, e2 entry) string {
-	compared := ""
 
 	compMap := make(map[string][]reusedPass) // reusedPass is a struct
+	name1 := shortenedName(e1.Name)
+	name2 := shortenedName(e2.Name)
 
-	// adding all passwords and securityQs to the map
+	// Adding all passwords and securityQs to the map
 	for _, p := range e1.Passwords {
-		compMap[p.Value] = append(compMap[p.Value], reusedPass{displayName: p.DisplayName, entryName: e1.Name})
+		compMap[p.Value] = append(compMap[p.Value], reusedPass{displayName: p.DisplayName, entryName: name1})
 	}
 	for i, s := range e1.SecurityQ {
-		compMap[s.Value] = append(compMap[s.Value], reusedPass{displayName: "security question " + strconv.Itoa(i), entryName: e1.Name})
+		compMap[s.Value] = append(compMap[s.Value], reusedPass{displayName: "security question " + strconv.Itoa(i), entryName: name1})
 	}
 	for _, p := range e2.Passwords {
-		compMap[p.Value] = append(compMap[p.Value], reusedPass{displayName: p.DisplayName, entryName: e2.Name})
+		compMap[p.Value] = append(compMap[p.Value], reusedPass{displayName: p.DisplayName, entryName: name2})
 	}
 	for i, s := range e2.SecurityQ {
-		compMap[s.Value] = append(compMap[s.Value], reusedPass{displayName: "security question " + strconv.Itoa(i), entryName: e2.Name})
+		compMap[s.Value] = append(compMap[s.Value], reusedPass{displayName: "security question " + strconv.Itoa(i), entryName: name2})
 	}
 
-	// going through the map and looking at duplicates
+	var print strings.Builder
+
+	// Going through the map and looking at duplicates
 	for _, reusedStruct := range compMap {
 		if len(reusedStruct) == 2 { // if same pass twice, most common
-			compared += " " + reusedStruct[0].entryName + "'s " + reusedStruct[0].displayName + " = " + reusedStruct[1].entryName + "'s " + reusedStruct[1].displayName + "\n"
+			print.WriteString(" " + reusedStruct[0].entryName + "'s " + reusedStruct[0].displayName + " = " + reusedStruct[1].entryName + "'s " + reusedStruct[1].displayName + "\n")
 		} else if len(reusedStruct) > 2 { // less common
 			for i, r := range reusedStruct {
-				compared += " " + r.entryName + "'s " + r.displayName
+				print.WriteString(" " + r.entryName + "'s " + r.displayName)
 				if (i + 1) < len(reusedStruct) { // on the not last time through
-					compared += " =\n"
+					print.WriteString(" =\n")
 				} else { // happens on the last time through
-					compared += "\n"
+					print.WriteString("\n")
 				}
 			}
 		}
 	}
 
-	if compared == "" {
+	if print.Len() < 1 {
 		if (len(e1.Passwords) < 1) && (len(e1.SecurityQ) < 1) {
-			compared = " " + e1.Name + " has no passwords or security questions" + "\n"
+			print.WriteString(" " + name1 + " has no passwords or security questions" + "\n")
 		}
 		if len(e2.Passwords) < 1 && (len(e2.SecurityQ) < 1){
-			compared += " " + e2.Name + " has no passwords or security questions" + "\n"
+			print.WriteString(" " + name2 + " has no passwords or security questions" + "\n")
 		}
-		compared += "\n Therefore, there are no passwords in common!"
+		print.WriteString("\n Therefore, there are no passwords in common!")
 	}
-
-	return compared
+	return print.String()
 }
 
 // Looks for password duplicates between all of the passwords, using a map of
 // slices of reusedPass structs.
 func reusedAll(entries []entry) string {
-	print := ""
+	var print strings.Builder
 
 	reused := make(map[string][]reusedPass) // reusedPass is a struct
 
 	for i, e := range entries {
+		name := shortenedName(e.Name)
+
 		for _, p := range e.Passwords {
-			reused[p.Value] = append(reused[p.Value], reusedPass{displayName: p.DisplayName, entryName: e.Name, entryIndex: i})
+			reused[p.Value] = append(reused[p.Value], reusedPass{displayName: p.DisplayName, entryName: name, entryIndex: i})
 		}
 		for iSq, s := range e.SecurityQ {
-			reused[s.Value] = append(reused[s.Value], reusedPass{displayName: "security question " + strconv.Itoa(iSq), entryName: e.Name, entryIndex: i})
+			reused[s.Value] = append(reused[s.Value], reusedPass{displayName: "security question " + strconv.Itoa(iSq), entryName: name, entryIndex: i})
 		}
 	}
 
 	for pass, reusedStruct := range reused {
 		if len(reusedStruct) > 1 { // if there's more than one entry in the list of entries for password
-			print += " [darkslategray]" + pass + "[white]:\n"
+			print.WriteString(" [darkslategray]" + pass + "[white]:\n")
 			for _, r := range reusedStruct {
-				print += " [" + strconv.Itoa(r.entryIndex) + "] " + r.entryName + "'s " + r.displayName + "\n"
+				print.WriteString(" [" + strconv.Itoa(r.entryIndex) + "] " + r.entryName + "'s " + r.displayName + "\n")
 			}
-			print += "\n"
+			print.WriteString("\n")
 		}
 	}
 
-	if print == "" {
+	if print.Len() < 1 {
 		return " There are no reused passwords anywhere!?\n Good job!"
 	}
 
-	print = print[:len([]rune(print))-2] // gets rid of the last \n\n
-	return print
+	printStr := print.String()[:len([]rune(print.String()))-2] // gets rid of the last \n\n
+	return printStr
 }
 
-// Used in /find. Returns a slice of ints of all indexes with 'inputStr' in the
-// tags or name.
-func findIndexes(entries []entry, inputStr string) []int {
-	indexes := []int{}
-	str := strings.ToLower(inputStr)
-	for i, e := range entries {
-		if (strings.Contains(strings.ToLower(e.Name), str)) || (strings.Contains(strings.ToLower(e.Tags), str)) {
-			indexes = append(indexes, i)
-		}
+// Shortened name of an entry, for /reused and /comp
+func shortenedName(name string) string {
+	if len([]rune(name)) > 22 {
+		return name[:22]
 	}
-	return indexes
+	return name
 }
 
-// This is called in /test in order to add all of the entries to a single
-// string.
+// Called in /test in order to add all of the entries to a single string.
 func testAllFields(entries []entry) string {
-	allValues := " Test of all fields that are known:"
+	var print strings.Builder
+	print.WriteString(" Test of all fields that are known:")
+
 	for _, e := range entries {
-		allValues += "\n\n " + fmt.Sprint(e)
+		print.WriteString("\n\n" + fmt.Sprint(e))
 	}
-	return allValues
+	return print.String()
 }
 
 // If this is changed, also change createEncr.go and changeKey.go. If it fails
