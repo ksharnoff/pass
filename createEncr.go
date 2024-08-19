@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v3"
 	"os"
-	"pass/encrypt"
+	"github.com/ksharnoff/pass/encrypt"
 	"strings"
 	"time"
 )
@@ -47,9 +47,9 @@ func main() {
 		fmt.Print("\033[F\r", strings.Repeat(" ", len(password)))
 		fmt.Println("")
 
-		if password == "/quit" {
-			fmt.Println("Please chose a different password!\nIt cannot be /quit")
-			continue
+		if (password == "/quit")||(password == "/q") {
+			fmt.Println("Please chose a different password!\nIt cannot be /quit or /q")
+			password = "/quit"
 		}
 	}
 
