@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v3"
 	"os"
-	"pass/encrypt"
+	"github.com/ksharnoff/pass/encrypt"
 	"strings"
 
 	"crypto/aes"
@@ -47,14 +47,15 @@ func main() {
 	fmt.Println("")
 
 	newPass := "/quit"
-	for newPass == "/quit" {
+	for (newPass == "/quit") {
 		fmt.Println("Write your new password: ")
 		fmt.Scan(&newPass)
 		fmt.Print("\033[F\r", strings.Repeat(" ", len(newPass)))
 		fmt.Println("")
 
-		if newPass == "/quit" {
-			fmt.Println("Please chose a different password!\nIt cannot be /quit\n")
+		if (newPass == "/quit")||(newPass == "/q") {
+			fmt.Println("Please chose a different password!\nIt cannot be /quit or /q\n")
+			newPass = "/quit"
 		}
 	}
 
