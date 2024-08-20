@@ -88,7 +88,7 @@ There is no limit to the number of usernames, passwords, or security questions y
 `/pick` and `/picc` look mostly identical. They are lists of all the entries, like `/list`, except you can select and open an entry. `/pick` will `/open` an entry while `/picc` will `/copen` an entry.
 
 ### `/comp # #`
-![Picture of /comp 2 24. In the big square left text box, it says the entries’ indices and names, [2] akjsdf;k and [24] cvbnncbbcveqwbcnew. Under that, it says that akjsdf;k’s security question 0 = cvbnncbbcveqwbcnew’s password. There is a column box on the right listing all of the commands and a blue input line at the bottom.](https://github.com/ksharnoff/pass/blob/main/examples/%3Acomp%20Medium.jpeg)
+![Picture of /comp 2 24. In the big square left text box, it says the entries’ indices and names, [2] akjsdf;k and [24] cvbnncbbcveqwbcnew. Under that, it says that akjsdf;k’s security question 0 = cvbnncbbcveqwbcnew’s password. There is a column box on the right listing all of the commands and a blue input line at the bottom.](https://github.com/ksharnoff/pass/blob/main/examples/comp.jpeg)
 
 `/comp # #` looks for duplicate passwords or answers to security questions between two entries.
 
