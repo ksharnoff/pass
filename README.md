@@ -8,9 +8,9 @@ In the manager, and in this README, I have used `#` to represent a number and `s
 ## starting for the first time
 Download all of the files (except the example folder of screenshots) into a folder called `pass`. Make sure there is a folder within `pass` called `encrypt` that `encrypt.go` is in. This is necessary as `encrypt.go` is imported for several different files.
 
-Use the createEncr.go file to create and encrypt your file of password the first time. In all future times, you can just run pass.go and all should work.
+Use the `createEncr.go` file to create and encrypt your file of password the first time. In all future times, you can just `run pass.go` and all should work.
 
-There is also changeKey.go for decrypting the file and then encrypting it with a different key, in order to change your password or key parameters. 
+There is also `changeKey.go` for decrypting the file and then encrypting it with a different key, in order to change your password or key parameters. 
 
 ## tview and visuals
 I used the TUI [tview](https://github.com/rivo/tview). I used four types of primitives: input fields, lists, text boxes, and forms. In order to format them, I used flexes, pages, and grids. I used grids only to add borders around the primitives. 
@@ -30,7 +30,7 @@ The way that the program knows if you put in the right password is if it can unm
 
 This password manager is unsuitable for cloud computing or a shared computer as the decrypted information is stored in the memory.
 
-The encryption is in the file encrypt.go which must be in a folder called encrypt inside the greater pass folder as that is how the imports work. encrypt.go gets imported into not just pass.go but the files for setting up the program.
+The encryption is in the file `encrypt.go` which must be in a folder called encrypt inside the greater pass folder as that is how the imports work. `encrypt.go` gets imported into not just `pass.go` but the files for setting up the program.
 
 ## commands
 This section is about all of the actions that can be done with the password manager.
