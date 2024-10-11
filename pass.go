@@ -1439,7 +1439,7 @@ func blankOpen(i int, entries []entry) string {
 	// Following is info about the entry
 	print.WriteString(fmt.Sprint(" in circulation: ", strconv.FormatBool(e.Circulate), "\n"))
 	if !e.Modified.IsZero() { // if it's not jan 1, year 1
-		print.WriteString(fmt.Sprint(" date last modified: ", fmt.Sprint(e.Modified.Date())), "\n")
+		print.WriteString(fmt.Sprint(" date last modified: ", fmt.Sprint(e.Modified.Date()), "\n"))
 	}
 	if !e.Opened.IsZero() { // if it's not jan 1, year 1
 		print.WriteString(fmt.Sprint(" date last opened: ", fmt.Sprint(e.Opened.Date()), "\n"))
