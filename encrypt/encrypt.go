@@ -1,7 +1,7 @@
 package encrypt
 
 import (
-	// for encrypting things
+	// for encryption
 	"crypto/aes"
 	"crypto/cipher"
 	"golang.org/x/crypto/argon2"
@@ -12,7 +12,6 @@ import (
 )
 
 const FileName = "pass.yaml"
-// const FileName = "realPass.yaml"
 
 // Makes a key, then a cipher block. It returns "" if the
 // password generation was successfull.
@@ -23,11 +22,10 @@ func KeyGeneration(password string) (cipher.Block, string) {
 		return nil, "password for key generation is too short, string empty"
 	}
 
-	// Salt generation must be the same thing every time.
+	// Salt generation will be the same every time - fine with argon2
 	salt := []byte("qwertyuiopasdfghjklzxcvbnm")
 
-	// Current parameters: 4, 2048*1024, 4, 32 -- takes about 2 seconds
-	key := argon2.IDKey([]byte(password), salt, 4, 2048*1024, 4, 32)
+	key := argon2.IDKey([]byte(password), salt, 1, 64*1024, 4, 32)
 
 	ciphBlock, err := aes.NewCipher(key)
 
