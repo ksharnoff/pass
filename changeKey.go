@@ -133,8 +133,8 @@ func keyGeneration(password string) (cipher.Block, string) {
 
 	salt := []byte("qwertyuiopasdfghjklzxcvbnm")
 
-	// parameters currently in encrypt.go are: 4, 2048*1024, 4, 32
-	key := argon2.IDKey([]byte(password), salt, 4, 2048*1024, 4, 32)
+	// parameters currently in encrypt.go are: 1, 64*1024, 4, 32
+	key := argon2.IDKey([]byte(password), salt, 1, 64*1024, 4, 32)
 
 	ciphBlock, err := aes.NewCipher(key)
 
