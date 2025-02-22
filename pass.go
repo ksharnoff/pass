@@ -1,3 +1,7 @@
+/*
+BUG!!!
+	- on compiled version on jan 6, 2025 when you /o 126 the last letter at the edge of a line in notes repeats to next line
+*/
 package main
 
 import (
@@ -25,6 +29,7 @@ type entry struct {
 	SecurityQ []field
 	Notes     [6]string // is 6 because that looks the best in /new
 	Circulate bool
+	Link string
 	Created   time.Time
 	Modified  time.Time
 	Opened    time.Time
@@ -140,7 +145,7 @@ func main() {
 
 	// This tries to write to file, if it fails, it switches to the error page
 	// and returns false. The reason for returning false is so that when used
-	// else where it doesn't switch to error page and then immediatly switch
+	// else where it doesn't switch to error page and then immediately switch
 	// else where so it can't be seen.
 	writeFileErr := func() bool {
 		writeErr := writeToFile(entries, ciphBlock)
@@ -166,7 +171,7 @@ func main() {
 	indexSelected := -1
 
 	// This is whats written in infoText during /edit
-	editInfo := " /edit \n ----- \n to move: \n -tab \n -back tab \n -arrows keys\n -scroll\n\n to select: \n -return \n\n to leave: \n -esc key\n\n "
+	editInfo := " /edit \n ----- \n to move: \n -tab \n -back tab \n -arrows keys\n -scroll\n\n to select: \n -return \n\n to leave: \n -esc key\n -a"
 
 	// This function switches back to the edit list. It remakes the list each
 	// time and uses indexSelected It takes in a bool to know whether or not to
@@ -204,9 +209,7 @@ func main() {
 		flex: tview.NewFlex(),
 	}
 
-	// This is the form for editing a specific field and the flexes. There are
-	// two functions, one to edit the name or tags. The other is to edit one of
-	// the fields (password, username, or security questions)
+	// This is the form for editing a specific field and the flexes.
 	editFieldForm := tview.NewForm().
 		SetButtonBackgroundColor(blue).
 		SetFieldBackgroundColor(blue).
@@ -355,19 +358,18 @@ func main() {
 
 		dropDownFields := []string{"username", "password", "security question"}
 
-		// Only adds tags as an option to add on if it is in /edit,
-		// if there is no tags written already, and if tags isn't
-		// already added.
+		// Only adds tags and link as an option to add on if it is in /edit
 		if e != &tempEntry {
-			if (e.Tags == "") && (len(dropDownFields) == 3) {
-				// Don't change the text of "tags", its used elsewhere
+			edit = true
+			if (e.Tags == "") {
 				dropDownFields = append(dropDownFields, "tags")
 			}
-			edit = true
+			if (e.Link == "") {
+				dropDownFields = append(dropDownFields, "link")
+			}
 		}
-
 		tempField = field{}
-		tempTags := ""
+		tempStr := ""
 		fieldType := "" // To track what field is changing
 		newFieldForm.Clear(true)
 
@@ -379,11 +381,18 @@ func main() {
 			for newFieldForm.GetFormItemCount() > 1 { // needed for when you change your mind
 				newFieldForm.RemoveFormItem(1)
 			}
-
 			fieldType = chosenDrop
 			if index > -1 { // If something is chosen
-				if fieldType != "tags" { // If not tags, add displayName and value
-					
+				switch fieldType {
+				case "tags":
+					newFieldForm.AddInputField("tags:", tempEntry.Tags, 50, nil, func(tags string) {
+						tempStr = tags
+					})
+				case "link":
+					newFieldForm.AddInputField("link:", tempEntry.Tags, 50, nil, func(link string) {
+						tempStr = link
+					})
+				default: // username, passsword, security question		
 					inputLabel := "display name:" 
 					initialValue := ""
 
@@ -405,16 +414,11 @@ func main() {
 					newFieldForm.AddInputField("value:", "", 50, nil, func(value string) {
 						tempField.Value = value
 					})
-				} else { // Only has one input line for adding new tags
-					newFieldForm.AddInputField("tags:", tempEntry.Tags, 50, nil, func(tags string) {
-						tempTags = tags
-					})
 				}
 			}
 		})
-
 		newFieldForm.AddFormItem(fieldDropDown).AddButton("save field", func() {
-			if (tempField.DisplayName != "") || (tempTags != "") {
+			if (tempField.DisplayName != "") || (tempStr != "") {
 				switch fieldType {
 				case "username":
 					e.Usernames = append(e.Usernames, tempField)
@@ -423,7 +427,9 @@ func main() {
 				case "security question":
 					e.SecurityQ = append(e.SecurityQ, tempField)
 				case "tags":
-					e.Tags = tempTags
+					e.Tags = tempStr
+				case "link":
+					e.Link = tempStr
 				}
 				if !edit { // If in /new
 					blankFieldsAdded()
@@ -501,10 +507,10 @@ func main() {
 			})
 	}
 
-	// For editing the name or tags.
+	// For editing the name, tags, or link.
 	blankEditStringForm := func(display, value string, e *entry) {
-		if (display != "name") && (display != "tags") {
-			switchToError(" Unexpected input!\n blankEditStringForm can only change name or tags")
+		if (display != "name") && (display != "tags") && (display != "link") {
+			switchToError(" Unexpected input!\n blankEditStringForm can only change name, tags, or link")
 			return
 		}
 		editFieldForm.Clear(true)
@@ -515,20 +521,27 @@ func main() {
 				tempValue = changed
 			}).
 			AddButton("save", func() {
-				if display == "name" {
+				switch display {
+				case "name":
 					e.Name = tempValue
-				} else {
+				case "tags" :
 					e.Tags = tempValue
+				case "link":
+					e.Link = tempValue
 				}
 				switchToEditList(true)
 			}).
 			AddButton("quit", func() {
 				switchToEditList(false)
 			})
-		// Can only delete tags, not the name
-		if display == "tags" {
+		// Can only delete tags or link, not the name
+		if (display == "tags")||(display == "link") {
 			editFieldForm.AddButton("delete", func() {
-				e.Tags = ""
+				if (display == "tags") {
+					e.Tags = ""
+				} else { // is "link"
+					e.Link = ""
+				}
 				switchToEditList(true)
 			})
 		}
@@ -571,7 +584,7 @@ func main() {
 			switchToHome()
 		})
 		letter = increment(letter)
-		editList.AddItem("name: ", e.Name, getRune(letter), func() {
+		editList.AddItem("name:", e.Name, getRune(letter), func() {
 			infoText.SetText(editFieldInfo)
 			blankEditStringForm("name", e.Name, e)
 			pages.ShowPage("/editFieldStr")
@@ -582,6 +595,15 @@ func main() {
 			editList.AddItem("tags:", e.Tags, getRune(letter), func() {
 				infoText.SetText(editFieldInfo)
 				blankEditStringForm("tags", e.Tags, e)
+				pages.ShowPage("/editFieldStr")
+				app.SetFocus(editFieldForm)
+			})
+		}
+		if e.Link != "" {
+			letter = increment(letter)
+			editList.AddItem("link:", e.Link, getRune(letter), func() {
+				infoText.SetText(editFieldInfo)
+				blankEditStringForm("link", e.Link, e)
 				pages.ShowPage("/editFieldStr")
 				app.SetFocus(editFieldForm)
 			})
@@ -650,6 +672,9 @@ func main() {
 		if e.Tags == "" {
 			newFieldStr += "tags, "
 		}
+		if e.Link == "" {
+			newFieldStr += "link, "
+		}
 		letter = increment(letter)
 		editList.AddItem("add new field", newFieldStr + "usernames, passwords, security questions", getRune(letter), func() {
 			infoText.SetText(editFieldInfo)
@@ -660,19 +685,19 @@ func main() {
 		})
 		letter = increment(letter)
 		if e.Circulate { // If it is in circulation, option to opt out
-			editList.AddItem("remove from circulation", "(not permanant), check /help for info", getRune(letter), func() {
+			editList.AddItem("remove from circulation", "(not permanent), check /help for info", getRune(letter), func() {
 				e.Circulate = false
 				switchToEditList(true)
 			})
 
 		} else { // If it's not in circulation, option to opt back in
-			editList.AddItem("add back to circulation", "(not permanant), check /help for info", getRune(letter), func() {
+			editList.AddItem("add back to circulation", "(not permanent), check /help for info", getRune(letter), func() {
 				e.Circulate = true
 				switchToEditList(true)
 			})
 		}
 		letter = increment(letter)
-		editList.AddItem("delete entry", "(permanant!!)", getRune(letter), func() {
+		editList.AddItem("delete entry", "(permanent!)", getRune(letter), func() {
 			infoText.SetText(editFieldInfo)
 			blankEditDeleteEntry()
 			pages.ShowPage("/editDelete")
@@ -691,6 +716,7 @@ func main() {
 		// be copied manually
 		tempEntry.Name = e.Name
 		tempEntry.Tags = e.Tags
+		tempEntry.Link = e.Link
 
 		tempEntry.Usernames = make([]field, len(e.Usernames))
 		copy(tempEntry.Usernames, e.Usernames)
@@ -705,13 +731,16 @@ func main() {
 		tempEntry.Circulate = true
 
 		newEntry.form.
-			AddInputField("name", tempEntry.Name, 50, nil, func(itemName string) {
+			AddInputField("name:", tempEntry.Name, 55, nil, func(itemName string) {
 				tempEntry.Name = itemName
 			}).
-			AddInputField("tags", tempEntry.Tags, 50, nil, func(tagsInput string) {
+			AddInputField("tags:", tempEntry.Tags, 55, nil, func(tagsInput string) {
 				tempEntry.Tags = tagsInput
 			}).
-			AddCheckbox("circulate", true, func(checked bool) {
+			AddInputField("link:", tempEntry.Link, 55, nil, func(linkInput string) {
+				tempEntry.Link = linkInput
+			}).
+			AddCheckbox("circulate:", true, func(checked bool) {
 				tempEntry.Circulate = checked
 			}).
 			// this order of the buttons is on purpose and makes sense
@@ -766,6 +795,12 @@ func main() {
 			letter = increment(letter)
 			copenList.AddItem("tags:", e.Tags, getRune(letter), func() {
 				clipboard.WriteAll(e.Tags)
+			})
+		}
+		if e.Link != "" {
+			letter = increment(letter)
+			copenList.AddItem("link:", e.Link, getRune(letter), func() {
+				clipboard.WriteAll(e.Link)
 			})
 		}
 		for _, u := range e.Usernames {
@@ -827,7 +862,7 @@ func main() {
 	// openText is the text box used for /open.
 	openText := tview.NewTextView().SetScrollable(true).SetDynamicColors(true)
 	openInfo := " /open\n -----\n to edit:\n  /edit #\n to copy:\n  /copen # \n\n /home\n /help\n /quit\n\n /new\n /copy #\n\n /find str\n /flist str\n\n /list\n /pick\n /picc\n\n /comp # #\n /reused"
-	copenInfo := " /copen \n ------\n to edit: \n /edit # \n\n to move: \n -tab \n -back tab \n -arrows keys\n -scroll\n\n to select:\n -return\n\n to leave:\n -esc key"
+	copenInfo := " /copen \n ------\n to edit: \n /edit # \n\n to move: \n -tab \n -back tab \n -arrows keys\n -scroll\n\n to select:\n -return\n\n to leave:\n -esc key\n -a"
 
 	// This is for /list as well as /find. It has the title textBox (/find str
 	// or /list) as well as the text textBox where it will list the entries.
@@ -844,7 +879,7 @@ func main() {
 		SetShortcutColor(lavender).
 		SetDoneFunc(switchToHome) // Needs to happen after switchToHome is filled
 	// The following will add /pick or /picc in the function itself
-	pickInfo := " to move: \n -tab \n -back tab \n -arrows keys\n\n to select: \n -return\n -click\n\n to leave: \n -esc key\n\n "
+	pickInfo := " to move: \n -tab \n -back tab \n -arrows keys\n\n to select: \n -return\n -click\n\n to leave: \n -esc key\n -a"
 
 	// Action is either going to be "/pick", "/picc", or "/flist str". This is 
 	// done to print out the action and send the function to the correct place.
@@ -873,7 +908,7 @@ func main() {
 
 				pickList.AddItem(fmt.Sprint("[", strconv.Itoa(i), "] ", entries[i].Name), "tags: " + entries[i].Tags, getRune(letter), func() {
 					if action == "/pick" { // to transfer to /open #
-						// following code copied from commandLineActions function
+						app.EnableMouse(false)
 						pages.SwitchToPage("/open")
 						app.SetFocus(commandLineInput)
 						canTypeCommandLinePlaceholder()
@@ -881,7 +916,6 @@ func main() {
 						infoText.SetText(openInfo)
 						writeFileErr()
 					} else { // to transfer to /copen # (for both /picc and /flist)
-						// following code copied from commandLineActions function
 						app.SetFocus(copenList)
 						app.EnableMouse(false)
 						pages.SwitchToPage("/copen")
@@ -1007,7 +1041,7 @@ func main() {
 			indexSelected = -1 // Sets it here to remove any previous doings
 
 			if len(inputedArr) < 2 { // if there is no number written
-				switchToError(fmt.Sprint(" To ", action[1:], " an entry you must write ", action, " and then a number.\n Ex: \n\t", action, " 3"))
+				switchToError(fmt.Sprint(" To ", action[1:], " an entry you must write ",action, " and then a number.\n Ex: \n\t", action, " 3"))
 				return
 			}
 			intTranslated, intErr := strconv.Atoi(inputedArr[1])
@@ -1169,8 +1203,8 @@ func main() {
 			AddItem(nil, 0, 1, false), 0, 5, false)
 
 	newEntry.flex.SetDirection(tview.FlexRow).
-		AddItem(newEntry.form, 0, 2, false).
-		AddItem(newFieldsAddedList, 0, 3, false) // 1:2 is the maximum
+		AddItem(newEntry.form, 0, 1, false).
+		AddItem(newFieldsAddedList, 0, 1, false) // 1:2 is the maximum
 
 	// Created the grid here which is added to the following
 	// three flexes.
@@ -1189,7 +1223,7 @@ func main() {
 			AddItem(nil, 0, 2, false).
 			AddItem(editFieldGrid, 0, 3, false).
 			AddItem(nil, 0, 3, false), 0, 4, false)
-	// To situate edit field if it is editing tags or names in /edit
+	// To situate edit field if it is editing name, tags, or link in /edit
 	editFieldStrFlex := tview.NewFlex().
 		AddItem(nil, 0, 1, false).
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
@@ -1251,14 +1285,14 @@ func main() {
 
  Use /edit # to edit an existing entry. You can edit the fields 
  already there, add new ones, remove it from circulation, or 
- delete it. While there is a delete button, it is reccomended that 
+ delete it. While there is a delete button, it is recommended that 
  you remove it from circulation instead. When that is done, it 
  won't show up in /list or /pick. All of the other commands (such 
  as /open, /edit, etc.) will still work on it. 
  Edits are saved as soon as you click save on each specific field.
 
  Use /find str to search for entries. /find str will return all of
- the entries that contain str in the name or the tags. In both
+ the entries that contain str in the name, tags, or link. In both
  /find str and /list, the resulting entries may not show their
  full name for space. Use /flist str to see a list of entries with 
  that str, when clicked they are /copen.
@@ -1371,6 +1405,8 @@ func grider(prim tview.Primitive) *tview.Grid {
 }
 
 // Used for alphabet letters in the lists in /pic(k/c), /copen, /flist.
+// They are functions without pointers because I tried it incrementing 50,000+ 
+// times and functions without pointers was faster than methods and/or pointers
 func newIterator() alphabetIterater {
 	return alphabetIterater{count: int('a')}
 }
@@ -1401,6 +1437,9 @@ func blankOpen(i int, entries []entry) string {
 	print.WriteString(fmt.Sprint("\n ", strings.Repeat("-", len([]rune(print.String()))-1))) // Right now it matches under the letters of title, if at -2 then it goes one out
 	if e.Tags != "" {
 		print.WriteString(fmt.Sprint("\n tags: ", e.Tags))
+	}
+	if e.Link != "" {
+		print.WriteString(fmt.Sprint("\n link: ", e.Link))
 	}
 	for _, u := range e.Usernames {
 		print.WriteString(fmt.Sprint("\n ", u.DisplayName, ": ", u.Value, "[white]"))
@@ -1451,7 +1490,7 @@ func blankOpen(i int, entries []entry) string {
 	return print.String()
 }
 
-// Formats the text box for /find. Retuns the action name in first string,
+// Formats the text box for /find. Returns the action name in first string,
 // found entries in second.
 func blankFind(entries []entry, str string) (string, string) {
 	indexes := findIndexes(entries, str)
@@ -1470,12 +1509,12 @@ func blankFind(entries []entry, str string) (string, string) {
 }
 
 // Used in /find and /flist. Returns a slice of ints of all indexes with
-// 'inputStr' in the tags or name.
+// 'inputStr' in the name, tags, or link.
 func findIndexes(entries []entry, inputStr string) []int {
 	indexes := []int{}
 	str := strings.ToLower(inputStr)
 	for i, e := range entries {
-		if (strings.Contains(strings.ToLower(e.Name), str)) || (strings.Contains(strings.ToLower(e.Tags), str)) {
+		if (strings.Contains(strings.ToLower(e.Name), str)) || (strings.Contains(strings.ToLower(e.Tags), str)) || (strings.Contains(strings.ToLower(e.Link), str)) {
 			indexes = append(indexes, i)
 		}
 	}
