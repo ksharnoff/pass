@@ -8,29 +8,27 @@ In the manager, and in this README, I have used `#` to represent a number and `s
 ## starting for the first time
 Download all of the files (except the example folder of screenshots) into a folder called `pass`. Make sure there is a folder within `pass` called `encrypt` that `encrypt.go` is in. This is necessary as `encrypt.go` is imported for several different files.
 
-Use the `createEncr.go` file to create and encrypt your file of password the first time. In all future times, you can just `run pass.go` and all should work.
+Use `createEncr.go` to create and encrypt your file of passwords the first time. In all future times, you should just run `pass.go`.
 
-There is also `changeKey.go` for decrypting the file and then encrypting it with a different key, in order to change your password or key parameters. 
+You can also use `changeKey.go` for decrypting the file and then encrypting it with a different key, in order to change your password or key parameters. 
 
 ## tview and visuals
 I used the TUI [tview](https://github.com/rivo/tview). I used four types of primitives: input fields, lists, text boxes, and forms. In order to format them, I used flexes, pages, and grids. I used grids only to add borders around the primitives. 
 
-The majority of the code is anonymous functions inside of func main in order to set up the primitives.
+I coded it for a 84x28 terminal window size with the font Monaco, size 18. I chose this window size because it best fit the three columns for `/list` and `/find` with that font size. A future feature I will add is scaling to different window sizes. 
 
-I coded it for a 84x28 window size with a text font of monaco, size 18. I chose this window size because it best fit the three columns for `/list` and `/find` with that font size.
-
-It will work with all fonts (to my knowledge), however you may not be able to see all the items without scrolling or pressing the tab. If your font is bigger than monaco size 18, then you should use a bigger window size. 
+It will work with all sized fonts, however you may not be able to see all the items without scrolling or pressing tab. If your font is bigger than Monaco size 18, then you should use a bigger window size. 
 
 ## encryption and file writing
-All of the entries are [marshaled](https://pkg.go.dev/gopkg.in/yaml.v3#Marshal) as if they were going to be written to a yaml file. Instead, that byte slice is entirely encrypted before being written to the file. Then, when reading from the file, the byte slice is decrypted and turned into the slice of entries. Therefore, the password to the password manager must be put in at the beginning before accessing any of the commands.
+All of the entries are [marshaled](https://pkg.go.dev/gopkg.in/yaml.v3#Marshal) as if they were going to be written to a YAML file. Instead, that byte slice is entirely encrypted before being written to the file. Then, when reading from the file, the byte slice is decrypted and turned into the slice of entries. Therefore, the password to the password manager must be put in at the beginning before accessing any of the commands.
 
 Argon2 is used to make a key and then the entries are encrypted with AES-256.
 
-The way that the program knows if you put in the right password is if it can unmarshal the data successfully.
+The way that the program knows if you put in the right password is if it can unmarshal the data successfully, this is more secure than trying to decrypt a known text.
 
-This password manager is unsuitable for cloud computing or a shared computer as the decrypted information is stored in the memory.
+This password manager is unsuitable for cloud computing or a shared computer as the decrypted information is stored in the memory. I will update this in the future so that sensitive information is not in the memory, I do not believe this to be a big risk on a single user computer, though. 
 
-The encryption is in the file `encrypt.go` which must be in a folder called encrypt inside the greater pass folder as that is how the imports work. `encrypt.go` gets imported into not just `pass.go` but the files for setting up the program.
+The encryption is done in `encrypt.go` which must be in a directory called `encrypt` inside the greater `pass` directory as that is how the imports work, `encrypt.go` is used for several other files. 
 
 ## commands
 This section is about all of the actions that can be done with the password manager.
@@ -102,13 +100,13 @@ There is no limit to the number of usernames, passwords, or security questions y
 ### mouse usage and clipboard
 When the mouse is enabled in tview in order to change the focus or click buttons, one cannot select and copy any text. 
 
-For ease of copying, there is `/copen #` which uses tview.List, where you select one of the fields and it copies to your clipboard.
+For ease of copying, there is `/copen #`, where you select one of the fields from the list and it copies to your clipboard. Once you quit out of viewing the entry, your clipboard is cleared.
 
 ### time values
 Times are saved for the date created, date last modified, and the date last opened. 
 Date last modified is only updated if any edits are made and saved in `/edit`.
 Date last opened is modified if the entry is opened by `/open #` or  `/copen #`. 
-These dates also work as security in case you notice irregularities.
+These dates also work as security in case of irregularities.
 
 ### circulation
 In each entry there is a boolean named `Circulate` which determines if the entry shows up in `/list`, `/pick`, and `/picc`. All commands that work on entries still work (`/edit`, `/open`, `/copy`, etc.). This can be used to reduce clutter of old entries without changing the entry numbers of later ones.
