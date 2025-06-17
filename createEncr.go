@@ -6,9 +6,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/ksharnoff/pass/encrypt"
 	"gopkg.in/yaml.v3"
 	"os"
-	"github.com/ksharnoff/pass/encrypt"
 	"strings"
 	"time"
 )
@@ -32,23 +32,32 @@ type Field struct {
 
 func main() {
 	_, statErr := os.Stat(encrypt.FileName) // os.Stat gets info about file
-	if statErr == nil { // gives error if file doesn't exist
-		fmt.Println("A file already exists under the name " + encrypt.FileName + "\nPlease:\n\t1) move that file to a different directory\nOR\n\t2) change the fileName variable in encrypt.go\n\nThis is protection so your data is not written over")
+	if statErr == nil {                     // gives error if file doesn't exist
+		fmt.Println("A file already exists under the name " + encrypt.FileName)
+		fmt.Println("Please:")
+		fmt.Println("\t1) move that file to a different directory")
+		fmt.Println("OR")
+		fmt.Println("\t2) change the fileName variable in encrypt.go")
+		fmt.Println("\nThis is protection so your data is not written over")
 		os.Exit(1)
 	}
 
-	entries := []entry{entry{Name: "Demo", Circulate: true}}
+	entries := []entry{ entry{ Name: "Demo", Circulate: true } }
 
 	password := "/quit"
 
 	for password == "/quit" {
-		fmt.Println("\n----------\nPlease write your password to encrypt your password manager.\nIf you forget it, there will be no way to access your passwords.\nAfter you press return, the password will disapear from terminal.")
+		fmt.Println("\n----------")
+		fmt.Println("Please write your password to encrypt your password manager.")
+		fmt.Println("If you forget it, there will be no way to access your passwords.")
+		fmt.Println("After you press return, the password will disappear from terminal.")
 		fmt.Scan(&password)
 		fmt.Print("\033[F\r", strings.Repeat(" ", len(password)))
 		fmt.Println("")
 
-		if (password == "/quit")||(password == "/q") {
-			fmt.Println("Please chose a different password!\nIt cannot be /quit or /q")
+		if (password == "/quit") || (password == "/q") ||
+			(password == "quit") || (password == "q") {
+			fmt.Println("Please chose a different password!\nIt cannot be /quit, /q, quit, or q")
 			password = "/quit"
 		}
 	}
@@ -70,7 +79,7 @@ func main() {
 	encryptedOutput := encrypt.Encrypt(output, ciphBlock)
 
 	writeErr := os.WriteFile(encrypt.FileName + ".tmp", encryptedOutput, 0600)
-	
+
 	if writeErr != nil {
 		printAndExit("Error in os.WriteFile:\n" + writeErr.Error())
 	}
