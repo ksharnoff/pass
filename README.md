@@ -10,29 +10,27 @@ Download all of the files (except the example folder of screenshots) into a fold
 
 Use `createEncr.go` to create and encrypt your file of passwords the first time. In all future times, you should just run `pass.go`.
 
-You can also use `changeKey.go` for decrypting the file and then encrypting it with a different key, in order to change your password or key parameters. 
+You can also use `changeKey.go` for decrypting the file and then encrypting it with a different password, in order to change your key generation parameters. 
 
 ## tview and visuals
 I used the TUI [tview](https://github.com/rivo/tview). I used four types of primitives: input fields, lists, text boxes, and forms. In order to format them, I used flexes, pages, and grids. I used grids only to add borders around the primitives. 
 
-I coded it for a 84x28 terminal window size with the font Monaco, size 18. I chose this window size because it best fit the three columns for `/list` and `/find` with that font size. A future feature I will add is scaling to different window sizes. 
-
-It will work with all sized fonts, however you may not be able to see all the items without scrolling or pressing tab. If your font is bigger than Monaco size 18, then you should use a bigger window size. 
+The password manager will scale to work on any sized terminal, with any font. I recommend using a monospaced font, for example, `Monaco`.
 
 ## encryption and file writing
 All of the entries are [marshaled](https://pkg.go.dev/gopkg.in/yaml.v3#Marshal) as if they were going to be written to a YAML file. Instead, that byte slice is entirely encrypted before being written to the file. Then, when reading from the file, the byte slice is decrypted and turned into the slice of entries. Therefore, the password to the password manager must be put in at the beginning before accessing any of the commands.
 
 Argon2 is used to make a key and then the entries are encrypted with AES-256.
 
-The way that the program knows if you put in the right password is if it can unmarshal the data successfully, this is more secure than trying to decrypt a known text.
+The way that the program knows if you put in the right password is if it can unmarshal the data successfully, the master password is never stored or written to a file. 
 
-This password manager is unsuitable for cloud computing or a shared computer as the decrypted information is stored in the memory. I will update this in the future so that sensitive information is not in the memory, I do not believe this to be a big risk on a single user computer, though. 
+This password manager is unsuitable for cloud computing or a shared computer as the decrypted information is stored in the memory. I will update this in the future so that sensitive information is not in the memory, I do not believe this to be a risk on a single user computer. 
 
-The encryption is done in `encrypt.go` which must be in a directory called `encrypt` inside the greater `pass` directory as that is how the imports work, `encrypt.go` is used for several other files. 
+The encryption is done in `encrypt.go` which must be in a directory called `encrypt` inside the greater `pass` directory as `encrypt.go` is used for several other files. 
 
 ## commands
 This section is about all of the actions that can be done with the password manager.
-All of the commands are called through the command line at the bottom. 
+All of the commands are called through the command line at the bottom. The terminal in these photos is 84x28 with the font Monaco, 18pt. 
 
 ### `/home`
 ![Picture of /home, a black screen with white dotted lines. There is a big empty box to the left, a column box on the right listing all the commands, and a blue input line at the bottom labeled “input: psst look to the right”.](https://github.com/ksharnoff/pass/blob/main/examples/home.jpeg)
