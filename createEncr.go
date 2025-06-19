@@ -16,11 +16,12 @@ import (
 type entry struct {
 	Name      string
 	Tags      string
-	Usernames []Field
-	Passwords []Field
-	SecurityQ []Field
+	Usernames []field
+	Passwords []field
+	SecurityQ []field
 	Notes     [6]string
 	Circulate bool
+	Urls      []string
 	Created   time.Time
 	Modified  time.Time
 	Opened    time.Time
@@ -42,7 +43,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	entries := []entry{ entry{ Name: "Demo", Circulate: true } }
+	entries := []entry{entry{Name: "Demo", Circulate: true}}
 
 	password := "/quit"
 
@@ -78,13 +79,13 @@ func main() {
 
 	encryptedOutput := encrypt.Encrypt(output, ciphBlock)
 
-	writeErr := os.WriteFile(encrypt.FileName + ".tmp", encryptedOutput, 0600)
+	writeErr := os.WriteFile(encrypt.FileName+".tmp", encryptedOutput, 0600)
 
 	if writeErr != nil {
 		printAndExit("Error in os.WriteFile:\n" + writeErr.Error())
 	}
 
-	os.Rename(encrypt.FileName + ".tmp", encrypt.FileName)
+	os.Rename(encrypt.FileName+".tmp", encrypt.FileName)
 
 	fmt.Println("Success, file written!\nYou can run the password manager now.")
 }

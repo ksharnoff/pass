@@ -21,11 +21,12 @@ import (
 type entry struct {
 	Name      string
 	Tags      string
-	Usernames []Field
-	Passwords []Field
-	SecurityQ []Field
+	Usernames []field
+	Passwords []field
+	SecurityQ []field
 	Notes     [6]string
 	Circulate bool
+	Urls      []string
 	Created   time.Time
 	Modified  time.Time
 	Opened    time.Time

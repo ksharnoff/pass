@@ -1027,27 +1027,31 @@ func main() {
 		}
 		passPages.SwitchToPage("passManager")
 		switchToHome()
-
-		passwordInput.SetText("")
 	}
 	passwordInput.SetDoneFunc(passActions)
 
 	listInfo := " /list\n -----\n to open:\n  /open #\n to copy:\n  /copen #\n to edit:\n  /edit #\n\n /home\n /help\n /quit\n\n /new\n /copy #\n\n /find str\n /flist str\n\n /pick\n /picc\n\n /comp # #\n /reused"
 	findInfo := " /find\n -----\n to open:\n  /open #\n to copy:\n  /copen #\n to edit:\n  /edit #\n\n /home\n /help\n /quit\n\n /new\n /copy #\n\n /flist str\n\n /list\n /pick\n /picc\n\n /comp # #\n /reused"
-	
+
 	// /test or /t is a secret command. It does fmt.Sprint(entries) and prints
 	// it to testText. It doesn't blot out any of the passwords.
+	// /test # adds # many sample entries to the entry list
 	testText := tview.NewTextView().SetScrollable(true)
-	
+
 	// This is the text box for /comp
 	compText := tview.NewTextView().SetScrollable(true)
-	
+
 	// The text box for /reused
 	reusedText := tview.NewTextView().SetScrollable(true).SetDynamicColors(true)
 
 	// First, 'inputted' is sanitized and checked to make sure it follows
 	// conventions. Then, a page and focus is swapped and an action is called.
 	commandLineActions := func(key tcell.Key) {
+		// guarantee only enter (13) or tab (9) can be used
+		if (key != 13) && (key != 9) {
+			return
+		}
+
 		app.EnableMouse(true)
 		switchToHome()
 
@@ -1150,18 +1154,36 @@ func main() {
 		case "quit", "q":
 			app.Stop()
 		case "list", "l":
-			title, text := listEntries(entries, listAllIndexes, " /list \n -----", false)
+			title, text := listEntries(width, height, entries, listAllIndexes, " /list \n -----", false)
 			list.title.SetText(title)
 			list.text.SetText(text).ScrollToBeginning()
 			infoText.SetText(listInfo)
 			pages.SwitchToPage("list")
 		case "find":
-			title, text := blankFind(entries, inputedArr[1])
+			title, text := blankFind(width, height, entries, inputedArr[1])
 			list.title.SetText(title)
 			list.text.SetText(text).ScrollToBeginning()
 			pages.SwitchToPage("list")
 			infoText.SetText(findInfo)
 		case "test", "t":
+			// if /test # then add # entries to the entries list
+			if len(inputedArr) > 1 {
+				intTranslated, intErr := strconv.Atoi(inputedArr[1])
+				if intErr == nil {
+					for i := 0; i < intTranslated; i++ {
+						entries = append(entries, entry{
+							Name:      "testing testing-123456789",
+							Tags:      "This was automatically added!",
+							Circulate: true})
+					}
+					// write to file, swap to error page if failed:
+					writeFileErr()
+					return
+				} else {
+					switchToError(" To add entries using /test you must write a number!\n Ex: \n\t \\test 3")
+					return
+				}
+			}
 			testText.SetText(testAllFields(entries))
 			pages.SwitchToPage("test")
 		case "new", "n":
