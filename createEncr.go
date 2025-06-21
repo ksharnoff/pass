@@ -11,33 +11,14 @@ package main
 import (
 	"fmt"
 	"github.com/ksharnoff/pass/encrypt"
-	"gopkg.in/yaml.v3"
 	"os"
 	"strings"
-	"time"
 )
-
-type entry struct {
-	Name      string
-	Tags      string
-	Usernames []field
-	Passwords []field
-	SecurityQ []field
-	Notes     [6]string
-	Circulate bool
-	Urls      []string
-	Created   time.Time
-	Modified  time.Time
-	Opened    time.Time
-}
-type field struct {
-	DisplayName string
-	Value       string
-}
 
 func main() {
 	_, statErr := os.Stat(encrypt.FileName) // os.Stat gets info about file
-	if statErr == nil {                     // gives error if file doesn't exist
+	// if there was no error getting the file, then it must already exist
+	if statErr == nil {
 		fmt.Println("A file already exists under the name " + encrypt.FileName)
 		fmt.Println("Please:")
 		fmt.Println("\t1) move that file to a different directory")
@@ -47,7 +28,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	entries := []entry{entry{Name: "Demo", Circulate: true}}
+	entries := []encrypt.Entry{encrypt.Entry{Name: "Demo", Circulate: true}}
 
 	password := "/quit"
 
@@ -69,27 +50,17 @@ func main() {
 
 	fmt.Println("\nTHINGS ARE HAPPENING - DO NOT QUIT THE PROGRAM\n")
 
-	output, outputErr := yaml.Marshal(entries)
-
-	if outputErr != nil {
-		printAndExit("Error in yaml.Marshal:\n" + outputErr.Error())
-	}
-
 	ciphBlock, keyErr := encrypt.KeyGeneration(password)
 
 	if keyErr != "" {
-		printAndExit("Error in key generation:\n" + keyErr)
+		printAndExit(fmt.Sprint("Error in key generation:\n" + keyErr))
 	}
 
-	encryptedOutput := encrypt.Encrypt(output, ciphBlock)
+	writeErr := encrypt.WriteToFile(entries, ciphBlock)
 
-	writeErr := os.WriteFile(encrypt.FileName+".tmp", encryptedOutput, 0600)
-
-	if writeErr != nil {
-		printAndExit("Error in os.WriteFile:\n" + writeErr.Error())
+	if writeErr != "" {
+		printAndExit(writeErr)
 	}
-
-	os.Rename(encrypt.FileName+".tmp", encrypt.FileName)
 
 	fmt.Println("Success, file written!\nYou can run the password manager now.")
 }

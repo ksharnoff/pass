@@ -5,6 +5,11 @@
 	changeKey.go
 	Decrypts the file and then re-encrypts it with a different password
 	(or with different key generation parameters)
+
+	If you would like to change the key generation parameters, set the ones
+	that you want to change to in KeyGeneration() in encrypt/encrypt.go and 
+	have the keyGeneration() function in this file be the old parameters. 
+	Also, set keyGenChange to true in this file. 
 */
 
 package main
@@ -12,36 +17,16 @@ package main
 import (
 	"fmt"
 	"github.com/ksharnoff/pass/encrypt"
-	"gopkg.in/yaml.v3"
 	"os"
 	"strings"
 
 	"crypto/aes"
 	"crypto/cipher"
 	"golang.org/x/crypto/argon2"
-	"time"
 )
 
-type entry struct {
-	Name      string
-	Tags      string
-	Usernames []field
-	Passwords []field
-	SecurityQ []field
-	Notes     [6]string
-	Circulate bool
-	Urls      []string
-	Created   time.Time
-	Modified  time.Time
-	Opened    time.Time
-}
-type field struct {
-	DisplayName string
-	Value       string
-}
-
 func main() {
-	entries := []entry{}
+	entries := []encrypt.Entry{}
 
 	fmt.Println("\nFirst you will give your old password, then your new one.")
 	fmt.Println("If you are just changing the key parameters, write the same password twice.")
@@ -87,8 +72,10 @@ func main() {
 	var oldKeyErr string
 
 	if keyGenChange {
+		// key generation using the old settings preserved in this file
 		ciphBlockOld, oldKeyErr = keyGeneration(oldPass)
 	} else {
+		// key generation using the normal settings
 		ciphBlockOld, oldKeyErr = encrypt.KeyGeneration(oldPass)
 	}
 
@@ -96,44 +83,28 @@ func main() {
 		printAndExit("Error in key generation of old password: " + oldKeyErr)
 	}
 
-	input, readErr := os.ReadFile(encrypt.FileName)
-
-	if readErr != nil {
-		printAndExit("Error in reading from file: " + readErr.Error())
-	}
-
-	decryptedInput := encrypt.Decrypt(input, ciphBlockOld)
-
-	unmarshErr := yaml.Unmarshal(decryptedInput, &entries)
-
-	if unmarshErr != nil {
-		printAndExit("Error in unmarshaling.\nThis could be from a wrong password.\nOr, check if the bool keyGenChange is true or false as needed.\n " + unmarshErr.Error())
+	readErr := encrypt.ReadFromFile(&entries, ciphBlockOld)
+	
+	if readErr != "" {
+		printAndExit(readErr)
 	}
 
 	fmt.Println("Decrypted & unmarshled the input, success so far!")
 
 	fmt.Println("\nTHINGS ARE HAPPENING - DO NOT QUIT THE PROGRAM\n")
 
+	// generate new key that uses the settings chosen in encrypt/encrypt.go
 	ciphBlockNew, newKeyErr := encrypt.KeyGeneration(newPass)
 
 	if newKeyErr != "" {
 		printAndExit("Error in key generation of new password: " + newKeyErr)
 	}
 
-	output, marshErr := yaml.Marshal(entries)
+	writeErr := encrypt.WriteToFile(entries, ciphBlockNew)
 
-	if marshErr != nil {
-		printAndExit("Error in marshaling: " + marshErr.Error())
+	if writeErr != "" {
+		printAndExit(writeErr)
 	}
-
-	encryptedOutput := encrypt.Encrypt(output, ciphBlockNew)
-	writeErr := os.WriteFile(encrypt.FileName+".tmp", encryptedOutput, 0600)
-
-	if writeErr != nil {
-		printAndExit("Error in writing to file: " + writeErr.Error())
-	}
-
-	os.Rename(encrypt.FileName+".tmp", encrypt.FileName)
 
 	fmt.Println("Success! The passwords have been re-encrypted and written to file!")
 }
@@ -161,6 +132,8 @@ func keyGeneration(password string) (cipher.Block, string) {
 	return ciphBlock, ""
 }
 
+// Input: error string to print.
+// Then exits with status code 1. 
 func printAndExit(error string) {
 	fmt.Println(error)
 	os.Exit(1)

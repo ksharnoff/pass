@@ -3,48 +3,31 @@
 	Copyright (c) 2022 Kezia Sharnoff
 
 	pass.go
-	Terminal run password manager.
+	Terminal run password manager. This file manages the widgets and 
+	functionality within the password manager -- encryption & file writing and
+	start up are in encrypt/encrypt.go and createEncr.go respectively. 
 */
 
 package main
 
 import (
-	"crypto/cipher" // encryption
 	"fmt"
-	"os" // writing to file
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/atotto/clipboard" // copies the data to clipboard in /copen
+	"github.com/atotto/clipboard" // copies the data to clipboard
 	"github.com/gdamore/tcell/v2"
-	"github.com/ksharnoff/pass/encrypt" // encryption
 	"github.com/rivo/tview"
-	"golang.org/x/term" // getting terminal size
-	"gopkg.in/yaml.v3"  // writing to file
-)
 
-// If entry or field is changed, edit creatEncr.go and changeKey.go. An entry
-// represents an account or site
-type entry struct {
-	Name      string
-	Tags      string
-	Usernames []field
-	Passwords []field
-	SecurityQ []field
-	// notes is 6 because that looks the best in /new as individual inputs,
-	// textArea has unpredictable copy and pasting
-	Notes     [6]string
-	Circulate bool
-	Urls      []string
-	Created   time.Time
-	Modified  time.Time
-	Opened    time.Time
-}
-type field struct {
-	DisplayName string
-	Value       string
-}
+	// encryption
+	"github.com/ksharnoff/pass/encrypt"
+	"crypto/cipher"
+
+	// getting terminal size
+	"golang.org/x/term"
+	"os"
+)
 
 // The following structs are for combination primitives.
 type textFormFlex struct {
@@ -66,6 +49,11 @@ type reusedPass struct {
 	entryIndex  int
 }
 
+// The terminal width and height are used by many functions in order
+// to size text columns and widgets correctly. 
+var width = 84
+var height = 28
+
 func main() {
 	// You can uncomment out the next two lines and comment out the default
 	// colors in order for it to have a higher contrast that complies with WCAG
@@ -83,7 +71,7 @@ func main() {
 	// There was no function for it, so it had to be done using tcell.Style.
 	placeholdStyle := tcell.Style{}.Background(blue).Foreground(white)
 
-	width, height := getTerminalSize()
+	width, height = getTerminalSize()
 
 	// This is the input line used for navigation and commands for pass.
 	commandLineInput := tview.NewInputField().
@@ -136,11 +124,11 @@ func main() {
 
 	// This slice is all the passwords and info. The following entry names will
 	// only be seen if the manager opens without loading a file.
-	entries := []entry{
-		entry{Name: "QUIT NOW, DANGER", Circulate: true},
-		entry{Name: "SOMETHING'S VERY", Circulate: true},
-		entry{Name: "BROKEN. QUIT!", Circulate: true},
-		entry{Name: "YOUR DATA IS NOT FOUND.", Circulate: true},
+	entries := []encrypt.Entry{
+		encrypt.Entry{Name: "QUIT NOW, DANGER", Circulate: true},
+		encrypt.Entry{Name: "SOMETHING'S VERY", Circulate: true},
+		encrypt.Entry{Name: "BROKEN. QUIT!", Circulate: true},
+		encrypt.Entry{Name: "YOUR DATA IS NOT FOUND.", Circulate: true},
 	}
 
 	// This is the cipher block generated with the key to encrypt and decrypt.
@@ -153,7 +141,7 @@ func main() {
 	// else where it doesn't switch to error page and then immediately switch
 	// else where so it can't be seen.
 	writeFileErr := func() bool {
-		writeErr := writeToFile(entries, ciphBlock)
+		writeErr := encrypt.WriteToFile(entries, ciphBlock)
 		if writeErr != "" {
 			switchToError(writeErr)
 			return false
@@ -195,8 +183,8 @@ func main() {
 	}
 
 	// Has to be initialized ahead of time, comments about it are later
-	blankEditFieldForm := func(f *field, fieldArr *[]field, index int, edit bool) {}
-	blankEditStringForm := func(display, value string, e *entry, edit bool) {}
+	blankEditFieldForm := func(f *encrypt.Field, fieldArr *[]encrypt.Field, index int, edit bool) {}
+	blankEditStringForm := func(display, value string, e *encrypt.Entry, edit bool) {}
 
 	// This is the fields added so far list and its function, used in /new.
 	newFieldsAddedList := tview.NewList().
@@ -223,8 +211,8 @@ func main() {
 
 	// These are temporary and used when someone is making a new entry, or new
 	// field. Also used when someone is editing an entry.
-	tempEntry := entry{}
-	tempField := field{}
+	tempEntry := encrypt.Entry{}
+	tempField := encrypt.Field{}
 
 	// This just uses tempEntry to get the fields, this works because
 	// tempEntry is defined to be equal to entry e in blankNewEntry when called
@@ -311,7 +299,7 @@ func main() {
 
 	// Takes in an extra boolean to know if its from /edit or /new, in order to
 	// know where to go back to.
-	blankEditFieldForm = func(f *field, fieldArr *[]field, index int, edit bool) {
+	blankEditFieldForm = func(f *encrypt.Field, fieldArr *[]encrypt.Field, index int, edit bool) {
 		editFieldForm.Clear(true)
 		tempField.DisplayName = f.DisplayName
 		tempField.Value = f.Value
@@ -369,7 +357,7 @@ func main() {
 
 	// Takes in a pointer to tempEntry if in /new. Takes in a pointer to an
 	// entry if in /edit.
-	blankNewField := func(e *entry) {
+	blankNewField := func(e *encrypt.Entry) {
 		edit := false
 
 		dropDownFields := []string{"url", "username", "password", "security question"}
@@ -381,7 +369,7 @@ func main() {
 				dropDownFields = append(dropDownFields, "tags")
 			}
 		}
-		tempField = field{}
+		tempField = encrypt.Field{}
 		tempStr := ""
 		fieldType := "" // To track what field is changing
 		newFieldForm.Clear(true)
@@ -473,7 +461,7 @@ func main() {
 
 	// Takes in a pointer to an entry if used in /edit. Takes in a pointer to
 	// tempEntry if in /new.
-	blankNewNote := func(e *entry) {
+	blankNewNote := func(e *encrypt.Entry) {
 		newNoteForm.Clear(true)
 		toAdd := e.Notes
 
@@ -521,7 +509,7 @@ func main() {
 	}
 
 	// For editing the name, tags, or url.
-	blankEditStringForm = func(display, value string, e *entry, edit bool) {
+	blankEditStringForm = func(display, value string, e *encrypt.Entry, edit bool) {
 		if (display != "name") && (display != "tags") && (display != "url") {
 			switchToError(" Unexpected input!\n blankEditStringForm can only change name, tags, or url")
 			return
@@ -766,7 +754,7 @@ func main() {
 
 	// An entry is passed in for /copy. If making a brand new entry, then a
 	// blank tempEntry is passed in.
-	blankNewEntry := func(e entry) {
+	blankNewEntry := func(e encrypt.Entry) {
 		newEntry.form.Clear(true)
 		newFieldsAddedList.Clear()
 
@@ -780,13 +768,13 @@ func main() {
 		tempEntry.Urls = make([]string, len(e.Urls))
 		copy(tempEntry.Urls, e.Urls)
 
-		tempEntry.Usernames = make([]field, len(e.Usernames))
+		tempEntry.Usernames = make([]encrypt.Field, len(e.Usernames))
 		copy(tempEntry.Usernames, e.Usernames)
 
-		tempEntry.Passwords = make([]field, len(e.Passwords))
+		tempEntry.Passwords = make([]encrypt.Field, len(e.Passwords))
 		copy(tempEntry.Passwords, e.Passwords)
 
-		tempEntry.SecurityQ = make([]field, len(e.SecurityQ))
+		tempEntry.SecurityQ = make([]encrypt.Field, len(e.SecurityQ))
 		copy(tempEntry.SecurityQ, e.SecurityQ)
 
 		tempEntry.Notes = e.Notes
@@ -980,7 +968,7 @@ func main() {
 						pages.SwitchToPage("open")
 						app.SetFocus(commandLineInput)
 						canTypeCommandLinePlaceholder()
-						openText.SetText(blankOpen(i, width, entries))
+						openText.SetText(blankOpen(i, entries))
 						infoText.SetText(openInfo)
 						writeFileErr()
 					} else { // to transfer to /copen # (for both /picc and /flist)
@@ -1044,7 +1032,7 @@ func main() {
 			passwordInput.SetText("")
 			return
 		}
-		readErr := readFromFile(&entries, ciphBlock)
+		readErr := encrypt.ReadFromFile(&entries, ciphBlock)
 
 		if readErr != "" {
 			passBoxPages.SwitchToPage("passErr")
@@ -1280,13 +1268,13 @@ The slash / is option, so "open 0" or "o 0" works like "/open 0".
 		case "quit", "q":
 			app.Stop()
 		case "list", "l":
-			title, text := listEntries(width, height, entries, listAllIndexes, " /list \n -----", false)
+			title, text := listEntries(entries, listAllIndexes, " /list \n -----", false)
 			list.title.SetText(title)
 			list.text.SetText(text).ScrollToBeginning()
 			infoText.SetText(listInfo)
 			pages.SwitchToPage("list")
 		case "find":
-			title, text := blankFind(width, height, entries, inputedArr[1])
+			title, text := blankFind(entries, inputedArr[1])
 			list.title.SetText(title)
 			list.text.SetText(text).ScrollToBeginning()
 			pages.SwitchToPage("list")
@@ -1297,7 +1285,7 @@ The slash / is option, so "open 0" or "o 0" works like "/open 0".
 				intTranslated, intErr := strconv.Atoi(inputedArr[1])
 				if intErr == nil {
 					for i := 0; i < intTranslated; i++ {
-						entries = append(entries, entry{
+						entries = append(entries, encrypt.Entry{
 							Name:      "testing testing-123456789",
 							Tags:      "This was automatically added!",
 							Circulate: true})
@@ -1315,7 +1303,7 @@ The slash / is option, so "open 0" or "o 0" works like "/open 0".
 		case "new", "n":
 			app.EnableMouse(false)
 			infoText.SetText(newInfo)
-			tempEntry = entry{}
+			tempEntry = encrypt.Entry{}
 			blankNewEntry(tempEntry)
 			app.SetFocus(newEntry.form)
 			cantTypeCommandLinePlaceholder()
@@ -1327,7 +1315,7 @@ The slash / is option, so "open 0" or "o 0" works like "/open 0".
 			infoText.SetText(openInfo)
 			app.EnableMouse(false)
 			pages.SwitchToPage("open")
-			openText.SetText(blankOpen(indexSelected, width, entries))
+			openText.SetText(blankOpen(indexSelected, entries))
 			openText.ScrollToBeginning()
 			writeFileErr()
 		case "copen":
@@ -1337,7 +1325,7 @@ The slash / is option, so "open 0" or "o 0" works like "/open 0".
 			pages.SwitchToPage("copen")
 			blankCopen(indexSelected) // needs to be at the end, because writeErr is called from it
 		case "edit":
-			tempEntry = entry{}
+			tempEntry = encrypt.Entry{}
 			app.EnableMouse(false)
 			infoText.SetText(editInfo)
 			cantTypeCommandLinePlaceholder()
@@ -1348,7 +1336,7 @@ The slash / is option, so "open 0" or "o 0" works like "/open 0".
 			pages.SwitchToPage("pick")
 			cantTypeCommandLinePlaceholder()
 		case "copy":
-			tempEntry = entry{}
+			tempEntry = encrypt.Entry{}
 			infoText.SetText(newInfo)
 			app.EnableMouse(false)
 			blankNewEntry(entries[indexSelected])
@@ -1368,10 +1356,10 @@ The slash / is option, so "open 0" or "o 0" works like "/open 0".
 			cantTypeCommandLinePlaceholder()
 		case "comp":
 			app.EnableMouse(true)
-			compText.SetText(blankComp(width, compIndSelectOne, compIndSelectTwo, entries))
+			compText.SetText(blankComp(compIndSelectOne, compIndSelectTwo, entries))
 			pages.SwitchToPage("comp")
 		case "reused", "r":
-			reusedText.SetText(fmt.Sprint(" /reused\n -------\n The following are the passwords and answers reused:\n\n", reusedAll(width, entries)))
+			reusedText.SetText(fmt.Sprint(" /reused\n -------\n The following are the passwords and answers reused:\n\n", reusedAll(entries)))
 			pages.SwitchToPage("reused")
 		default:
 			switchToError(" That input doesn't match a command! \n Look to the right right to see the possible commands. \n Make sure to spell it correctly!")
@@ -1537,7 +1525,7 @@ func getRune(count int) rune {
 }
 
 // To write to the text box for /open of the entry index i.
-func blankOpen(i, width int, entries []entry) string {
+func blankOpen(i int, entries []encrypt.Entry) string {
 	e := entries[i]
 
 	var print strings.Builder
@@ -1608,7 +1596,7 @@ func blankOpen(i, width int, entries []entry) string {
 
 // Formats the text box for /find. Returns the action name in first string,
 // found entries in second.
-func blankFind(width, height int, entries []entry, str string) (string, string) {
+func blankFind(entries []encrypt.Entry, str string) (string, string) {
 	indexes := findIndexes(entries, str)
 
 	// Trims the /find str for printing, adding a ... if trimmed. It still
@@ -1621,7 +1609,7 @@ func blankFind(width, height int, entries []entry, str string) (string, string) 
 	titleUnderline := fmt.Sprint(" /find ", str, " \n ", strings.Repeat("-", len([]rune(str))+6))
 
 	if len(indexes) > 0 {
-		return listEntries(width, height, entries, indexes, titleUnderline, true)
+		return listEntries(entries, indexes, titleUnderline, true)
 	} else {
 		return titleUnderline, " no entries found"
 	}
@@ -1629,7 +1617,7 @@ func blankFind(width, height int, entries []entry, str string) (string, string) 
 
 // Used in /find and /flist. Returns a slice of ints of all indexes with
 // 'inputStr' in the name, tags, or url.
-func findIndexes(entries []entry, inputStr string) []int {
+func findIndexes(entries []encrypt.Entry, inputStr string) []int {
 	indexes := []int{}
 	str := strings.ToLower(inputStr)
 	for i, e := range entries {
@@ -1652,8 +1640,8 @@ func findIndexes(entries []entry, inputStr string) []int {
 // str taken in is put at the top, and is for example: " /find str \n-----..."
 // or " /list \n -----" The bool taken in differentiates it from /list or
 // /find, to show or not to show the ones that are not in circulation.
-func listEntries(width, height int, entries []entry, indexes []int, str string, showOld bool) (string, string) {
-	printEntries := []entry{}
+func listEntries(entries []encrypt.Entry, indexes []int, str string, showOld bool) (string, string) {
+	printEntries := []encrypt.Entry{}
 
 	if showOld {
 		for _, i := range indexes {
@@ -1692,12 +1680,12 @@ func listEntries(width, height int, entries []entry, indexes []int, str string, 
 		if i >= len(indexes) {
 			break
 		}
-		print.WriteString(" " + indexName(width, indexes[i], entries))
+		print.WriteString(" " + indexName(indexes[i], entries))
 		if len(indexes) > i+third {
-			print.WriteString(indexName(width, indexes[i+third], entries))
+			print.WriteString(indexName(indexes[i+third], entries))
 		}
 		if len(indexes) > i+third+third {
-			print.WriteString(indexName(width, indexes[i+third+third], entries))
+			print.WriteString(indexName(indexes[i+third+third], entries))
 		}
 		if i != third-1 { // so it doesn't do it on the last one
 			print.WriteString("\n")
@@ -1711,7 +1699,7 @@ func listEntries(width, height int, entries []entry, indexes []int, str string, 
 // shape. Used in /list. If it is in /find but the entry isn't in circulation,
 // it will type (rem) right before the entry name. Ex: [1] (rem) Twitter
 // Not worth it to do strings.Builder here because of the str[0:21] calls.
-func indexName(width, index int, entries []entry) string {
+func indexName(index int, entries []encrypt.Entry) string {
 	str := fmt.Sprint("[", strconv.Itoa(index), "] ")
 
 	if !entries[index].Circulate { // if out of circulation
@@ -1731,27 +1719,27 @@ func indexName(width, index int, entries []entry) string {
 
 // The string to write to the text box for /comp i1 i2, where i1 and i2 are two
 // indices of entries.
-func blankComp(width, i1, i2 int, entries []entry) string {
+func blankComp(i1, i2 int, entries []encrypt.Entry) string {
 	e1 := entries[i1]
 	e2 := entries[i2]
 
-	var print strings.Builder
+	var b strings.Builder
 
-	print.WriteString(fmt.Sprint(" /comp: ", "[", strconv.Itoa(i1), "] ", shortenedName(width, e1.Name), " and ", "[", strconv.Itoa(i2), "] ", shortenedName(width, e2.Name), "\n "))
-	print.WriteString(fmt.Sprint(strings.Repeat("-", len([]rune(print.String()))-3), "\n\n"))
+	b.WriteString(fmt.Sprint(" /comp: ", "[", strconv.Itoa(i1), "] ", shortenedName( e1.Name), " and ", "[", strconv.Itoa(i2), "] ", shortenedName(e2.Name), "\n "))
+	b.WriteString(fmt.Sprint(strings.Repeat("-", len([]rune(b.String()))-3), "\n\n"))
 
-	print.WriteString(compPass(width, e1, e2))
+	b.WriteString(compPass(e1, e2))
 
-	return print.String()
+	return b.String()
 }
 
 // Looks for duplicates between the passwords and security question answers of
 // two entries, e1 and e2.
-func compPass(width int, e1 entry, e2 entry) string {
+func compPass(e1 encrypt.Entry, e2 encrypt.Entry) string {
 
 	compMap := make(map[string][]reusedPass) // reusedPass is a struct
-	name1 := shortenedName(width, e1.Name)
-	name2 := shortenedName(width, e2.Name)
+	name1 := shortenedName(e1.Name)
+	name2 := shortenedName(e2.Name)
 
 	// Adding all passwords and securityQs to the map
 	for _, p := range e1.Passwords {
@@ -1801,13 +1789,13 @@ func compPass(width int, e1 entry, e2 entry) string {
 
 // Looks for password duplicates between all of the passwords, using a map of
 // slices of reusedPass structs.
-func reusedAll(width int, entries []entry) string {
+func reusedAll(entries []encrypt.Entry) string {
 	var print strings.Builder
 
 	reused := make(map[string][]reusedPass) // reusedPass is a struct
 
 	for i, e := range entries {
-		name := shortenedName(width, e.Name)
+		name := shortenedName(e.Name)
 
 		for _, p := range e.Passwords {
 			reused[p.Value] = append(reused[p.Value], reusedPass{displayName: p.DisplayName, entryName: name, entryIndex: i})
@@ -1835,7 +1823,7 @@ func reusedAll(width int, entries []entry) string {
 }
 
 // Shortened name of an entry, for /reused and /comp
-func shortenedName(width int, name string) string {
+func shortenedName(name string) string {
 	if len([]rune(name)) > 22+(width/3) {
 		return name[:22+(width/3)]
 	}
@@ -1843,7 +1831,7 @@ func shortenedName(width int, name string) string {
 }
 
 // Called in /test in order to add all of the entries to a single string.
-func testAllFields(entries []entry) string {
+func testAllFields(entries []encrypt.Entry) string {
 	var print strings.Builder
 	print.WriteString(" Test of all fields that are known:")
 
@@ -1853,6 +1841,8 @@ func testAllFields(entries []entry) string {
 	return print.String()
 }
 
+// maybe change to update and then change the global variables from within
+// the function?????
 func getTerminalSize() (int, int) {
 	width, height, terminalSizeErr := term.GetSize(int(os.Stdin.Fd()))
 
@@ -1871,45 +1861,4 @@ func getTerminalSize() (int, int) {
 	}
 
 	return widthDiff, heightDiff
-}
-
-// If this is changed, also change createEncr.go and changeKey.go. If it fails
-// to write to the file then it returns a string with the errors, else it
-// returns ""
-func writeToFile(entries []entry, ciphBlock cipher.Block) string {
-	output, marshErr := yaml.Marshal(entries)
-
-	if marshErr != nil {
-		return " Error in yaml.Marshal\n\n " + marshErr.Error()
-	}
-
-	encryptedOutput := encrypt.Encrypt(output, ciphBlock)
-	// conventions of writing to a temp file is write to .tmp
-	writeErr := os.WriteFile(encrypt.FileName+".tmp", encryptedOutput, 0600) // 0600 is the permissions that only this user can read/write/exec to this file
-
-	if writeErr != nil {
-		return " Error in os.WriteFile\n\n " + writeErr.Error()
-	}
-
-	os.Rename(encrypt.FileName+".tmp", encrypt.FileName) // Only will do this if the previous writing to a file worked, keeps it safe.
-
-	return ""
-}
-
-// If this is changed, also change changeKey.go. If it fails to read from the
-// file then it returns a string with the errors, else it returns ""
-func readFromFile(entries *[]entry, ciphBlock cipher.Block) string {
-	input, inputErr := os.ReadFile(encrypt.FileName)
-
-	if inputErr != nil {
-		return " Error in os.ReadFile\n Make sure that a file named " + encrypt.FileName + " exists.\n There isn't one, run createEncr.go\n\n " + inputErr.Error()
-	}
-
-	decryptedInput := encrypt.Decrypt(input, ciphBlock)
-	unmarshErr := yaml.Unmarshal(decryptedInput, &entries)
-
-	if unmarshErr != nil {
-		return " Error in yaml.Unmarshal\n Make sure you write the correct password.\n\n " + unmarshErr.Error()
-	}
-	return ""
 }
