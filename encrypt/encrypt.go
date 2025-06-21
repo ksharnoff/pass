@@ -6,9 +6,7 @@
 	Encrypts the slice of bytes, create keys, and write to files. 
 	The structs for entries are defined here so that they can be imported
 	across different files and used in writing to files. 
-
 */
-
 
 package encrypt
 
@@ -24,14 +22,11 @@ import (
 
 	// for file reading and writing
 	"gopkg.in/yaml.v3"
-	"fmt"
 	"os"
 
 	// for the entry and field structs
 	"time"
 )
-
-const FileName = "pass.yaml" 
 
 // An entry represents an account or site
 type Entry struct {
@@ -54,6 +49,8 @@ type Field struct {
 	Value       string
 }
 
+const FileName = "pass.yaml" 
+
 // Input: the user's password.
 // Output: cipher block made from a key from the password.
 // If the following function is changed, also change it in changeKey.go
@@ -68,7 +65,7 @@ func KeyGeneration(password string) (cipher.Block, string) {
 
 	// Current parameters: 1, 64*1024, 4, 32
 	key := argon2.IDKey([]byte(password), salt, 1, 64*1024, 4, 32)
-
+	
 	ciphBlock, err := aes.NewCipher(key)
 
 	if err != nil {
@@ -127,7 +124,7 @@ func WriteToFile(entries []Entry, ciphBlock cipher.Block) string {
 	output, marshErr := yaml.Marshal(entries)
 
 	if marshErr != nil {
-		return fmt.Sprint(" Error in yaml.Marshal\n\n ", marshErr.Error())
+		return " Error in yaml.Marshal\n\n " +  marshErr.Error()
 	}
 
 	encryptedOutput := Encrypt(output, ciphBlock)
@@ -136,7 +133,7 @@ func WriteToFile(entries []Entry, ciphBlock cipher.Block) string {
 	writeErr := os.WriteFile(FileName+".tmp", encryptedOutput, 0600)
 
 	if writeErr != nil {
-		return fmt.Sprint("Error in os.WriteFile\n\n ", writeErr.Error())
+		return "Error in os.WriteFile\n\n " + writeErr.Error()
 	}
 
 	// Only will do this if the previous writing to a file worked, keeps it safe.
@@ -151,18 +148,18 @@ func ReadFromFile(entries *[]Entry, ciphBlock cipher.Block) string {
 	input, inputErr := os.ReadFile(FileName)
 
 	if inputErr != nil {
-		return fmt.Sprint(" Error in os.ReadFile\n Make sure that a file named ",
-				FileName,
-				" exists.\n There isn't one, run createEncr.go\n\n ",
-				inputErr.Error())
+		return " Error in os.ReadFile\n Make sure that a file named " + 
+				FileName + 
+				" exists.\n If there isn't one, run createEncr.go\n\n " + 
+				inputErr.Error()
 	}
 
 	decryptedInput := Decrypt(input, ciphBlock)
 	unmarshErr := yaml.Unmarshal(decryptedInput, &entries)
 
 	if unmarshErr != nil {
-		return fmt.Sprint(" Error in yaml.Unmarshal\n Make sure you write the correct password.\n\n ",
-				unmarshErr.Error())
+		return " Error in yaml.Unmarshal\n Make sure you write the correct password.\n\n " +
+				unmarshErr.Error()
 	}
 	return ""
 }

@@ -6,13 +6,13 @@ This is a password manager run entirely in the terminal.
 The password manager stores an encrypted list of entries -- where each entry can store its name, tags, and unlimited URLs, usernames, passwords, security questions, or notes. You can search the names, tags, and URLs. You can view and easily copy to your clipboard any field of an entry. You can see a list of entries that have reused passwords. 
 
 ## starting for the first time
-- Download the zip of the latest release or use git clone `git clone https://github.com/ksharnoff/pass.git`
+- Download the zip of the latest release or run `git clone https://github.com/ksharnoff/pass.git`.
 - Unzip the zip and then run `go mod tidy` to install all necessary dependencies. 
 - Use `createEncr.go` to create and encrypt your file of passwords the first time, `go run createEncr.go`. If you forget your password, you cannot decrypt the file later. 
-	- If you would like to change your password or the key generation parameters in the future, use `changeKey.go` by `go run changeKey.go`. You will have to edit `changeKe.go` and `encrypt/encrypt.go` to change the key parameters
+	- If you would like to change your password or the key generation parameters in the future, use `changeKey.go` by `go run changeKey.go`. You will have to edit `changeKey.go` and `encrypt/encrypt.go` to change the key parameters
 - You can successfully run the password manager now, `go run pass.go`. I recommend compiling it by `go build pass.go` to run it quickly as an executable, `./pass`.
 
-The passwords will be stored in a file named `pass.yaml` in the `pass` directory. 
+The encrypted passwords will be stored in a file named `pass.yaml` in the `pass` directory. 
 
 ## TUI `tview`
 I used the TUI [`tview`](https://github.com/rivo/tview). I used four types of primitives: input fields, lists, text boxes, and forms. In order to format them, I used flexes, pages, and grids. I used grids only to add borders around the primitives. 

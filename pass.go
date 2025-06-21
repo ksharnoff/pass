@@ -3,9 +3,9 @@
 	Copyright (c) 2022 Kezia Sharnoff
 
 	pass.go
-	Terminal run password manager. This file manages the widgets and 
+	Terminal run password manager. This file manages the widgets and
 	functionality within the password manager -- encryption & file writing and
-	start up are in encrypt/encrypt.go and createEncr.go respectively. 
+	start up are in encrypt/encrypt.go and createEncr.go respectively.
 */
 
 package main
@@ -21,8 +21,8 @@ import (
 	"github.com/rivo/tview"
 
 	// encryption
-	"github.com/ksharnoff/pass/encrypt"
 	"crypto/cipher"
+	"github.com/ksharnoff/pass/encrypt"
 
 	// getting terminal size
 	"golang.org/x/term"
@@ -49,10 +49,11 @@ type reusedPass struct {
 	entryIndex  int
 }
 
-// The terminal width and height are used by many functions in order
-// to size text columns and widgets correctly. 
-var width = 84
-var height = 28
+// The terminal width and height represent the difference from the size that
+// this was designed for (84x28). It is a global variable to avoid having to
+// pass it to the many functions that make text columns and widgets. 
+var width = 0
+var height = 0
 
 func main() {
 	// You can uncomment out the next two lines and comment out the default
@@ -943,7 +944,7 @@ func main() {
 			printCommand += "\n ----- \n"
 		}
 
-		infoText.SetText(fmt.Sprint(" ", printCommand, pickInfo))
+		infoText.SetText(" " + printCommand + pickInfo)
 		letter := newCharIterator()
 		pickList.Clear()
 		pickList.AddItem("leave "+action, "(takes you back to /home)", getRune(letter), func() {
@@ -960,7 +961,7 @@ func main() {
 				if !entries[i].Circulate {
 					title = "(rem) "
 				}
-				title += fmt.Sprint("[", strconv.Itoa(i), "] ", entries[i].Name)
+				title += "[" + strconv.Itoa(i) + "] " + entries[i].Name
 
 				pickList.AddItem(title, "tags: "+entries[i].Tags, getRune(letter), func() {
 					if action == "pick" { // to transfer to /open #
@@ -1217,13 +1218,13 @@ The slash / is option, so "open 0" or "o 0" works like "/open 0".
 			indexSelected = -1 // Sets it here to remove any previous doings
 
 			if len(inputedArr) < 2 { // if there is no number written
-				switchToError(fmt.Sprint(" To ", action[1:], " an entry you must write ", action, " and then a number.\n Ex: \n\t", action, " 3"))
+				switchToError(" To " + action[1:] + " an entry you must write " + action + " and then a number.\n Ex: \n\t" + action + " 3")
 				return
 			}
 			intTranslated, intErr := strconv.Atoi(inputedArr[1])
 
 			if intErr != nil { // if what passed in is not a number
-				switchToError(fmt.Sprint(" Make sure to use ", action, " by writing a number!\n Ex: \n\t ", action, " 3"))
+				switchToError(" Make sure to use " + action + " by writing a number!\n Ex: \n\t " + action + " 3")
 				return
 			}
 			if (intTranslated >= len(entries)) || (intTranslated < 0) { // if the number passed in isn't an index
@@ -1258,7 +1259,7 @@ The slash / is option, so "open 0" or "o 0" works like "/open 0".
 		} else if (action == "find") || (action == "flist") {
 			// old error message: "To find entries you must write /find and then characters. \n With a space after /find. \n Ex: \n\t /find bank" <-- is specifying the space better?
 			if (len(inputedArr) < 2) || (inputedArr[1] == " ") || (inputedArr[1] == "") {
-				switchToError(fmt.Sprint(" To find entries you must write ", action, " and then characters. \n Ex: \n\t ", action, " bank"))
+				switchToError(" To find entries you must write " + action + " and then characters. \n Ex: \n\t " + action + " bank")
 				return
 			}
 		}
@@ -1359,7 +1360,7 @@ The slash / is option, so "open 0" or "o 0" works like "/open 0".
 			compText.SetText(blankComp(compIndSelectOne, compIndSelectTwo, entries))
 			pages.SwitchToPage("comp")
 		case "reused", "r":
-			reusedText.SetText(fmt.Sprint(" /reused\n -------\n The following are the passwords and answers reused:\n\n", reusedAll(entries)))
+			reusedText.SetText(" /reused\n -------\n The following are the passwords and answers reused:\n\n" + reusedAll(entries))
 			pages.SwitchToPage("reused")
 		default:
 			switchToError(" That input doesn't match a command! \n Look to the right right to see the possible commands. \n Make sure to spell it correctly!")
@@ -1528,31 +1529,31 @@ func getRune(count int) rune {
 func blankOpen(i int, entries []encrypt.Entry) string {
 	e := entries[i]
 
-	var print strings.Builder
+	var b strings.Builder
 
 	name := e.Name
 	if len([]rune(name)) > 57+width {
 		name = name[:57+width] + "..."
 	}
 
-	print.WriteString(fmt.Sprint(" [", strconv.Itoa(i), "] ", name))
+	b.WriteString(" [" + strconv.Itoa(i) + "] " + name)
 	// print hyphens under the title:
-	print.WriteString(fmt.Sprint("\n ", strings.Repeat("-", len([]rune(print.String()))-1)))
+	b.WriteString("\n " + strings.Repeat("-", len([]rune(b.String()))-1))
 
 	if e.Tags != "" {
-		print.WriteString(fmt.Sprint("\n tags: ", e.Tags))
+		b.WriteString("\n tags: " + e.Tags)
 	}
 	for _, u := range e.Urls {
-		print.WriteString(fmt.Sprint("\n url: ", u, "[white]"))
+		b.WriteString("\n url: " + u + "[white]")
 	}
 	for _, u := range e.Usernames {
-		print.WriteString(fmt.Sprint("\n ", u.DisplayName, ": ", u.Value, "[white]"))
+		b.WriteString("\n " + u.DisplayName + ": " + u.Value + "[white]")
 	}
 	for _, p := range e.Passwords {
-		print.WriteString(fmt.Sprint("\n ", p.DisplayName, ": [black:black]", p.Value, "[white]"))
+		b.WriteString("\n " + p.DisplayName + ": [black:black]" + p.Value + "[white]")
 	}
 	for _, sq := range e.SecurityQ {
-		print.WriteString(fmt.Sprint("\n ", sq.DisplayName, ": [black:black]", sq.Value, "[white]"))
+		b.WriteString("\n " + sq.DisplayName + ": [black:black]" + sq.Value + "[white]")
 	}
 	emptyNotes := true
 	for _, n := range e.Notes {
@@ -1562,36 +1563,38 @@ func blankOpen(i int, entries []encrypt.Entry) string {
 		}
 	}
 	if !emptyNotes {
-		print.WriteString("\n notes:")
+		b.WriteString("\n notes:")
 		blankLines := 0 // Stops printing \n\n\n\n if only text in first line
 		for _, n := range e.Notes {
 			if n == "" {
 				blankLines++
 			} else {
-				print.WriteString(strings.Repeat("\n", blankLines))
+				b.WriteString(strings.Repeat("\n", blankLines))
+
 				for len([]rune(n)) > 61+width {
-					print.WriteString("\n\t " + n[:61+width])
+					b.WriteString("\n\t " + n[:61+width])
 					n = n[61+width:]
 				}
-				print.WriteString("\n\t " + n)
+
+				b.WriteString("\n\t " + n)
 				blankLines = 0
 			}
 		}
 	}
-	print.WriteString("\n\n[white]")
+	b.WriteString("\n\n[white]")
 	// Following is info about the entry
-	print.WriteString(fmt.Sprint(" in circulation: ", strconv.FormatBool(e.Circulate), "\n"))
+	b.WriteString(" in circulation: " + strconv.FormatBool(e.Circulate) + "\n")
 	if !e.Modified.IsZero() { // if it's not jan 1, year 1
-		print.WriteString(fmt.Sprint(" date last modified: ", fmt.Sprint(e.Modified.Date()), "\n"))
+		b.WriteString(" date last modified: " + fmt.Sprint(e.Modified.Date()) + "\n")
 	}
 	if !e.Opened.IsZero() { // if it's not jan 1, year 1
-		print.WriteString(fmt.Sprint(" date last opened: ", fmt.Sprint(e.Opened.Date()), "\n"))
+		b.WriteString(" date last opened: " + fmt.Sprint(e.Opened.Date()) + "\n")
 	}
 	if !e.Created.IsZero() { // if it's not jan 1, year 1
-		print.WriteString(fmt.Sprint(" date created: ", fmt.Sprint(e.Created.Date())))
+		b.WriteString(" date created: " + fmt.Sprint(e.Created.Date()))
 	}
 	entries[i].Opened = time.Now()
-	return print.String()
+	return b.String()
 }
 
 // Formats the text box for /find. Returns the action name in first string,
@@ -1606,7 +1609,7 @@ func blankFind(entries []encrypt.Entry, str string) (string, string) {
 		str += "..."
 	}
 
-	titleUnderline := fmt.Sprint(" /find ", str, " \n ", strings.Repeat("-", len([]rune(str))+6))
+	titleUnderline := " /find " + str + " \n " + strings.Repeat("-", len([]rune(str))+6)
 
 	if len(indexes) > 0 {
 		return listEntries(entries, indexes, titleUnderline, true)
@@ -1640,12 +1643,14 @@ func findIndexes(entries []encrypt.Entry, inputStr string) []int {
 // str taken in is put at the top, and is for example: " /find str \n-----..."
 // or " /list \n -----" The bool taken in differentiates it from /list or
 // /find, to show or not to show the ones that are not in circulation.
+// Return: first string as the title, second is the body of the text
 func listEntries(entries []encrypt.Entry, indexes []int, str string, showOld bool) (string, string) {
 	printEntries := []encrypt.Entry{}
 
 	if showOld {
 		for _, i := range indexes {
-			printEntries = append(printEntries, entries[i]) // equivalent to entries[i] is entries[indexes[i]]
+			// entries[i] is equivalent to entries[indexes[i]]
+			printEntries = append(printEntries, entries[i])
 		}
 	} else {
 		indexesCirculated := []int{}
@@ -1673,25 +1678,30 @@ func listEntries(entries []encrypt.Entry, indexes []int, str string, showOld boo
 	} else if floatThird > float64(int(floatThird)) {
 		floatThird++
 	}
+
 	third := int(floatThird)
-	var print strings.Builder
+	var b strings.Builder
 
 	for i := 0; i < third; i++ {
 		if i >= len(indexes) {
 			break
 		}
-		print.WriteString(" " + indexName(indexes[i], entries))
+		b.WriteString(" " + indexName(indexes[i], entries))
+
 		if len(indexes) > i+third {
-			print.WriteString(indexName(indexes[i+third], entries))
+			b.WriteString(indexName(indexes[i+third], entries))
 		}
+
 		if len(indexes) > i+third+third {
-			print.WriteString(indexName(indexes[i+third+third], entries))
+			b.WriteString(indexName(indexes[i+third+third], entries))
 		}
-		if i != third-1 { // so it doesn't do it on the last one
-			print.WriteString("\n")
+
+		// so it doesn't do it on the last one
+		if i != third-1 { 
+			b.WriteString("\n")
 		}
 	}
-	return str, print.String() // first string is the title, second is the body of the text
+	return str, b.String() 
 }
 
 // This returns from a single index from entries to " [0] twitterDEMO       ",
@@ -1700,21 +1710,23 @@ func listEntries(entries []encrypt.Entry, indexes []int, str string, showOld boo
 // it will type (rem) right before the entry name. Ex: [1] (rem) Twitter
 // Not worth it to do strings.Builder here because of the str[0:21] calls.
 func indexName(index int, entries []encrypt.Entry) string {
-	str := fmt.Sprint("[", strconv.Itoa(index), "] ")
+	var b strings.Builder
+
+	b.WriteString("[" + strconv.Itoa(index) + "] ")
 
 	if !entries[index].Circulate { // if out of circulation
-		str += "(rem) "
+		b.WriteString("(rem) ")
 	}
 
-	str += entries[index].Name
-	len := len([]rune(str))
+	b.WriteString(entries[index].Name)
+	len := len([]rune(b.String()))
 
 	if len > 21+(width/3) { // Trims it if it's over the character limit
-		str = str[0:21+(width/3)] + " "
-	} else {
-		str += strings.Repeat(" ", 22+(width/3)-len)
+		return b.String()[0:21+(width/3)] + " "
 	}
-	return str
+
+	b.WriteString(strings.Repeat(" ", 22+(width/3)-len))
+	return b.String()
 }
 
 // The string to write to the text box for /comp i1 i2, where i1 and i2 are two
@@ -1725,8 +1737,10 @@ func blankComp(i1, i2 int, entries []encrypt.Entry) string {
 
 	var b strings.Builder
 
-	b.WriteString(fmt.Sprint(" /comp: ", "[", strconv.Itoa(i1), "] ", shortenedName( e1.Name), " and ", "[", strconv.Itoa(i2), "] ", shortenedName(e2.Name), "\n "))
-	b.WriteString(fmt.Sprint(strings.Repeat("-", len([]rune(b.String()))-3), "\n\n"))
+	b.WriteString(" /comp: " + "[" + strconv.Itoa(i1) + "] " +
+		shortenedName(e1.Name) + " and " + "[" + strconv.Itoa(i2) + "] " +
+		shortenedName(e2.Name) + "\n ")
+	b.WriteString(strings.Repeat("-", len([]rune(b.String()))-3) + "\n\n")
 
 	b.WriteString(compPass(e1, e2))
 
@@ -1758,39 +1772,46 @@ func compPass(e1 encrypt.Entry, e2 encrypt.Entry) string {
 		compMap[s.Value] = append(compMap[s.Value],
 			reusedPass{displayName: "security question " + strconv.Itoa(i), entryName: name2})
 	}
-	var print strings.Builder
+	var b strings.Builder
 
 	// Going through the map and looking at duplicates
 	for _, reusedStruct := range compMap {
-		if len(reusedStruct) == 2 { // if same pass twice, most common
-			print.WriteString(fmt.Sprint(" ", reusedStruct[0].entryName, "'s ", reusedStruct[0].displayName, " = ", reusedStruct[1].entryName, "'s ", reusedStruct[1].displayName, "\n"))
-		} else if len(reusedStruct) > 2 { // less common
+		// if same pass twice, most common
+		if len(reusedStruct) == 2 {
+			b.WriteString(" " + reusedStruct[0].entryName + "'s " +
+				reusedStruct[0].displayName + " = " + reusedStruct[1].entryName +
+				"'s " + reusedStruct[1].displayName + "\n")
+
+			// if more than twice
+		} else if len(reusedStruct) > 2 {
 			for i, r := range reusedStruct {
-				print.WriteString(fmt.Sprint(" ", r.entryName, "'s ", r.displayName))
-				if (i + 1) < len(reusedStruct) { // on the not last time through
-					print.WriteString(" \n")
-				} else { // happens on the last time through
-					print.WriteString("\n")
+				b.WriteString(" " + r.entryName + "'s " + r.displayName)
+
+				// add extra space when not in last time through
+				if (i + 1) < len(reusedStruct) {
+					b.WriteString(" \n")
+				} else {
+					b.WriteString("\n")
 				}
 			}
 		}
 	}
-	if print.Len() < 1 {
+	if b.Len() < 1 {
 		if (len(e1.Passwords) < 1) && (len(e1.SecurityQ) < 1) {
-			print.WriteString(" " + name1 + " has no passwords or security questions" + "\n")
+			b.WriteString(" " + name1 + " has no passwords or security questions" + "\n")
 		}
 		if len(e2.Passwords) < 1 && (len(e2.SecurityQ) < 1) {
-			print.WriteString(" " + name2 + " has no passwords or security questions" + "\n")
+			b.WriteString(" " + name2 + " has no passwords or security questions" + "\n")
 		}
-		print.WriteString("\n Therefore, there are no passwords in common!")
+		b.WriteString("\n Therefore, there are no passwords in common!")
 	}
-	return print.String()
+	return b.String()
 }
 
 // Looks for password duplicates between all of the passwords, using a map of
 // slices of reusedPass structs.
 func reusedAll(entries []encrypt.Entry) string {
-	var print strings.Builder
+	var b strings.Builder
 
 	reused := make(map[string][]reusedPass) // reusedPass is a struct
 
@@ -1798,27 +1819,44 @@ func reusedAll(entries []encrypt.Entry) string {
 		name := shortenedName(e.Name)
 
 		for _, p := range e.Passwords {
-			reused[p.Value] = append(reused[p.Value], reusedPass{displayName: p.DisplayName, entryName: name, entryIndex: i})
+			reused[p.Value] = append(reused[p.Value],
+				reusedPass{
+					displayName: p.DisplayName,
+					entryName:   name,
+					entryIndex:  i,
+				})
 		}
 		for iSq, s := range e.SecurityQ {
-			reused[s.Value] = append(reused[s.Value], reusedPass{displayName: "security question " + strconv.Itoa(iSq), entryName: name, entryIndex: i})
+			reused[s.Value] = append(reused[s.Value],
+				reusedPass{
+					displayName: "security question " + strconv.Itoa(iSq),
+					entryName:   name,
+					entryIndex:  i,
+				})
 		}
 	}
 	for pass, reusedStruct := range reused {
-		if len(reusedStruct) > 1 { // if there's more than one entry in the list of entries for password
-			print.WriteString(fmt.Sprint(" [darkslategray]", pass, "[white]:\n"))
+
+		// if there's more than one entry in the list of entries for password
+		if len(reusedStruct) > 1 {
+			b.WriteString(" [darkslategray]" + pass + "[white]:\n")
+
 			for _, r := range reusedStruct {
-				print.WriteString(fmt.Sprint(" [", strconv.Itoa(r.entryIndex), "] ", r.entryName, "'s ", r.displayName, "\n"))
+				b.WriteString(" [" + strconv.Itoa(r.entryIndex) + "] " +
+					r.entryName + "'s " + r.displayName + "\n")
 			}
-			print.WriteString("\n")
+
+			b.WriteString("\n")
 		}
 	}
 
-	if print.Len() < 1 {
+	if b.Len() < 1 {
 		return " There are no reused passwords anywhere!?\n Good job!"
 	}
-	printStr := print.String()
-	printStr = printStr[:len([]rune(printStr))-2] // gets rid of the last \n\n
+
+	// gets rid of the last \n\n and return
+	printStr := b.String()
+	printStr = printStr[:len([]rune(printStr))-2] 
 	return printStr
 }
 
@@ -1832,13 +1870,13 @@ func shortenedName(name string) string {
 
 // Called in /test in order to add all of the entries to a single string.
 func testAllFields(entries []encrypt.Entry) string {
-	var print strings.Builder
-	print.WriteString(" Test of all fields that are known:")
+	var b strings.Builder
+	b.WriteString(" Test of all fields that are known:")
 
 	for _, e := range entries {
-		print.WriteString("\n\n" + fmt.Sprint(e))
+		b.WriteString("\n\n" + fmt.Sprint(e))
 	}
-	return print.String()
+	return b.String()
 }
 
 // maybe change to update and then change the global variables from within
