@@ -1,46 +1,36 @@
 # pass
 
 ## what is this project?
-This is a password manager run entirely in the terminal. 
+This is a password manager run entirely in the terminal.
 
-In the manager, and in this README, I have used `#` to represent a number and `str` to represent any random characters. 
+The password manager stores an encrypted list of entries -- where each entry can store its name, tags, and unlimited URLs, usernames, passwords, security questions, or notes. You can search the names, tags, and URLs. You can view and easily copy to your clipboard any field of an entry. You can see a list of entries that have reused passwords. 
 
 ## starting for the first time
-Download all of the files (except the example folder of screenshots) into a folder called `pass`. Make sure there is a folder within `pass` called `encrypt` that `encrypt.go` is in. This is necessary as `encrypt.go` is imported for several different files.
+- Download the zip of the latest release or use git clone `git clone https://github.com/ksharnoff/pass.git`
+- Unzip the zip and then run `go mod tidy` to install all necessary dependencies. 
+- Use `createEncr.go` to create and encrypt your file of passwords the first time, `go run createEncr.go`. If you forget your password, you cannot decrypt the file later. 
+	- If you would like to change your password or the key generation parameters in the future, use `changeKey.go` by `go run changeKey.go`. You will have to edit `changeKe.go` and `encrypt/encrypt.go` to change the key parameters
+- You can successfully run the password manager now, `go run pass.go`. I recommend compiling it by `go build pass.go` to run it quickly as an executable, `./pass`.
 
-Use `createEncr.go` to create and encrypt your file of passwords the first time. In all future times, you should just run `pass.go`.
+The passwords will be stored in a file named `pass.yaml` in the `pass` directory. 
 
-You can also use `changeKey.go` for decrypting the file and then encrypting it with a different password, in order to change your key generation parameters. 
-
-## tview and visuals
-I used the TUI [tview](https://github.com/rivo/tview). I used four types of primitives: input fields, lists, text boxes, and forms. In order to format them, I used flexes, pages, and grids. I used grids only to add borders around the primitives. 
+## TUI `tview`
+I used the TUI [`tview`](https://github.com/rivo/tview). I used four types of primitives: input fields, lists, text boxes, and forms. In order to format them, I used flexes, pages, and grids. I used grids only to add borders around the primitives. 
 
 The password manager will scale to work on any sized terminal, with any font. I recommend using a monospaced font, for example, `Monaco`.
 
 ## encryption and file writing
-All of the entries are [marshaled](https://pkg.go.dev/gopkg.in/yaml.v3#Marshal) as if they were going to be written to a YAML file. Instead, that byte slice is entirely encrypted before being written to the file. Then, when reading from the file, the byte slice is decrypted and turned into the slice of entries. Therefore, the password to the password manager must be put in at the beginning before accessing any of the commands.
+All of the entries are [marshaled](https://pkg.go.dev/gopkg.in/yaml.v3#Marshal) as if they were going to be written to a YAML file. Instead, that list of byte is entirely encrypted before being written to a file. Then, after reading from the file, the list of bytes is decrypted and turned into the list of entries. The password manager password (the master password) must be inputted before viewing any fields. The program verifies that the correct password was inputted if it can successfully unmarshal the data into a list of entries; the master password is never stored.
 
-Argon2 is used to make a key and then the entries are encrypted with AES-256.
+Argon2 is used to make a key and the entries are encrypted with AES-256.
 
-The way that the program knows if you put in the right password is if it can unmarshal the data successfully, the master password is never stored or written to a file. 
-
-This password manager is unsuitable for cloud computing or a shared computer as the decrypted information is stored in the memory. I will update this in the future so that sensitive information is not in the memory, I do not believe this to be a risk on a single user computer. 
+This password manager is unsuitable for cloud computing or a shared computer as the decrypted information is stored in the memory. I do not believe this to be a significant risk on a single user computer. 
 
 The encryption is done in `encrypt.go` which must be in a directory called `encrypt` inside the greater `pass` directory as `encrypt.go` is used for several other files. 
 
 ## commands
-This section is about all of the actions that can be done with the password manager.
+This section is about all of the actions that can be done with the password manager. `#` is written to mean any number and `str` is written to mean any set of characters. 
 All of the commands are called through the command line at the bottom. The terminal in these photos is 84x28 with the font Monaco, 18pt. 
-
-### `/home`
-![Picture of /home, a black screen with white dotted lines. There is a big empty box to the left, a column box on the right listing all the commands, and a blue input line at the bottom labeled “input: psst look to the right”.](https://github.com/ksharnoff/pass/blob/main/examples/home.jpeg)
-
-`/home` is the starting screen once you’ve logged in. There’s nothing going on yet. The text on the right details the possible commands.
-
-### `/help`
-![Picture of /help, a black screen with white dotted lines. The big box to the left is full of white text, detailing information about the manager and specifics about each command type. There is a column box on the right listing all of the commands and a blue input line at the bottom.](https://github.com/ksharnoff/pass/blob/main/examples/help.jpeg)
-
-`/help` is similar to this README but it is condensed and in the password manager itself for ease of access. 
 
 ### `/open #`
 ![Picture of /open, opening entry 3, titled lkasdflkads. The big box to the left has each field of entry 3 written, tags, username, password, security question, notes, in circulation, date modified, date opened, and date created. The column box on the right listing all of the commands has separated out /edit and /copen to the top. There is a blue input line at the bottom.](https://github.com/ksharnoff/pass/blob/main/examples/open.jpeg)
@@ -96,7 +86,7 @@ There is no limit to the number of usernames, passwords, or security questions y
 ## miscellaneous info
 
 ### mouse usage and clipboard
-When the mouse is enabled in tview in order to change the focus or click buttons, one cannot select and copy any text. 
+When the mouse is enabled in `tview` in order to change the focus or click buttons, you cannot select and copy any text. 
 
 For ease of copying, there is `/copen #`, where you select one of the fields from the list and it copies to your clipboard. Once you quit out of viewing the entry, your clipboard is cleared.
 

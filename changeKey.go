@@ -1,4 +1,8 @@
 /*
+	MIT License
+	Copyright (c) 2022 Kezia Sharnoff
+
+	changeKey.go
 	Decrypts the file and then re-encrypts it with a different password
 	(or with different key generation parameters)
 */
@@ -31,7 +35,7 @@ type entry struct {
 	Modified  time.Time
 	Opened    time.Time
 }
-type Field struct {
+type field struct {
 	DisplayName string
 	Value       string
 }

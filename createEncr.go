@@ -1,4 +1,8 @@
 /*
+	MIT License
+	Copyright (c) 2022 Kezia Sharnoff
+
+	createEncr.go
 	Creates & encrypts a new file to store the passwords for the password manager.
 */
 
@@ -26,7 +30,7 @@ type entry struct {
 	Modified  time.Time
 	Opened    time.Time
 }
-type Field struct {
+type field struct {
 	DisplayName string
 	Value       string
 }

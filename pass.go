@@ -1,6 +1,11 @@
 /*
-BEFORE YOU BEGIN TO WORK -- SWAP TO DUMMY DATA!!!!!
+	MIT License
+	Copyright (c) 2022 Kezia Sharnoff
+
+	pass.go
+	Terminal run password manager.
 */
+
 package main
 
 import (
@@ -958,10 +963,18 @@ func main() {
 		})
 		for _, i := range indexes {
 			i := i
-			if entries[i].Circulate {
+			// in circulation or in /flist str
+			if (entries[i].Circulate) || (len([]rune(action)) > 5) {
 				letter = increment(letter)
 
-				pickList.AddItem(fmt.Sprint("[", strconv.Itoa(i), "] ", entries[i].Name), "tags: "+entries[i].Tags, getRune(letter), func() {
+				var title string
+
+				if !entries[i].Circulate {
+					title = "(rem) "
+				}
+				title += fmt.Sprint("[", strconv.Itoa(i), "] ", entries[i].Name)
+
+				pickList.AddItem(title, "tags: "+entries[i].Tags, getRune(letter), func() {
 					if action == "pick" { // to transfer to /open #
 						app.EnableMouse(false)
 						pages.SwitchToPage("open")
@@ -1058,6 +1071,104 @@ func main() {
 	// The text box for /reused
 	reusedText := tview.NewTextView().SetScrollable(true).SetDynamicColors(true)
 
+	// The text box for /help
+	helpText := tview.NewTextView().SetScrollable(true).SetText(` /help
+ -----
+ In order to quit, press control+c or type /quit. 
+
+ # means entry number and str means some text. 
+ 	example of /open # is: /open 3 
+ 	example of /find str is: /find library
+
+ Sometimes you can use the mouse to click, but sometimes you
+ can't. This is because when you can use the mouse to click, you 
+ can't use it to select and copy text. You can only scroll your
+ mouse when you can click, not when you can select text. You can
+ scroll with your mouse on this page.
+
+ Use /open # to view an entry. Passwords and security question 
+ values will be blotted out but they can be highlighted and then
+ copied. You can also use /copen # to view it in a list form, and 
+ select a field which will be copied to your clipboard. If you 
+ want to edit an entry you must do /edit #. You cannot scroll in
+ /open #, so if you have too many entries use /copen #.
+
+ Use /new to make a new entry. You must give your entry a name to 
+ save it. You must also give each field a display name in order to 
+ save them. You can also write in notes and you can edit the 
+ fields you've already added. You don't need to write tags, but 
+ they can be helpful in searching for entries using /find str. 
+ You can also do /copy # which is the same as doing /new but info
+ is already filled out from entry #.
+ Creating a new entry is not saved until you click the save button 
+ and you are moved away from /new. 
+
+ Use /edit # to edit an existing entry. You can edit the fields 
+ already there, add new ones, remove it from circulation, or 
+ delete it. While there is a delete button, it is recommended that 
+ you remove it from circulation instead. When that is done, it 
+ won't show up in /list or /pick. All of the other commands (such 
+ as /open, /edit, etc.) will still work on it. 
+ Edits are saved as soon as you click save on each specific field.
+
+ Use /find str to search for entries. /find str will return all of
+ the entries that contain str in the name, tags, or url. For 
+ example, if my tag says "gmail" and I search /find mail, then 
+ that entry will show up as the string "mail" is within "gmail". 
+ In both /find str and /list, the resulting entries may not show 
+ their full name for space. Use /flist str to see a list of 
+ entries with that str, when clicked they are /copen.
+
+ Use /list or /pick to view the list of entries. /list will
+ display them all with their numbers and you can then type /open #
+ or /copen #. /pick will display a list of the entries and you can
+ click on one of them to open it. You can do /picc to copen it.
+
+ Use /reused to see a list of passwords or answers to 
+ security questions that are reused in any entries. 
+
+ Use /comp # # to compare the passwords and question answers 
+ between two entries to see if there are any duplicates.
+
+ When in /edit, /flist, /pick, or /picc you can press esc to 
+ go back to home. This can be more efficient than scrolling to
+ select the item to leave.
+
+ When making or editing notes, you can write [black] to have it
+ blotted out. Make sure at the end of the line you write [white]
+ at the end in order for the other lines in notes to show up!
+
+ The colors of this project, lavender and light blue, do not 
+ comply with WCAG AAA standards. To have a higher contrast, 
+ uncomment the lines before the variables lavender and blue are
+ defined, comment out the current color definitions. These 
+ variables are at the very beginning of func main() in pass.go.
+
+ Here is a list of shortcuts for the commands which will do the 
+ same thing as the normal commands:
+  /home → /h
+  /help → /he
+  /quit → /q
+  /open # → /o #
+  /copen # → /c #
+  /new → /n
+  /copy # → /co #
+  /edit # → /e #
+  /find str → /f str
+  /flist str → /fl str
+  /list → /l
+  /pick → /pk
+  /picc → /p
+  /comp # # → /com # #
+  /reused → /r
+The slash / is option, so "open 0" or "o 0" works like "/open 0".
+
+ If you want to change your password or the password parameters,
+ run changeKey.go. 
+
+ More info about the project is on the README at 
+ https://github.com/ksharnoff/pass.`)
+
 	// First, 'inputted' is sanitized and checked to make sure it follows
 	// conventions. Then, a page and focus is swapped and an action is called.
 	commandLineActions := func(key tcell.Key) {
@@ -1068,6 +1179,7 @@ func main() {
 
 		app.EnableMouse(true)
 		switchToHome()
+		infoText.ScrollToBeginning()
 
 		inputed := commandLineInput.GetText()
 		commandLineInput.SetText("")
@@ -1091,7 +1203,7 @@ func main() {
 		}
 
 		// if it is one of the actions with extra checks, change it to be its
-		// longer name. Less or statements needed, therefore.
+		// longer name. Therefore, less if statements are needed.
 		if len([]rune(action)) < 5 {
 			switch action {
 			case "o":
@@ -1209,12 +1321,14 @@ func main() {
 			cantTypeCommandLinePlaceholder()
 			pages.SwitchToPage("newEntry")
 		case "help", "he":
+			helpText.ScrollToBeginning()
 			pages.SwitchToPage("help")
 		case "open":
 			infoText.SetText(openInfo)
 			app.EnableMouse(false)
 			pages.SwitchToPage("open")
 			openText.SetText(blankOpen(indexSelected, width, entries))
+			openText.ScrollToBeginning()
 			writeFileErr()
 		case "copen":
 			infoText.SetText(copenInfo)
@@ -1346,103 +1460,6 @@ func main() {
 	list.flex.SetDirection(tview.FlexRow).
 		AddItem(list.title, 2, 0, false).
 		AddItem(list.text, 0, 1, false)
-
-	// The text box for /help
-	helpText := tview.NewTextView().SetScrollable(true).SetText(` /help
- -----
- In order to quit, press control+c or type /quit. 
-
- # means entry number and str means some text. 
- 	example of /open # is: /open 3 
- 	example of /find str is: /find library
-
- Sometimes you can use the mouse to click, but sometimes you
- can't. This is because when you can use the mouse to click, you 
- can't use it to select and copy text. You can only scroll your
- mouse when you can click, not when you can select text. You can
- scroll with your mouse on this page.
-
- Use /open # to view an entry. Passwords and security question 
- values will be blotted out but they can be highlighted and then
- copied. You can also use /copen # to view it in a list form, and 
- select a field which will be copied to your clipboard. If you 
- want to edit an entry you must do /edit #. You cannot scroll in
- /open #, so if you have too many entries use /copen #.
-
- Use /new to make a new entry. You must give your entry a name to 
- save it. You must also give each field a display name in order to 
- save them. You can also write in notes and you can edit the 
- fields you've already added. You don't need to write tags, but 
- they can be helpful in searching for entries using /find str. 
- You can also do /copy # which is the same as doing /new but info
- is already filled out from entry #.
- Creating a new entry is not saved until you click the save button 
- and you are moved away from /new. 
-
- Use /edit # to edit an existing entry. You can edit the fields 
- already there, add new ones, remove it from circulation, or 
- delete it. While there is a delete button, it is recommended that 
- you remove it from circulation instead. When that is done, it 
- won't show up in /list or /pick. All of the other commands (such 
- as /open, /edit, etc.) will still work on it. 
- Edits are saved as soon as you click save on each specific field.
-
- Use /find str to search for entries. /find str will return all of
- the entries that contain str in the name, tags, or url. For 
- example, if my tag says "gmail" and I search /find mail, then 
- that entry will show up as the string "mail" is within "gmail". 
- In both /find str and /list, the resulting entries may not show 
- their full name for space. Use /flist str to see a list of 
- entries with that str, when clicked they are /copen.
-
- Use /list or /pick to view the list of entries. /list will
- display them all with their numbers and you can then type /open #
- or /copen #. /pick will display a list of the entries and you can
- click on one of them to open it. You can do /picc to copen it.
-
- Use /reused to see a list of passwords or answers to 
- security questions that are reused in any entries. 
- Use /comp # # to compare the passwords and question answers 
- between two entries to see if there are any duplicates.
-
- When in /edit, /flist, /pick, or /picc you can press esc to 
- go back to home. This can be more efficient than scrolling to
- select the item to leave.
-
- When making or editing notes, you can write [black] to have it
- blotted out. Make sure at the end of the line you write [white]
- at the end in order for the other lines in notes to show up!
-
- The colors of this project, lavender and light blue, do not 
- comply with WCAG AAA standards. To have a higher contrast, 
- uncomment the lines before the variables lavender and blue are
- defined, comment out the current color definitions. These 
- variables are at the very beginning of func main() in pass.go.
-
- Here is a list of shortcuts for the commands which will do the 
- same thing as the normal commands:
-  /home → /h
-  /help → /he
-  /quit → /q
-  /open # → /o #
-  /copen # → /c #
-  /new → /n
-  /copy # → /co #
-  /edit # → /e #
-  /find str → /f str
-  /flist str → /fl str
-  /list → /l
-  /pick → /pk
-  /picc → /p
-  /comp # # → /com # #
-  /reused → /r
-The slash / is option, so "open 0" works like "open 0".
-
- If you want to change your password or the password parameters,
- run changeKey.go. 
-
- More info about the project is on the README at 
- https://github.com/ksharnoff/pass.`)
 
 	// Added to pages for /home
 	sadEmptyBox := tview.NewBox().SetBorder(true).SetTitle("sad, empty box")
