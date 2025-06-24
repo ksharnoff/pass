@@ -7,9 +7,9 @@
 	(or with different key generation parameters)
 
 	If you would like to change the key generation parameters, set the ones
-	that you want to change to in KeyGeneration() in encrypt/encrypt.go and 
-	have the keyGeneration() function in this file be the old parameters. 
-	Also, set keyGenChange to true in this file. 
+	that you want to change to in KeyGeneration() in encrypt/encrypt.go and
+	have the keyGeneration() function in this file be the old parameters.
+	Also, set keyGenChange to true in this file.
 */
 
 package main
@@ -84,7 +84,7 @@ func main() {
 	}
 
 	readErr := encrypt.ReadFromFile(&entries, ciphBlockOld)
-	
+
 	if readErr != "" {
 		printAndExit(readErr)
 	}
@@ -133,7 +133,7 @@ func keyGeneration(password string) (cipher.Block, string) {
 }
 
 // Input: error string to print.
-// Then exits with status code 1. 
+// Then exits with status code 1.
 func printAndExit(error string) {
 	fmt.Println(error)
 	os.Exit(1)

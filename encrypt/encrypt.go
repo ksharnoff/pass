@@ -3,9 +3,9 @@
 	Copyright (c) 2022 Kezia Sharnoff
 
 	encrypt.go
-	Encrypts the slice of bytes, create keys, and write to files. 
+	Encrypts the slice of bytes, create keys, and write to files.
 	The structs for entries are defined here so that they can be imported
-	across different files and used in writing to files. 
+	across different files and used in writing to files.
 */
 
 package encrypt
@@ -117,14 +117,14 @@ func Decrypt(encrypted []byte, ciphBlock cipher.Block) []byte {
 	return decrypt
 }
 
-// Input: the decrypted entries slice and cipher block made from the master 
-// password. 
+// Input: the decrypted entries slice and cipher block made from the master
+// password.
 // Return: an error string, empty "" if no error
 func WriteToFile(entries []Entry, ciphBlock cipher.Block) string {
 	output, marshErr := yaml.Marshal(entries)
 
 	if marshErr != nil {
-		return " Error in yaml.Marshal\n\n " +  marshErr.Error()
+		return " Error in yaml.Marshal\n\n " + marshErr.Error()
 	}
 
 	encryptedOutput := Encrypt(output, ciphBlock)
@@ -137,7 +137,7 @@ func WriteToFile(entries []Entry, ciphBlock cipher.Block) string {
 	}
 
 	// Only will do this if the previous writing to a file worked, keeps it safe.
-	os.Rename(FileName+".tmp", FileName) 
+	os.Rename(FileName+".tmp", FileName)
 
 	return ""
 }
@@ -148,10 +148,10 @@ func ReadFromFile(entries *[]Entry, ciphBlock cipher.Block) string {
 	input, inputErr := os.ReadFile(FileName)
 
 	if inputErr != nil {
-		return " Error in os.ReadFile\n Make sure that a file named " + 
-				FileName + 
-				" exists.\n If there isn't one, run createEncr.go\n\n " + 
-				inputErr.Error()
+		return " Error in os.ReadFile\n Make sure that a file named " +
+			FileName +
+			" exists.\n If there isn't one, run createEncr.go\n\n " +
+			inputErr.Error()
 	}
 
 	decryptedInput := Decrypt(input, ciphBlock)
@@ -159,7 +159,7 @@ func ReadFromFile(entries *[]Entry, ciphBlock cipher.Block) string {
 
 	if unmarshErr != nil {
 		return " Error in yaml.Unmarshal\n Make sure you write the correct password.\n\n " +
-				unmarshErr.Error()
+			unmarshErr.Error()
 	}
 	return ""
 }

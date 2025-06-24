@@ -51,7 +51,7 @@ type reusedPass struct {
 
 // The terminal width and height represent the difference from the size that
 // this was designed for (84x28). It is a global variable to avoid having to
-// pass it to the many functions that make text columns and widgets. 
+// pass it to the many functions that make text columns and widgets.
 var width = 0
 var height = 0
 
@@ -168,8 +168,8 @@ func main() {
 	editInfo := " /edit \n ----- \n to move: \n -tab \n -back tab \n -arrows keys\n -scroll\n\n to select: \n -return \n\n to leave: \n -esc key\n -a"
 
 	// Switches back to the edit list after editing a specific field. It remakes
-	// the list each time and uses indexSelected. It takes in a bool to know 
-	// whether or not to write to file the changes, as well as whether or not 
+	// the list each time and uses indexSelected. It takes in a bool to know
+	// whether or not to write to file the changes, as well as whether or not
 	// to update the last modified time.
 	switchToEditList := func(modified bool) {
 		if writeFileErr() {
@@ -211,7 +211,7 @@ func main() {
 		SetLabelColor(lavender)
 
 	// These are temporary and used when someone is making a new entry, a new
-	// field, or editing an existing entry. 
+	// field, or editing an existing entry.
 	tempEntry := encrypt.Entry{}
 	tempField := encrypt.Field{}
 
@@ -655,7 +655,7 @@ func main() {
 		for i := range e.Usernames {
 			u := &e.Usernames[i]
 			letter = increment(letter)
-			
+
 			editList.AddItem(u.DisplayName+":", u.Value, rune(letter), func() {
 				infoText.SetText(editFieldInfo)
 				blankEditFieldForm(u, &e.Usernames, i, true)
@@ -1311,7 +1311,7 @@ The slash / is option, so "open 0" or "o 0" works like "/open 0".
 			app.EnableMouse(false)
 			pages.SwitchToPage("copen")
 			// needs to be at the end, because writeErr is called from it
-			blankCopen(indexSelected) 
+			blankCopen(indexSelected)
 		case "edit":
 			tempEntry = encrypt.Entry{}
 			app.EnableMouse(false)
@@ -1502,6 +1502,7 @@ func grider(prim tview.Primitive) *tview.Grid {
 func newCharIterator() int {
 	return int('a')
 }
+
 // Returns an int the value of the next character in alphabet, or if the
 // input was 'z' then it will return 'a'.
 func increment(count int) int {
@@ -1516,7 +1517,7 @@ func increment(count int) int {
 // Input: index, slice of entries
 // Return: string formatted for /open of the entry at the index
 // Entries needs to be inputted an not just the single one so that we can modify
-// the last opened time and then write it to file. 
+// the last opened time and then write it to file.
 func blankOpen(i int, entries []encrypt.Entry) string {
 	e := entries[i]
 
@@ -1612,7 +1613,7 @@ func blankFind(entries []encrypt.Entry, str string) (string, string) {
 
 // Input: slice of entries and search string
 // Returns: slice of ints of all indexes with the search string in the
-// name, tags, or URLs. 
+// name, tags, or URLs.
 // This is used in /find and /flist
 func findIndexes(entries []encrypt.Entry, str string) []int {
 	indexes := []int{}
@@ -1633,10 +1634,10 @@ func findIndexes(entries []encrypt.Entry, str string) []int {
 	return indexes
 }
 
-// Input: slice of entries, slice of indices (ints) to display, showOld bool 
+// Input: slice of entries, slice of indices (ints) to display, showOld bool
 // which is true if entries not in circulation should be shown (in /find), false
 // otherwise (like in /list)
-// Returns: a string of the entries formatted into three columns. 
+// Returns: a string of the entries formatted into three columns.
 func listEntries(entries []encrypt.Entry, indexes []int, showOld bool) string {
 	printEntries := []encrypt.Entry{}
 
@@ -1690,18 +1691,18 @@ func listEntries(entries []encrypt.Entry, indexes []int, showOld bool) string {
 		}
 
 		// so it doesn't do it on the last one
-		if i != third-1 { 
+		if i != third-1 {
 			b.WriteString("\n")
 		}
 	}
-	return b.String() 
+	return b.String()
 }
 
 // Inputs: int index of entry and slice of entries. The reason that the slice
-// of entries is inputted and not a single entry is because the logic for the 
+// of entries is inputted and not a single entry is because the logic for the
 // indexes is non trivial and would be not great to repeat in order to input the
-// exact entry. 
-// Return: string of a single name formatted for a third of a column in /list or 
+// exact entry.
+// Return: string of a single name formatted for a third of a column in /list or
 // /find, where if the user is on the default terminal size it'll be exactly
 // " [0] twitterDEMO       "
 func indexName(index int, entries []encrypt.Entry) string {
@@ -1709,7 +1710,7 @@ func indexName(index int, entries []encrypt.Entry) string {
 
 	b.WriteString("[" + strconv.Itoa(index) + "] ")
 
-	if !entries[index].Circulate { 
+	if !entries[index].Circulate {
 		b.WriteString("(rem) ")
 	}
 
@@ -1717,7 +1718,7 @@ func indexName(index int, entries []encrypt.Entry) string {
 	len := len([]rune(b.String()))
 
 	// Trims it if it's over the character limit
-	if len > 21+(width/3) { 
+	if len > 21+(width/3) {
 		return b.String()[0:21+(width/3)] + " "
 	}
 
@@ -1725,10 +1726,10 @@ func indexName(index int, entries []encrypt.Entry) string {
 	return b.String()
 }
 
-// Input: two indexes, i1 and i2 that are the two entries whose passwords are 
+// Input: two indexes, i1 and i2 that are the two entries whose passwords are
 // being compared and the slice of all entries
-// Return: string to write to the text box for /comp i1 i2 -- with title and 
-// comparison information. 
+// Return: string to write to the text box for /comp i1 i2 -- with title and
+// comparison information.
 func blankComp(i1, i2 int, entries []encrypt.Entry) string {
 	e1 := entries[i1]
 	e2 := entries[i2]
@@ -1747,7 +1748,7 @@ func blankComp(i1, i2 int, entries []encrypt.Entry) string {
 
 // Input: two entries, e1 and e2
 // Return: string formatted to be sent to the /comp text box about any
-// passwords or security questions in common between the two entries. 
+// passwords or security questions in common between the two entries.
 func compPass(e1, e2 encrypt.Entry) string {
 	// reusedPass is a struct
 	compMap := make(map[string][]reusedPass)
@@ -1856,7 +1857,7 @@ func reusedAll(entries []encrypt.Entry) string {
 
 	// gets rid of the last \n\n and return
 	printStr := b.String()
-	printStr = printStr[:len([]rune(printStr))-2] 
+	printStr = printStr[:len([]rune(printStr))-2]
 	return printStr
 }
 
@@ -1883,7 +1884,7 @@ func testAllFields(entries []encrypt.Entry) string {
 }
 
 // Updates the global variables width, height that store the difference from
-// the terminal size of the user and the terminal size designed for. 
+// the terminal size of the user and the terminal size designed for.
 // If there is an error in getting the terminal size, then it is assumed that
 // the user has the same size as original terminal (84x28).
 func updateTerminalSize() {
@@ -1900,7 +1901,7 @@ func updateTerminalSize() {
 
 	// Through experimenting, if the width is below 75 then you cannot see and
 	// access all the buttons in /new. The height should be at least 17 to see
-	// the list of fields already added in /new. 
+	// the list of fields already added in /new.
 	if termWidth < 75 || termHeight < 17 {
 		fmt.Println("In order to see all elements of the password manager, please set your terminal to a minimum height of 17 characters and a minimum width of 75 characters.")
 		fmt.Println("The ideal dimensions that this was designed for is a height of 28 and a width of 84.")
