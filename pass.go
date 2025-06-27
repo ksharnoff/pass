@@ -12,6 +12,7 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -94,7 +95,7 @@ func main() {
 	// This is where the errors are written to. errorTitle stays the same for
 	// all errors
 	errorTitle := tview.NewTextView().SetText(" Uh oh! There was an error:")
-	errorText := newScrollableTextView()
+	errorText := newScrollableTextView().SetWrap(true)
 
 	// Switches to the error page, sets errorText to the inputted err.
 	switchToError := func(err string) {
@@ -108,7 +109,7 @@ func main() {
 		encrypt.Entry{Name: "QUIT NOW, DANGER", Circulate: true},
 		encrypt.Entry{Name: "SOMETHING'S VERY", Circulate: true},
 		encrypt.Entry{Name: "BROKEN. QUIT!", Circulate: true},
-		encrypt.Entry{Name: "DATA WASNT LOADED", Circulate: true},
+		encrypt.Entry{Name: "DATA NOT LOADED", Circulate: true},
 	}
 
 	// This is the cipher block generated with the key to encrypt and decrypt.
@@ -1201,7 +1202,7 @@ func main() {
 	// "passBox" just has an empty box for the password screen
 	passBoxPages.
 		AddPage("passBox", tview.NewBox().SetBorder(true), true, true).
-		AddPage("passErr", grider(newFlex("error", passErrTitle, passErrText)), true, false)
+		AddPage("passErr", grider(newFlex("passErr", passErrTitle, passErrText)), true, false)
 
 	// Contains the password screen and the password manager
 	passPages.
@@ -1237,6 +1238,7 @@ func newFlex(action string, prims ...tview.Primitive) *tview.Flex {
 		"editEditField": 1,
 		"editFieldStr":  1,
 		"editDelete":    2,
+		"passErr":       2,
 		"password":      2,
 		"main":          3,
 	}
@@ -1246,7 +1248,7 @@ func newFlex(action string, prims ...tview.Primitive) *tview.Flex {
 	}
 
 	switch action {
-	case "list", "error":
+	case "list", "error", "passErr":
 		return newFlexRow().
 			AddItem(prims[0], 2, 0, false).
 			AddItem(prims[1], 0, 1, false)
@@ -1469,7 +1471,7 @@ func helpText() *tview.TextView {
  comply with WCAG AAA standards. To have a higher contrast,
  uncomment the lines before the variables lavender and blue are
  defined, comment out the current color definitions. These
- variables are at the very beginning of func main() in pass.go.
+ variables are near the beginning of the pass.go file.
 
  Here is a list of shortcuts for the commands which will do the
  same thing as the normal commands:`
@@ -1544,7 +1546,7 @@ func resizeHelpTextChunk(text []string, col int) string {
 	for i := 0; i < length; i++ {
 		paragraph := strings.Join(strings.Split(text[i], "\n"), "")
 
-		for len(paragraph) > col {
+		for len([]rune(paragraph)) > col {
 			ind := strings.LastIndex(paragraph[:col], " ")
 
 			// if no space found
@@ -1625,6 +1627,8 @@ func blankOpen(i int, entries []encrypt.Entry) string {
 		}
 	}
 	if !emptyNotes {
+		col := 62 + width
+
 		b.WriteString("\n notes:")
 		blankLines := 0 // Stops printing \n\n\n\n if only text in first line
 		for _, n := range e.Notes {
@@ -1633,12 +1637,32 @@ func blankOpen(i int, entries []encrypt.Entry) string {
 			} else {
 				b.WriteString(strings.Repeat("\n", blankLines))
 
-				for len([]rune(n)) > 61+width {
-					b.WriteString("\n\t " + n[:61+width])
-					n = n[61+width:]
+				for len([]rune(n)) > col {
+					indexes := regexp.MustCompile(`[^a-zA-Z0-9]`).FindAllStringIndex(n[:col], -1)
+
+					ind := -1
+
+					length := len(indexes)
+					if length < 1 {
+						ind = col - 1
+					} else {
+						if len(indexes[length-1]) < 1 {
+							ind = col - 1
+						} else {
+							ind = indexes[length-1][0]
+						}
+					}
+
+					if ind <= 0 {
+						ind = col - 1
+					}
+					ind++
+
+					b.WriteString("\n\t" + n[:ind])
+					n = n[ind:]
 				}
 
-				b.WriteString("\n\t " + n)
+				b.WriteString("\n\t" + n)
 				blankLines = 0
 			}
 		}
