@@ -39,21 +39,20 @@ type reusedPass struct {
 }
 type passApp struct {
 	app             *tview.Application
-	pages           *tview.Pages
+	boxPages           *tview.Pages
 	infoText        *tview.TextView
 	entries         []encrypt.Entry
 	ciphBlock       cipher.Block
-	indexSelected   int
 	fieldsAddedList *tview.List
 	newEntryForm    *tview.Form
+	indexSelected   int
 	tempEntry       encrypt.Entry
 	tempField       encrypt.Field
 	editDeleteText  *tview.TextView
-	listTitle       *tview.TextView
 	listText        *tview.TextView
-	input           *tview.InputField
 	passwordPages   *tview.Pages
 	passPages       *tview.Pages
+	input           *tview.InputField
 	text            *tview.TextView
 	list            *tview.List
 	form            *tview.Form
@@ -125,10 +124,9 @@ func main() {
 			SetTextAlign(tview.AlignCenter).
 			SetText("delete entry?\nCANNOT BE UNDONE"),
 
-		// This is for /list as well as /find. It has the title text box (/find str
-		// or /list) as well as the text text view where it will list the entries.
-		listTitle: tview.NewTextView().SetWrap(false),
-		listText:  newScrollableTextView().SetWrap(false),
+		// This is for /list as well as /find, the text view to show the
+		// entries. It shouldn't wrap because that would look bad. 
+		listText: newScrollableTextView().SetWrap(false),
 
 		// passwordPages switches between passBox and passErr
 		passwordPages: tview.NewPages(),
@@ -145,7 +143,7 @@ func main() {
 			SetMaskCharacter('*'),
 
 		// Text box for errors on the password screen, errors in the manager,
-		// /help, /open, /reused, /comp, /test
+		// /help, /open, /reused, /comp, /test, title box for /list and /find
 		text: newScrollableTextView().SetDynamicColors(true).SetWrap(true),
 
 		// This list is used for copen, pick, picc, flist, and edit
@@ -165,11 +163,19 @@ func main() {
 		a.app.SetFocus(a.newEntryForm)
 	})
 
-	// All the different pages are added here. The order in which the pages are
-	// added matters.
-	a.pages.
+	a.setUpPages()
+
+	if err := a.app.SetRoot(a.passPages, true).SetFocus(a.input).EnableMouse(true).Run(); err != nil {
+		panic(err)
+	}
+}
+
+func (a *passApp) setUpPages() {
+	// Top box of left side, the pages flipped between when you can see the
+	// command input line
+	a.boxPages.
 		AddPage("home", tview.NewBox().SetBorder(true).SetTitle("sad, empty box"), true, false).
-		AddPage("list", grider(newFlex("list", a.listTitle, a.listText)), true, false).
+		AddPage("list", grider(newFlex("list", a.text, a.listText)), true, false).
 		AddPage("test", grider(a.text), true, false).
 		AddPage("help", grider(a.text), true, false).
 		AddPage("err", grider(newFlex("error", tview.NewTextView().SetText(" Uh oh! There was an error:"), a.text)), true, false).
@@ -177,8 +183,10 @@ func main() {
 		AddPage("comp", grider(a.text), true, false).
 		AddPage("reused", grider(a.text), true, false)
 
+	// Left side pages where "commandLine" is when you should see the input field
+	// at the bottom and the rest cover it up
 	a.leftPages.
-		AddPage("commandLine", newFlex("leftPages", a.pages, a.input), true, false).
+		AddPage("commandLine", newFlex("leftPages", a.boxPages, a.input), true, false).
 		AddPage("copen", grider(a.list), true, false).
 		AddPage("pick", grider(a.list), true, false).
 		AddPage("edit", grider(a.list), true, false).
@@ -190,6 +198,7 @@ func main() {
 		AddPage("new-editField", newFlex("newEditField", a.form), true, false).
 		AddPage("newField", newFlex("newField", a.form), true, false)
 
+	// Password manager boxes, error box and blank box. 
 	a.passwordPages.
 		AddPage("passBox", tview.NewBox().SetBorder(true), true, true).
 		AddPage("passErr", grider(newFlex("passErr", tview.NewTextView().SetText(" Uh oh! There was an error in signing in:"), a.text)), true, false)
@@ -198,16 +207,12 @@ func main() {
 	a.passPages.
 		AddPage("passInput", newFlex("password", a.passwordPages, a.input), true, true).
 		AddPage("passManager", newFlex("main", a.leftPages, a.infoText), true, false)
-
-	if err := a.app.SetRoot(a.passPages, true).SetFocus(a.input).EnableMouse(true).Run(); err != nil {
-		panic(err)
-	}
 }
 
 // Switches to home, rights everything again.
 func (a *passApp) switchToHome() {
 	a.leftPages.SwitchToPage("commandLine")
-	a.pages.SwitchToPage("home")
+	a.boxPages.SwitchToPage("home")
 	a.app.SetFocus(a.input)
 	a.infoText.SetText(getInfoText("home"))
 	a.app.EnableMouse(true)
@@ -216,7 +221,7 @@ func (a *passApp) switchToHome() {
 // Switches to the error page, sets text to the inputted err.
 func (a *passApp) switchToError(err string) {
 	a.text.SetText(err)
-	a.pages.SwitchToPage("err")
+	a.boxPages.SwitchToPage("err")
 }
 
 // This tries to write to file, if it fails, it switches to the error page
@@ -940,7 +945,7 @@ func (a *passApp) blankPicklist(action string, indexes []int) {
 			a.list.AddItem(title, "tags: "+a.entries[i].Tags, rune(letter), func() {
 				if action == "pick" { // to transfer to /open #
 					a.app.EnableMouse(false)
-					a.pages.SwitchToPage("open")
+					a.boxPages.SwitchToPage("open")
 					a.app.SetFocus(a.input)
 					a.text.SetText(blankOpen(i, a.entries))
 					a.infoText.SetText(getInfoText("open"))
@@ -1117,15 +1122,15 @@ func (a *passApp) commandLineActions(key tcell.Key) {
 		a.app.Stop()
 	case "list", "l":
 		text := listEntries(a.entries, listAllIndexes, false)
-		a.listTitle.SetText(" /list \n -----")
+		a.text.SetText(" /list \n -----")
 		a.listText.SetText(text).ScrollToBeginning()
 		a.infoText.SetText(getInfoText("list"))
-		a.pages.SwitchToPage("list")
+		a.boxPages.SwitchToPage("list")
 	case "find":
 		title, text := blankFind(a.entries, inputedArr[1])
-		a.listTitle.SetText(title)
+		a.text.SetText(title)
 		a.listText.SetText(text).ScrollToBeginning()
-		a.pages.SwitchToPage("list")
+		a.boxPages.SwitchToPage("list")
 		a.infoText.SetText(getInfoText("find"))
 	case "test", "t":
 		// if /test # then add # entries to the entries list
@@ -1147,7 +1152,7 @@ func (a *passApp) commandLineActions(key tcell.Key) {
 			}
 		}
 		a.text.SetText(testAllFields(a.entries))
-		a.pages.SwitchToPage("test")
+		a.boxPages.SwitchToPage("test")
 	case "new", "n":
 		a.app.EnableMouse(false)
 		a.infoText.SetText(getInfoText("newEntry"))
@@ -1158,11 +1163,11 @@ func (a *passApp) commandLineActions(key tcell.Key) {
 	case "help", "he":
 		a.text.SetText(helpText())
 		a.text.ScrollToBeginning()
-		a.pages.SwitchToPage("help")
+		a.boxPages.SwitchToPage("help")
 	case "open":
 		a.infoText.SetText(getInfoText("open"))
 		a.app.EnableMouse(false)
-		a.pages.SwitchToPage("open")
+		a.boxPages.SwitchToPage("open")
 		a.text.SetText(blankOpen(a.indexSelected, a.entries))
 		a.text.ScrollToBeginning()
 		a.writeFileErrNone()
@@ -1198,10 +1203,10 @@ func (a *passApp) commandLineActions(key tcell.Key) {
 		a.leftPages.SwitchToPage("pick")
 	case "comp":
 		a.text.SetText(blankComp(compIndSelectOne, compIndSelectTwo, a.entries))
-		a.pages.SwitchToPage("comp")
+		a.boxPages.SwitchToPage("comp")
 	case "reused", "r":
 		a.text.SetText(" /reused\n -------\n The following are the passwords and answers reused:\n\n" + reusedAll(a.entries))
-		a.pages.SwitchToPage("reused")
+		a.boxPages.SwitchToPage("reused")
 	default:
 		a.switchToError(" That input doesn't match a command! \n Look to the right right to see the possible commands. \n Make sure to spell it correctly!")
 	}
