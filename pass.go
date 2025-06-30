@@ -30,16 +30,11 @@ import (
 	"os"
 )
 
-// This is in the map in /reused and /comp. It has the fields associated
-// with a certain password.
-type reusedPass struct {
-	displayName string
-	entryName   string
-	entryIndex  int
-}
+// passApp stores all the variables that are used throughout the 
+// different methods that draw the password manager
 type passApp struct {
 	app             *tview.Application
-	boxPages           *tview.Pages
+	boxPages        *tview.Pages
 	infoText        *tview.TextView
 	entries         []encrypt.Entry
 	ciphBlock       cipher.Block
@@ -57,6 +52,13 @@ type passApp struct {
 	list            *tview.List
 	form            *tview.Form
 	leftPages       *tview.Pages
+}
+// This is in the map in /reused and /comp. It has the fields associated
+// with a certain password.
+type reusedPass struct {
+	displayName string
+	entryName   string
+	entryIndex  int
 }
 
 // You can uncomment out the next two lines and comment out the default
@@ -80,11 +82,10 @@ func main() {
 	passApp{}.updateTerminalSize()
 
 	a := passApp{
-
 		app: tview.NewApplication(),
 
 		// Pages is the pages set up for the left box in pass
-		pages: tview.NewPages(),
+		boxPages: tview.NewPages(),
 
 		// This is the text box on the right that contains information that changes
 		// depending on what the user is doing.
@@ -125,7 +126,7 @@ func main() {
 			SetText("delete entry?\nCANNOT BE UNDONE"),
 
 		// This is for /list as well as /find, the text view to show the
-		// entries. It shouldn't wrap because that would look bad. 
+		// entries. It shouldn't wrap because that would look bad.
 		listText: newScrollableTextView().SetWrap(false),
 
 		// passwordPages switches between passBox and passErr
@@ -198,7 +199,7 @@ func (a *passApp) setUpPages() {
 		AddPage("new-editField", newFlex("newEditField", a.form), true, false).
 		AddPage("newField", newFlex("newField", a.form), true, false)
 
-	// Password manager boxes, error box and blank box. 
+	// Password manager boxes, error box and blank box.
 	a.passwordPages.
 		AddPage("passBox", tview.NewBox().SetBorder(true), true, true).
 		AddPage("passErr", grider(newFlex("passErr", tview.NewTextView().SetText(" Uh oh! There was an error in signing in:"), a.text)), true, false)
@@ -228,7 +229,7 @@ func (a *passApp) switchToError(err string) {
 // and returns false. The reason for returning false is so that when used
 // else where it doesn't switch to error page and then immediately switch
 // else where so it can't be seen.
-func (a *passApp) writeFileErrNone() bool {
+func (a *passApp) noWriteFileError() bool {
 	writeErr := encrypt.WriteToFile(a.entries, a.ciphBlock)
 	if writeErr != "" {
 		a.switchToError(writeErr)
@@ -245,79 +246,15 @@ func (a *passApp) switchToEditList(modified bool) {
 	succeeded := true
 	if modified {
 		a.entries[a.indexSelected].Modified = time.Now()
-		succeeded = a.writeFileErrNone()
+		succeeded = a.noWriteFileError()
 	}
 
 	if succeeded {
 		a.app.EnableMouse(false)
-		a.blankEditlist(a.indexSelected)
+		a.blankEditList(a.indexSelected)
 		a.leftPages.SwitchToPage("edit")
 		a.app.SetFocus(a.list)
 		a.infoText.SetText(getInfoText("editEntry"))
-	}
-}
-
-// This just uses tempEntry to get the fields, this works because
-// tempEntry is defined to be equal to entry e in blankNewEntry when called
-// after /copy.
-func (a *passApp) blankFieldsAdded() {
-	a.fieldsAddedList.Clear()
-	letter := newCharIterator()
-
-	if a.newEntryForm.GetButtonIndex("edit field") < 0 { // if there isn't one already
-		a.newEntryForm.
-			// Don't change this label name, breaks stuff later.
-			AddButton("edit field", func() {
-				a.infoText.SetText(getInfoText("newFieldsAdded"))
-				a.app.SetFocus(a.fieldsAddedList)
-			})
-	}
-	a.fieldsAddedList.
-		AddItem("move back to top", "", rune(letter), func() {
-			a.infoText.SetText(getInfoText("newEntry"))
-			a.app.SetFocus(a.newEntryForm)
-		})
-	for _, u := range a.tempEntry.Urls {
-		letter = increment(letter)
-		a.fieldsAddedList.AddItem("url:", u, rune(letter), func() {
-			a.infoText.SetText(getInfoText("newField"))
-			a.blankEditStringForm("url", u, &a.tempEntry, false)
-			a.leftPages.ShowPage("editFieldStr")
-			a.app.SetFocus(a.form)
-		})
-	}
-	for i := range a.tempEntry.Usernames {
-		u := &a.tempEntry.Usernames[i]
-		letter = increment(letter)
-
-		a.fieldsAddedList.AddItem(u.DisplayName+":", u.Value, rune(letter), func() {
-			a.infoText.SetText(getInfoText("newField"))
-			a.blankEditFieldForm(u, &a.tempEntry.Usernames, i, false)
-			a.leftPages.ShowPage("new-editField")
-			a.app.SetFocus(a.form)
-		})
-	}
-	for i := range a.tempEntry.Passwords {
-		p := &a.tempEntry.Passwords[i]
-		letter = increment(letter)
-
-		a.fieldsAddedList.AddItem(p.DisplayName+":", "[black:black]"+p.Value, rune(letter), func() {
-			a.infoText.SetText(getInfoText("newField"))
-			a.blankEditFieldForm(p, &a.tempEntry.Passwords, i, false)
-			a.leftPages.ShowPage("new-editField")
-			a.app.SetFocus(a.form)
-		})
-	}
-	for i := range a.tempEntry.SecurityQ {
-		sq := &a.tempEntry.SecurityQ[i]
-		letter = increment(letter)
-
-		a.fieldsAddedList.AddItem(sq.DisplayName+":", "[black:black]"+sq.Value, rune(letter), func() {
-			a.infoText.SetText(getInfoText("newField"))
-			a.blankEditFieldForm(sq, &a.tempEntry.SecurityQ, i, false)
-			a.leftPages.ShowPage("new-editField")
-			a.app.SetFocus(a.form)
-		})
 	}
 }
 
@@ -347,174 +284,8 @@ func (a *passApp) switchToNewFieldsList(doSwitch bool) {
 	}
 }
 
-// Takes in an extra boolean to know if its from /edit or /new, in order to
-// know where to go back to.
-func (a *passApp) blankEditFieldForm(f *encrypt.Field, fieldArr *[]encrypt.Field, index int, edit bool) {
-	a.form.Clear(true)
-	a.tempField.DisplayName = f.DisplayName
-	a.tempField.Value = f.Value
-
-	a.form.
-		AddInputField("display name:", a.tempField.DisplayName, 40+width, nil, func(input string) {
-			a.tempField.DisplayName = input
-		}).
-		AddInputField("value:", a.tempField.Value, 40+width, nil, func(input string) {
-			a.tempField.Value = input
-		}).
-		AddButton("save", func() {
-			if len([]rune(a.tempField.DisplayName)) < 1 {
-				return
-			}
-
-			*f = a.tempField
-			if edit {
-				a.switchToEditList(true) // true meaning it was modified
-			} else {
-				a.switchToNewFieldsList(true) // true meaning keep in the list section
-			}
-		}).
-		AddButton("quit", func() {
-			if edit {
-				a.switchToEditList(false) // false meaning not modified
-			} else {
-				a.switchToNewFieldsList(true) // true meaning keep in list section
-			}
-		}).
-		AddButton("delete field", func() {
-			if (fieldArr != nil) && (index != -1) {
-				// Currently it changes the order when the element
-				// is deleted from the slice. If this is wanted to
-				// stay in order, then it should be rewritten.
-				(*fieldArr)[index] = (*fieldArr)[len(*fieldArr)-1]
-				(*fieldArr) = (*fieldArr)[:len(*fieldArr)-1]
-				if edit {
-					a.switchToEditList(true) // true meaning modified
-				} else {
-					a.switchToNewFieldsList(true) // true meaning keep in list section
-				}
-			} else {
-				a.switchToError(" The slice given to blankEditFieldForm is nil \n and it shouldn't be! or the index is -1 which it also shouldn't be!")
-			}
-		})
-}
-
-// Takes in a pointer to tempEntry if in /new. Takes in a pointer to an
-// entry if in /edit.
-func (a *passApp) blankNewField(e *encrypt.Entry) {
-	edit := false
-
-	dropDownFields := []string{"url", "username", "password", "security question"}
-
-	// Only adds tags and url as an option to add on if it is in /edit
-	if e != &a.tempEntry {
-		edit = true
-		if e.Tags == "" {
-			dropDownFields = append(dropDownFields, "tags")
-		}
-	}
-	a.tempField = encrypt.Field{}
-	tempStr := ""
-	fieldType := "" // To track what field is changing
-	a.form.Clear(true)
-
-	fieldDropDown := tview.NewDropDown().
-		SetLabel("new field: ").
-		SetCurrentOption(-1).
-		// changes the colors of the drop down options -- selected & unselected styles
-		SetListStyles(tcell.Style{}.Background(blue).Foreground(white), tcell.Style{}.Background(white).Foreground(blue))
-
-	fieldDropDown.SetOptions(dropDownFields, func(chosenDrop string, index int) {
-		for a.form.GetFormItemCount() > 1 { // needed for when you change your mind
-			a.form.RemoveFormItem(1)
-		}
-		fieldType = chosenDrop
-		if index > -1 { // If something is chosen
-			switch fieldType {
-			case "tags":
-				a.form.AddInputField("tags:", a.tempEntry.Tags, 50+width, nil, func(tags string) {
-					tempStr = tags
-				})
-			case "url":
-				a.form.AddInputField("url:", "", 50+width, nil, func(url string) {
-					tempStr = url
-				})
-			default: // username, password, security question
-				inputLabel := "display name:"
-				initialValue := ""
-
-				switch fieldType {
-				case "username":
-					initialValue = "email"
-				case "password":
-					initialValue = "password"
-				case "security question":
-					inputLabel = "question:"
-				}
-
-				a.tempField.DisplayName = initialValue
-
-				a.form.AddInputField(inputLabel, initialValue, 50+width, nil, func(display string) {
-					a.tempField.DisplayName = display
-				})
-
-				a.form.AddInputField("value:", "", 50+width, nil, func(value string) {
-					a.tempField.Value = value
-				})
-			}
-		}
-	})
-	a.form.AddFormItem(fieldDropDown).AddButton("save field", func() {
-		if (a.tempField.DisplayName != "") || (tempStr != "") {
-			switch fieldType {
-			case "username":
-				e.Usernames = append(e.Usernames, a.tempField)
-			case "password":
-				e.Passwords = append(e.Passwords, a.tempField)
-			case "security question":
-				e.SecurityQ = append(e.SecurityQ, a.tempField)
-			case "tags":
-				e.Tags = tempStr
-			case "url":
-				e.Urls = append(e.Urls, tempStr)
-			}
-			if !edit { // If in /new
-				a.blankFieldsAdded()
-				a.infoText.SetText(getInfoText("newEntry"))
-				a.leftPages.SwitchToPage("newEntry")
-				a.app.SetFocus(a.newEntryForm)
-			} else { // If in /edit
-				a.switchToEditList(true)
-			}
-		}
-	}).
-		AddButton("quit", func() {
-			if !edit {
-				a.infoText.SetText(getInfoText("newEntry"))
-				a.leftPages.SwitchToPage("newEntry")
-				a.app.SetFocus(a.newEntryForm)
-			} else {
-				a.switchToEditList(false)
-			}
-		})
-}
-
-func (a *passApp) blankEditDeleteEntry() {
-	a.form.Clear(true)
-	a.form.SetButtonsAlign(tview.AlignCenter)
-	a.form.
-		AddButton("cancel", func() {
-			a.switchToEditList(false)
-		}).
-		AddButton("delete", func() { // deletes element from slice, slower version, keeps everything else in order, copied the code from a website lol
-			copy(a.entries[a.indexSelected:], a.entries[a.indexSelected+1:])
-			a.entries = a.entries[:len(a.entries)-1]
-			if a.writeFileErrNone() {
-				a.switchToHome()
-			}
-		})
-}
-
-func (a *passApp) blankEditlist(i int) {
+// Creates the list for /edit
+func (a *passApp) blankEditList(i int) {
 	a.list.Clear()
 	e := &a.entries[i]
 	letter := newCharIterator()
@@ -639,115 +410,53 @@ func (a *passApp) blankEditlist(i int) {
 	})
 }
 
-// An entry is passed in for /copy. If making a brand new entry, then a
-// blank tempEntry is passed in.
-func (a *passApp) blankNewEntry(e encrypt.Entry) {
-	a.newEntryForm.Clear(true)
-	a.fieldsAddedList.Clear()
-
-	// This must be done one by one because of pointer shenanigans
-	// Usernames, Passwords, SecurityQ, Urls are slices so must
-	// be copied manually. Right now, notes is limited to six strings
-	// [6]string so is an array, not a pointer.
-	a.tempEntry.Name = e.Name
-	a.tempEntry.Tags = e.Tags
-
-	a.tempEntry.Urls = make([]string, len(e.Urls))
-	copy(a.tempEntry.Urls, e.Urls)
-
-	a.tempEntry.Usernames = make([]encrypt.Field, len(e.Usernames))
-	copy(a.tempEntry.Usernames, e.Usernames)
-
-	a.tempEntry.Passwords = make([]encrypt.Field, len(e.Passwords))
-	copy(a.tempEntry.Passwords, e.Passwords)
-
-	a.tempEntry.SecurityQ = make([]encrypt.Field, len(e.SecurityQ))
-	copy(a.tempEntry.SecurityQ, e.SecurityQ)
-
-	a.tempEntry.Notes = e.Notes
-	a.tempEntry.Circulate = true
-
-	a.newEntryForm.
-		AddInputField("name:", a.tempEntry.Name, 58+width, nil, func(itemName string) {
-			a.tempEntry.Name = itemName
-		}).
-		AddInputField("tags:", a.tempEntry.Tags, 58+width, nil, func(tagsInput string) {
-			a.tempEntry.Tags = tagsInput
-		}).
-		AddCheckbox("circulate:", true, func(checked bool) {
-			a.tempEntry.Circulate = checked
-		}).
-		// this order of the buttons is on purpose and makes sense
-		AddButton("new field", func() {
-			a.infoText.SetText(getInfoText("newField"))
-			a.blankNewField(&a.tempEntry)
-			a.leftPages.ShowPage("newField")
-			a.app.SetFocus(a.form)
-		}).
-		// You can't hit save if there's no name
-		AddButton("save entry", func() {
-			if a.tempEntry.Name != "" {
-				a.tempEntry.Created = time.Now()
-				a.entries = append(a.entries, a.tempEntry)
-				if a.writeFileErrNone() { // if successfully wrote to file, then it switches to home, if not then it switches to error page
-					a.switchToHome()
-				}
-			}
-		}).
-		AddButton("quit", func() {
-			a.switchToHome()
-		}).
-		AddButton("notes", func() {
-			a.blankNewNote(&a.tempEntry)
-			a.leftPages.ShowPage("newNote")
-			a.app.SetFocus(a.form)
-		})
-	// Put at the end so in case there is already fields it puts the button at the end
-	a.switchToNewFieldsList(false)
-}
-
-// Takes in a pointer to an entry if used in /edit. Takes in a pointer to
-// tempEntry if in /new.
-func (a *passApp) blankNewNote(e *encrypt.Entry) {
+// Takes in an extra boolean to know if its from /edit or /new, in order to
+// know where to go back to.
+func (a *passApp) blankEditFieldForm(f *encrypt.Field, fieldArr *[]encrypt.Field, index int, edit bool) {
 	a.form.Clear(true)
-	toAdd := e.Notes
+	a.tempField.DisplayName = f.DisplayName
+	a.tempField.Value = f.Value
 
 	a.form.
-		AddInputField("notes:", toAdd[0], 0, nil, func(inputed string) {
-			toAdd[0] = inputed
-		})
-
-	for i := 1; i < 6; i++ {
-		a.form.AddInputField("", toAdd[i], 0, nil, func(inputed string) {
-			toAdd[i] = inputed
-		})
-	}
-
-	a.form.
+		AddInputField("display name:", a.tempField.DisplayName, 40+width, nil, func(input string) {
+			a.tempField.DisplayName = input
+		}).
+		AddInputField("value:", a.tempField.Value, 40+width, nil, func(input string) {
+			a.tempField.Value = input
+		}).
 		AddButton("save", func() {
-			e.Notes = toAdd
-			if e == &a.tempEntry { // if this is being done in /new
-				a.leftPages.SwitchToPage("newEntry")
-				a.app.SetFocus(a.newEntryForm)
-			} else { // if this is being done in /edit
-				a.switchToEditList(true)
+			if len([]rune(a.tempField.DisplayName)) < 1 {
+				return
+			}
+
+			*f = a.tempField
+			if edit {
+				a.switchToEditList(true) // true meaning it was modified
+			} else {
+				a.switchToNewFieldsList(true) // true meaning keep in the list section
 			}
 		}).
 		AddButton("quit", func() {
-			if e == &a.tempEntry { // if being done in /new
-				a.leftPages.SwitchToPage("newEntry")
-				a.app.SetFocus(a.newEntryForm)
-			} else { // if being done in /edit
-				a.switchToEditList(false)
+			if edit {
+				a.switchToEditList(false) // false meaning not modified
+			} else {
+				a.switchToNewFieldsList(true) // true meaning keep in list section
 			}
 		}).
-		AddButton("delete", func() {
-			e.Notes = [6]string{} // assigns the whole array at once
-			if e == &a.tempEntry {
-				a.leftPages.SwitchToPage("newEntry")
-				a.app.SetFocus(a.newEntryForm)
+		AddButton("delete field", func() {
+			if (fieldArr != nil) && (index != -1) {
+				// Currently it changes the order when the element
+				// is deleted from the slice. If this is wanted to
+				// stay in order, then it should be rewritten.
+				(*fieldArr)[index] = (*fieldArr)[len(*fieldArr)-1]
+				(*fieldArr) = (*fieldArr)[:len(*fieldArr)-1]
+				if edit {
+					a.switchToEditList(true) // true meaning modified
+				} else {
+					a.switchToNewFieldsList(true) // true meaning keep in list section
+				}
 			} else {
-				a.switchToEditList(true)
+				a.switchToError(" The slice given to blankEditFieldForm is nil \n and it shouldn't be! or the index is -1 which it also shouldn't be!")
 			}
 		})
 }
@@ -839,6 +548,307 @@ func (a *passApp) blankEditStringForm(display, value string, e *encrypt.Entry, e
 	}
 }
 
+// Input: a pointer to an entry that a new field is being added to. If the new
+// filed is in /new then this pointer is to tempEntry, if it is in /edit then 
+// it is a pointer to the entry being edited. 
+// This creates the form for adding a new field in /new or /edit. 
+func (a *passApp) blankNewField(e *encrypt.Entry) {
+	edit := false
+
+	dropDownFields := []string{"url", "username", "password", "security question"}
+
+	// Only adds tags and url as an option to add on if it is in /edit
+	if e != &a.tempEntry {
+		edit = true
+		if e.Tags == "" {
+			dropDownFields = append(dropDownFields, "tags")
+		}
+	}
+	a.tempField = encrypt.Field{}
+	tempStr := ""
+	fieldType := "" // To track what field is changing
+	a.form.Clear(true)
+
+	fieldDropDown := tview.NewDropDown().
+		SetLabel("new field: ").
+		SetCurrentOption(-1).
+		// changes the colors of the drop down options -- selected & unselected styles
+		SetListStyles(tcell.Style{}.Background(blue).Foreground(white), tcell.Style{}.Background(white).Foreground(blue))
+
+	fieldDropDown.SetOptions(dropDownFields, func(chosenDrop string, index int) {
+		for a.form.GetFormItemCount() > 1 { // needed for when you change your mind
+			a.form.RemoveFormItem(1)
+		}
+		fieldType = chosenDrop
+		if index > -1 { // If something is chosen
+			switch fieldType {
+			case "tags":
+				a.form.AddInputField("tags:", a.tempEntry.Tags, 50+width, nil, func(tags string) {
+					tempStr = tags
+				})
+			case "url":
+				a.form.AddInputField("url:", "", 50+width, nil, func(url string) {
+					tempStr = url
+				})
+			default: // username, password, security question
+				inputLabel := "display name:"
+				initialValue := ""
+
+				switch fieldType {
+				case "username":
+					initialValue = "email"
+				case "password":
+					initialValue = "password"
+				case "security question":
+					inputLabel = "question:"
+				}
+
+				a.tempField.DisplayName = initialValue
+
+				a.form.AddInputField(inputLabel, initialValue, 50+width, nil, func(display string) {
+					a.tempField.DisplayName = display
+				})
+
+				a.form.AddInputField("value:", "", 50+width, nil, func(value string) {
+					a.tempField.Value = value
+				})
+			}
+		}
+	})
+	a.form.AddFormItem(fieldDropDown).AddButton("save field", func() {
+		if (a.tempField.DisplayName != "") || (tempStr != "") {
+			switch fieldType {
+			case "username":
+				e.Usernames = append(e.Usernames, a.tempField)
+			case "password":
+				e.Passwords = append(e.Passwords, a.tempField)
+			case "security question":
+				e.SecurityQ = append(e.SecurityQ, a.tempField)
+			case "tags":
+				e.Tags = tempStr
+			case "url":
+				e.Urls = append(e.Urls, tempStr)
+			}
+			if !edit { // If in /new
+				a.blankFieldsAdded()
+				a.infoText.SetText(getInfoText("newEntry"))
+				a.leftPages.SwitchToPage("newEntry")
+				a.app.SetFocus(a.newEntryForm)
+			} else { // If in /edit
+				a.switchToEditList(true)
+			}
+		}
+	}).
+		AddButton("quit", func() {
+			if !edit {
+				a.infoText.SetText(getInfoText("newEntry"))
+				a.leftPages.SwitchToPage("newEntry")
+				a.app.SetFocus(a.newEntryForm)
+			} else {
+				a.switchToEditList(false)
+			}
+		})
+}
+
+// Creates the form for deleting the entry at indexSelected
+func (a *passApp) blankEditDeleteEntry() {
+	a.form.Clear(true)
+	a.form.SetButtonsAlign(tview.AlignCenter)
+	a.form.
+		AddButton("cancel", func() {
+			a.switchToEditList(false)
+		}).
+		AddButton("delete", func() { 
+			copy(a.entries[a.indexSelected:], a.entries[a.indexSelected+1:])
+			a.entries = a.entries[:len(a.entries)-1]
+			if a.noWriteFileError() {
+				a.switchToHome()
+			}
+		})
+}
+
+// Input: if being called from /new then a blank tempEntry is passed in. If
+// this is called for /copy, then an already existing entry is passed. 
+// This creates the form for making a new entry.
+func (a *passApp) blankNewEntry(e encrypt.Entry) {
+	a.newEntryForm.Clear(true)
+	a.fieldsAddedList.Clear()
+
+	// This must be done one by one because of pointer shenanigans
+	// Usernames, Passwords, SecurityQ, Urls are slices so must
+	// be copied manually. Right now, notes is limited to six strings
+	// [6]string so is an array, not a pointer.
+	a.tempEntry.Name = e.Name
+	a.tempEntry.Tags = e.Tags
+
+	a.tempEntry.Urls = make([]string, len(e.Urls))
+	copy(a.tempEntry.Urls, e.Urls)
+
+	a.tempEntry.Usernames = make([]encrypt.Field, len(e.Usernames))
+	copy(a.tempEntry.Usernames, e.Usernames)
+
+	a.tempEntry.Passwords = make([]encrypt.Field, len(e.Passwords))
+	copy(a.tempEntry.Passwords, e.Passwords)
+
+	a.tempEntry.SecurityQ = make([]encrypt.Field, len(e.SecurityQ))
+	copy(a.tempEntry.SecurityQ, e.SecurityQ)
+
+	a.tempEntry.Notes = e.Notes
+	a.tempEntry.Circulate = true
+
+	a.newEntryForm.
+		AddInputField("name:", a.tempEntry.Name, 58+width, nil, func(itemName string) {
+			a.tempEntry.Name = itemName
+		}).
+		AddInputField("tags:", a.tempEntry.Tags, 58+width, nil, func(tagsInput string) {
+			a.tempEntry.Tags = tagsInput
+		}).
+		AddCheckbox("circulate:", true, func(checked bool) {
+			a.tempEntry.Circulate = checked
+		}).
+		// this order of the buttons is on purpose and makes sense
+		AddButton("new field", func() {
+			a.infoText.SetText(getInfoText("newField"))
+			a.blankNewField(&a.tempEntry)
+			a.leftPages.ShowPage("newField")
+			a.app.SetFocus(a.form)
+		}).
+		// You can't hit save if there's no name
+		AddButton("save entry", func() {
+			if a.tempEntry.Name != "" {
+				a.tempEntry.Created = time.Now()
+				a.entries = append(a.entries, a.tempEntry)
+				if a.noWriteFileError() { // if successfully wrote to file, then it switches to home, if not then it switches to error page
+					a.switchToHome()
+				}
+			}
+		}).
+		AddButton("quit", func() {
+			a.switchToHome()
+		}).
+		AddButton("notes", func() {
+			a.blankNewNote(&a.tempEntry)
+			a.leftPages.ShowPage("newNote")
+			a.app.SetFocus(a.form)
+		})
+	// Put at the end so in case there is already fields it puts the button at the end
+	a.switchToNewFieldsList(false)
+}
+
+// This just uses tempEntry to get the fields, this works because
+// tempEntry is defined to be equal to entry e in blankNewEntry when called
+// after /copy.
+func (a *passApp) blankFieldsAdded() {
+	a.fieldsAddedList.Clear()
+	letter := newCharIterator()
+
+	if a.newEntryForm.GetButtonIndex("edit field") < 0 { // if there isn't one already
+		a.newEntryForm.
+			// Don't change this label name, breaks stuff later.
+			AddButton("edit field", func() {
+				a.infoText.SetText(getInfoText("newFieldsAdded"))
+				a.app.SetFocus(a.fieldsAddedList)
+			})
+	}
+	a.fieldsAddedList.
+		AddItem("move back to top", "", rune(letter), func() {
+			a.infoText.SetText(getInfoText("newEntry"))
+			a.app.SetFocus(a.newEntryForm)
+		})
+	for _, u := range a.tempEntry.Urls {
+		letter = increment(letter)
+		a.fieldsAddedList.AddItem("url:", u, rune(letter), func() {
+			a.infoText.SetText(getInfoText("newField"))
+			a.blankEditStringForm("url", u, &a.tempEntry, false)
+			a.leftPages.ShowPage("editFieldStr")
+			a.app.SetFocus(a.form)
+		})
+	}
+	for i := range a.tempEntry.Usernames {
+		u := &a.tempEntry.Usernames[i]
+		letter = increment(letter)
+
+		a.fieldsAddedList.AddItem(u.DisplayName+":", u.Value, rune(letter), func() {
+			a.infoText.SetText(getInfoText("newField"))
+			a.blankEditFieldForm(u, &a.tempEntry.Usernames, i, false)
+			a.leftPages.ShowPage("new-editField")
+			a.app.SetFocus(a.form)
+		})
+	}
+	for i := range a.tempEntry.Passwords {
+		p := &a.tempEntry.Passwords[i]
+		letter = increment(letter)
+
+		a.fieldsAddedList.AddItem(p.DisplayName+":", "[black:black]"+p.Value, rune(letter), func() {
+			a.infoText.SetText(getInfoText("newField"))
+			a.blankEditFieldForm(p, &a.tempEntry.Passwords, i, false)
+			a.leftPages.ShowPage("new-editField")
+			a.app.SetFocus(a.form)
+		})
+	}
+	for i := range a.tempEntry.SecurityQ {
+		sq := &a.tempEntry.SecurityQ[i]
+		letter = increment(letter)
+
+		a.fieldsAddedList.AddItem(sq.DisplayName+":", "[black:black]"+sq.Value, rune(letter), func() {
+			a.infoText.SetText(getInfoText("newField"))
+			a.blankEditFieldForm(sq, &a.tempEntry.SecurityQ, i, false)
+			a.leftPages.ShowPage("new-editField")
+			a.app.SetFocus(a.form)
+		})
+	}
+}
+
+// Input: a pointer to an entry that the notes are being added to. If the new
+// filed is in /new then this pointer is to tempEntry, if it is in /edit then 
+// it is a pointer to the entry being edited. 
+// This is for editing, creating, or deleting notes in /edit or /new. 
+func (a *passApp) blankNewNote(e *encrypt.Entry) {
+	a.form.Clear(true)
+	toAdd := e.Notes
+
+	a.form.
+		AddInputField("notes:", toAdd[0], 0, nil, func(inputed string) {
+			toAdd[0] = inputed
+		})
+
+	for i := 1; i < 6; i++ {
+		a.form.AddInputField("", toAdd[i], 0, nil, func(inputed string) {
+			toAdd[i] = inputed
+		})
+	}
+
+	a.form.
+		AddButton("save", func() {
+			e.Notes = toAdd
+			if e == &a.tempEntry { // if this is being done in /new
+				a.leftPages.SwitchToPage("newEntry")
+				a.app.SetFocus(a.newEntryForm)
+			} else { // if this is being done in /edit
+				a.switchToEditList(true)
+			}
+		}).
+		AddButton("quit", func() {
+			if e == &a.tempEntry { // if being done in /new
+				a.leftPages.SwitchToPage("newEntry")
+				a.app.SetFocus(a.newEntryForm)
+			} else { // if being done in /edit
+				a.switchToEditList(false)
+			}
+		}).
+		AddButton("delete", func() {
+			e.Notes = [6]string{} // assigns the whole array at once
+			if e == &a.tempEntry {
+				a.leftPages.SwitchToPage("newEntry")
+				a.app.SetFocus(a.newEntryForm)
+			} else {
+				a.switchToEditList(true)
+			}
+		})
+}
+
+// Input: the index to be /copen
+// This creates the list of copyable fields for the inputted entry for /copen
 func (a *passApp) blankCopen(i int) {
 	letter := newCharIterator()
 	a.list.Clear()
@@ -913,11 +923,13 @@ func (a *passApp) blankCopen(i int) {
 		})
 	}
 	a.entries[i].Opened = time.Now()
-	a.writeFileErrNone()
+	a.noWriteFileError()
 }
 
-// Action is either going to be "pick", "picc", or "flist str". This is
-// done to print out the action and send the function to the correct place.
+// Input: action string, going to be "pick", "picc", or "flist str". This is
+// done to print out the action and send the function to the correct place. 
+// Also the indexes to add to the list are also inputted, as they are different
+// for /flist vs. /pick
 func (a *passApp) blankPicklist(action string, indexes []int) {
 	// if /flist str and str is really long:
 	if len([]rune(action)) > (56 + width) {
@@ -949,7 +961,7 @@ func (a *passApp) blankPicklist(action string, indexes []int) {
 					a.app.SetFocus(a.input)
 					a.text.SetText(blankOpen(i, a.entries))
 					a.infoText.SetText(getInfoText("open"))
-					a.writeFileErrNone()
+					a.noWriteFileError()
 				} else { // to transfer to /copen # (for both /picc and /flist)
 					a.app.SetFocus(a.list)
 					a.app.EnableMouse(false)
@@ -962,6 +974,11 @@ func (a *passApp) blankPicklist(action string, indexes []int) {
 	}
 }
 
+// This function happens when the input line for typing in the master password
+// is exited using the inputted key press. The password is used to generate a
+// key and the file is attempted to be decrypted. If this fails, then it swaps
+// to an error screen, if the file was successfully decrypted then it is swapped
+// to the password manager. 
 func (a *passApp) passActions(key tcell.Key) {
 	// guarantee only enter (13) or tab (9) can be counted
 	if (key != 13) && (key != 9) {
@@ -1008,8 +1025,10 @@ func (a *passApp) passActions(key tcell.Key) {
 	a.switchToHome()
 }
 
-// First, 'inputted' is sanitized and checked to make sure it follows
-// conventions. Then, a page and focus is swapped and an action is called.
+// This function happens when the input line is exited using the inputted key.
+// First, the text written in the input field is matched to its action, and all 
+// prerequisites (such as entries listed after) are checked. Then, the action
+// is executed by swapping the page and focus. 
 func (a *passApp) commandLineActions(key tcell.Key) {
 	// guarantee only enter (13) or tab (9) can be used
 	if (key != 13) && (key != 9) {
@@ -1144,7 +1163,7 @@ func (a *passApp) commandLineActions(key tcell.Key) {
 						Circulate: true})
 				}
 				// write to file, swap to error page if failed:
-				a.writeFileErrNone()
+				a.noWriteFileError()
 				return
 			} else {
 				a.switchToError(" To add entries using /test you must write a number!\n Ex: \n\t \\test 3")
@@ -1170,7 +1189,7 @@ func (a *passApp) commandLineActions(key tcell.Key) {
 		a.boxPages.SwitchToPage("open")
 		a.text.SetText(blankOpen(a.indexSelected, a.entries))
 		a.text.ScrollToBeginning()
-		a.writeFileErrNone()
+		a.noWriteFileError()
 	case "copen":
 		a.infoText.SetText(getInfoText("copen"))
 		a.app.SetFocus(a.list)
@@ -1356,7 +1375,7 @@ func newInputField() *tview.InputField {
 		SetPlaceholderStyle(tcell.Style{}.Background(blue).Foreground(white))
 }
 
-// Retrurn: new TextView that has scrolling on
+// Return: new TextView that can scroll
 func newScrollableTextView() *tview.TextView {
 	return tview.NewTextView().SetScrollable(true)
 }
@@ -1986,10 +2005,13 @@ func testAllFields(entries []encrypt.Entry) string {
 	return b.String()
 }
 
+// Return: true if the size changed, false otherwise
 // Updates the global variables width, height that store the difference from
 // the terminal size of the user and the terminal size designed for.
 // If there is an error in getting the terminal size, then it is assumed that
 // the user has the same size as original terminal (84x28).
+// This needs to be a method so that it can stop the application from running
+// in order to print the error message.
 func (a passApp) updateTerminalSize() bool {
 	oldWidth := width
 	oldHeight := height
@@ -2009,6 +2031,8 @@ func (a passApp) updateTerminalSize() bool {
 	// access all the buttons in /new. The height should be at least 17 to see
 	// the list of fields already added in /new.
 	if termWidth < 75 || termHeight < 14 {
+		// if a.app == nil then the passApp does not have a tview.Application 
+		// that is already allocated and therefore would be running
 		if a.app != nil {
 			a.app.Stop()
 		}

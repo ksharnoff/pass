@@ -92,7 +92,7 @@ For ease of copying, there is `/copen #`, where you select one of the fields fro
 Times are saved for the date created, date last modified, and the date last opened. 
 Date last modified is only updated if any edits are made and saved in `/edit`.
 Date last opened is modified if the entry is opened by `/open #` or `/copen #`. 
-These dates also work as a security measure in case there are irregularities. 
+These dates work as a security measure in case of irregularities. 
 
 ### circulation
 In each entry there is a boolean named `Circulate` which determines if the entry shows up in `/list`, `/pick`, and `/picc`. All commands that work on entries still work (`/edit`, `/open`, `/copy`, etc.). This can be used to reduce clutter of old entries without changing the entry numbers of later ones.

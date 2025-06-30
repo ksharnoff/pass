@@ -48,9 +48,8 @@ func main() {
 	fmt.Print("\033[F\r", strings.Repeat(" ", len(oldPass)))
 	fmt.Println("")
 
-	badPass := true
 	var newPass string
-	for badPass {
+	for {
 		fmt.Println("Write your new password: ")
 		fmt.Scan(&newPass)
 		fmt.Print("\033[F\r", strings.Repeat(" ", len(newPass)))
@@ -59,9 +58,7 @@ func main() {
 		if (newPass == "/quit") || (newPass == "/q") ||
 			(newPass == "quit") || (newPass == "q") {
 			fmt.Println("Please chose a different password!\nIt cannot be /quit, /q, quit, or q\n")
-			badPass = true
 		} else {
-			badPass = false
 			break
 		}
 	}
