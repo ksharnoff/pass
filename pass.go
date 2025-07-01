@@ -30,7 +30,7 @@ import (
 	"os"
 )
 
-// passApp stores all the variables that are used throughout the 
+// passApp stores all the variables that are used throughout the
 // different methods that draw the password manager
 type passApp struct {
 	app             *tview.Application
@@ -41,6 +41,8 @@ type passApp struct {
 	fieldsAddedList *tview.List
 	newEntryForm    *tview.Form
 	indexSelected   int
+	priorCommands   []string
+	commandsInd     int
 	tempEntry       encrypt.Entry
 	tempField       encrypt.Field
 	editDeleteText  *tview.TextView
@@ -53,6 +55,7 @@ type passApp struct {
 	form            *tview.Form
 	leftPages       *tview.Pages
 }
+
 // This is in the map in /reused and /comp. It has the fields associated
 // with a certain password.
 type reusedPass struct {
@@ -113,6 +116,10 @@ func main() {
 		fieldsAddedList: newList(),
 
 		newEntryForm: newForm(),
+
+		commandsInd: -1,
+
+		priorCommands: []string{},
 
 		// These are temporary and used when someone is making a new entry, a new
 		// field, or editing an existing entry.
@@ -549,9 +556,9 @@ func (a *passApp) blankEditStringForm(display, value string, e *encrypt.Entry, e
 }
 
 // Input: a pointer to an entry that a new field is being added to. If the new
-// filed is in /new then this pointer is to tempEntry, if it is in /edit then 
-// it is a pointer to the entry being edited. 
-// This creates the form for adding a new field in /new or /edit. 
+// filed is in /new then this pointer is to tempEntry, if it is in /edit then
+// it is a pointer to the entry being edited.
+// This creates the form for adding a new field in /new or /edit.
 func (a *passApp) blankNewField(e *encrypt.Entry) {
 	edit := false
 
@@ -658,7 +665,7 @@ func (a *passApp) blankEditDeleteEntry() {
 		AddButton("cancel", func() {
 			a.switchToEditList(false)
 		}).
-		AddButton("delete", func() { 
+		AddButton("delete", func() {
 			copy(a.entries[a.indexSelected:], a.entries[a.indexSelected+1:])
 			a.entries = a.entries[:len(a.entries)-1]
 			if a.noWriteFileError() {
@@ -668,7 +675,7 @@ func (a *passApp) blankEditDeleteEntry() {
 }
 
 // Input: if being called from /new then a blank tempEntry is passed in. If
-// this is called for /copy, then an already existing entry is passed. 
+// this is called for /copy, then an already existing entry is passed.
 // This creates the form for making a new entry.
 func (a *passApp) blankNewEntry(e encrypt.Entry) {
 	a.newEntryForm.Clear(true)
@@ -800,9 +807,9 @@ func (a *passApp) blankFieldsAdded() {
 }
 
 // Input: a pointer to an entry that the notes are being added to. If the new
-// filed is in /new then this pointer is to tempEntry, if it is in /edit then 
-// it is a pointer to the entry being edited. 
-// This is for editing, creating, or deleting notes in /edit or /new. 
+// filed is in /new then this pointer is to tempEntry, if it is in /edit then
+// it is a pointer to the entry being edited.
+// This is for editing, creating, or deleting notes in /edit or /new.
 func (a *passApp) blankNewNote(e *encrypt.Entry) {
 	a.form.Clear(true)
 	toAdd := e.Notes
@@ -927,7 +934,7 @@ func (a *passApp) blankCopen(i int) {
 }
 
 // Input: action string, going to be "pick", "picc", or "flist str". This is
-// done to print out the action and send the function to the correct place. 
+// done to print out the action and send the function to the correct place.
 // Also the indexes to add to the list are also inputted, as they are different
 // for /flist vs. /pick
 func (a *passApp) blankPicklist(action string, indexes []int) {
@@ -978,7 +985,7 @@ func (a *passApp) blankPicklist(action string, indexes []int) {
 // is exited using the inputted key press. The password is used to generate a
 // key and the file is attempted to be decrypted. If this fails, then it swaps
 // to an error screen, if the file was successfully decrypted then it is swapped
-// to the password manager. 
+// to the password manager.
 func (a *passApp) passActions(key tcell.Key) {
 	// guarantee only enter (13) or tab (9) can be counted
 	if (key != 13) && (key != 9) {
@@ -1026,14 +1033,78 @@ func (a *passApp) passActions(key tcell.Key) {
 }
 
 // This function happens when the input line is exited using the inputted key.
-// First, the text written in the input field is matched to its action, and all 
+// First, the text written in the input field is matched to its action, and all
 // prerequisites (such as entries listed after) are checked. Then, the action
-// is executed by swapping the page and focus. 
+// is executed by swapping the page and focus.
 func (a *passApp) commandLineActions(key tcell.Key) {
-	// guarantee only enter (13) or tab (9) can be used
+	inputed := strings.TrimSpace(a.input.GetText())
+
+	// Add the current string to the history if it's changed, the first two
+	// checks for < 0 and >= len are to avoid an index out of bounds for the
+	// third check of priorCommannds[commandsInd] using short circuit
+	// evaluation :)
+	if (a.commandsInd < 0 || a.commandsInd >= len(a.priorCommands) ||
+		(inputed != a.priorCommands[a.commandsInd])) && inputed != "" {
+		a.priorCommands = append(a.priorCommands, inputed)
+	}
+
+	// if up or down arrows, then move upwards or down in the history of the
+	// previous commands inputted
+	if (key == 257) || (key == 258) {
+		length := len(a.priorCommands)
+
+		if length == 0 {
+			return
+		}
+
+		// up arrow
+		if key == 257 {
+			// if not currently in the commands Ind tree
+			var prev int
+			if a.commandsInd == -1 {
+				prev = length - 1
+			} else {
+				prev = a.commandsInd - 1
+			}
+
+			if prev < 0 {
+				prev = 0
+			}
+
+			a.commandsInd = prev
+
+			a.input.SetText(a.priorCommands[prev])
+			return
+		}
+
+		// down arrow case
+		var next int
+		if a.commandsInd == -1 {
+			next = length
+		} else {
+			next = a.commandsInd + 1
+		}
+
+		if next > length-1 {
+			a.input.SetText("")
+			a.commandsInd = length
+			return
+		}
+
+		a.commandsInd = next
+		a.input.SetText(a.priorCommands[next])
+
+		return
+	}
+
+	// guarantee only enter (13) or tab (9) means that it is done
 	if (key != 13) && (key != 9) {
 		return
 	}
+
+	// after successful command, set the index to -1 to show that it's not
+	// currently in the listing
+	a.commandsInd = -1
 
 	if a.updateTerminalSize() {
 		a.input.SetFieldWidth(59 + width)
@@ -1041,7 +1112,6 @@ func (a *passApp) commandLineActions(key tcell.Key) {
 	a.app.EnableMouse(true)
 	a.infoText.ScrollToBeginning()
 	a.switchToHome()
-	inputed := a.input.GetText()
 	a.input.SetText("")
 	inputedArr := strings.Split(inputed, " ")
 	action := inputedArr[0]
@@ -1170,7 +1240,8 @@ func (a *passApp) commandLineActions(key tcell.Key) {
 				return
 			}
 		}
-		a.text.SetText(testAllFields(a.entries))
+		a.text.SetText(testAllFields(a.entries, a.priorCommands))
+		a.text.ScrollToBeginning()
 		a.boxPages.SwitchToPage("test")
 	case "new", "n":
 		a.app.EnableMouse(false)
@@ -1995,10 +2066,15 @@ func shortenedName(name string) string {
 
 // Input: slice of entries
 // Return: all of the entries formatted into one string, used for testing
-func testAllFields(entries []encrypt.Entry) string {
+func testAllFields(entries []encrypt.Entry, priorCommands []string) string {
 	var b strings.Builder
-	b.WriteString(" Test of all fields that are known:")
 
+	b.WriteString("history of prior commands:")
+	for _, c := range priorCommands {
+		b.WriteString("\n " + c)
+	}
+
+	b.WriteString("\n Test of all fields that are known:")
 	for _, e := range entries {
 		b.WriteString("\n\n" + fmt.Sprint(e))
 	}
@@ -2031,7 +2107,7 @@ func (a passApp) updateTerminalSize() bool {
 	// access all the buttons in /new. The height should be at least 17 to see
 	// the list of fields already added in /new.
 	if termWidth < 75 || termHeight < 14 {
-		// if a.app == nil then the passApp does not have a tview.Application 
+		// if a.app == nil then the passApp does not have a tview.Application
 		// that is already allocated and therefore would be running
 		if a.app != nil {
 			a.app.Stop()
